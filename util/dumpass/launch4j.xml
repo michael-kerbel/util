@@ -1,0 +1,42 @@
+<launch4jConfig>
+  <dontWrapJar>true</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>dumpass.jar</jar>
+  <outfile>target\Dumpass.exe</outfile>
+  <errTitle></errTitle>
+  <cmdLine></cmdLine>
+  <chdir></chdir>
+  <priority>normal</priority>
+  <downloadUrl>http://java.com/download</downloadUrl>
+  <supportUrl></supportUrl>
+  <customProcName>true</customProcName>
+  <stayAlive>false</stayAlive>
+  <manifest></manifest>
+  <icon>dump-ass.ico</icon>
+  <jre>
+    <path>../jre</path>
+    <minVersion>1.5.0</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <initialHeapSize>128</initialHeapSize>
+    <maxHeapSize>512</maxHeapSize>
+  </jre>
+  <splash>
+    <file>dump-ass.bmp</file>
+    <waitForWindow>true</waitForWindow>
+    <timeout>5</timeout>
+    <timeoutErr>false</timeoutErr>
+  </splash>
+  <versionInfo>
+    <fileVersion>1.0.0.0</fileVersion>
+    <txtFileVersion>v1.0</txtFileVersion>
+    <fileDescription>Browser for object dumps generated with the util package</fileDescription>
+    <copyright>(c) 2009 Michael Krkoska</copyright>
+    <productVersion>1.0.0.0</productVersion>
+    <txtProductVersion>v1.0</txtProductVersion>
+    <productName>Dumpass</productName>
+    <companyName>Michael Krkoska</companyName>
+    <internalName>Dumpass</internalName>
+    <originalFilename>Dumpass.exe</originalFilename>
+  </versionInfo>
+</launch4jConfig>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>mkr</groupId>
+	<artifactId>util-svm</artifactId>
+	<name>mkr util svm</name>
+	<version>${parent.version}</version>
+
+	<parent>
+		<groupId>mkr</groupId>
+		<artifactId>util-pom</artifactId>
+		<version>1.0-SNAPSHOT</version>
+	</parent>
+
+	<build>
+		<testResources>
+			<testResource>
+				<directory>${basedir}/test</directory>
+				<includes>
+					<include>**/*.txt</include>
+					<include>**/*.test</include>
+					<include>**/*.train</include>
+				</includes>
+			</testResource>
+		</testResources>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<groupId>mkr</groupId>
+			<artifactId>util-base</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>mkr</groupId>
+			<artifactId>util-dump</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>libsvm</groupId>
+			<artifactId>libsvm</artifactId>
+			<version>[2.9, 3.0)</version>
+		</dependency>
+		    
+		<dependency>
+      		<groupId>liblinear</groupId>
+      		<artifactId>liblinear</artifactId>
+      		<version>1.51</version>
+    	</dependency>
+
+		<!-- for testing -->
+		<dependency>
+			<groupId>commons-io</groupId>
+			<artifactId>commons-io</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+</project>
+

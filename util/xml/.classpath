@@ -1,0 +1,19 @@
+<classpath>
+  <classpathentry kind="src" path="src"/>
+  <classpathentry kind="output" path="target/classes"/>
+  <classpathentry kind="var" path="M2_REPO/javax/xml/stream/stax-api/1.0/stax-api-1.0.jar" sourcepath="M2_REPO/javax/xml/stream/stax-api/1.0/stax-api-1.0-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-pool/commons-pool/1.4/commons-pool-1.4.jar" sourcepath="M2_REPO/commons-pool/commons-pool/1.4/commons-pool-1.4-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/easytesting/fest-assert/1.1/fest-assert-1.1.jar" sourcepath="M2_REPO/org/easytesting/fest-assert/1.1/fest-assert-1.1-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/easytesting/fest-util/1.1/fest-util-1.1.jar" sourcepath="M2_REPO/org/easytesting/fest-util/1.1/fest-util-1.1-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/junit/junit/4.5/junit-4.5.jar" sourcepath="M2_REPO/junit/junit/4.5/junit-4.5-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16.jar" sourcepath="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16-sources.jar">
+    <attributes>
+      <attribute value="jar:file:/D:/dev/maven-repository/log4j/log4j/1.2.16/log4j-1.2.16-javadoc.jar!/" name="javadoc_location"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/stax/stax-api/1.0.1/stax-api-1.0.1.jar"/>
+  <classpathentry kind="var" path="M2_REPO/trove/trove/3.0.0rc1/trove-3.0.0rc1.jar" sourcepath="M2_REPO/trove/trove/3.0.0rc1/trove-3.0.0rc1-sources.jar"/>
+  <classpathentry kind="src" path="/util-base"/>
+  <classpathentry kind="var" path="M2_REPO/org/codehaus/woodstox/wstx-lgpl/3.2.7/wstx-lgpl-3.2.7.jar" sourcepath="M2_REPO/org/codehaus/woodstox/wstx-lgpl/3.2.7/wstx-lgpl-3.2.7-sources.jar"/>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+</classpath>
