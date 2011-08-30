@@ -1,5 +1,4 @@
 <classpath>
-  <classpathentry kind="src" path="test" output="target/test-classes" including="**/*.java"/>
   <classpathentry kind="src" path="src"/>
   <classpathentry kind="output" path="target/classes"/>
   <classpathentry kind="var" path="M2_REPO/commons-codec/commons-codec/1.3/commons-codec-1.3.jar" sourcepath="M2_REPO/commons-codec/commons-codec/1.3/commons-codec-1.3-sources.jar">

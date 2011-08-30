@@ -1,5 +1,4 @@
 <classpath>
-  <classpathentry kind="src" path="test" output="target/test-classes" including="**/*.java"/>
   <classpathentry kind="src" path="src"/>
   <classpathentry kind="output" path="target/classes"/>
   <classpathentry kind="var" path="M2_REPO/org/easytesting/fest-assert/1.1/fest-assert-1.1.jar" sourcepath="M2_REPO/org/easytesting/fest-assert/1.1/fest-assert-1.1-sources.jar"/>
