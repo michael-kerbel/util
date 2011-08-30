@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/util-dump"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/util-base"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/util-swt"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

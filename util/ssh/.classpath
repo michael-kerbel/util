@@ -22,5 +22,5 @@
   </classpathentry>
   <classpathentry kind="var" path="M2_REPO/trove/trove/3.0.0rc1/trove-3.0.0rc1.jar" sourcepath="M2_REPO/trove/trove/3.0.0rc1/trove-3.0.0rc1-sources.jar"/>
   <classpathentry kind="src" path="/util-base"/>
-  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5"/>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 </classpath>
