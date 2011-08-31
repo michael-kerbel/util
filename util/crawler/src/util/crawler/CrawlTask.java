@@ -211,12 +211,16 @@ public class CrawlTask implements Runnable {
                proxy.addFaultyGet((int)(System.currentTimeMillis() - t));
             }
             if ( argh instanceof ConnectException ) {
-               _log.warn("forgetting proxy " + proxy);
+               if ( _params.isUseProxies() ) {
+                  _log.warn("forgetting proxy " + proxy);
+               }
                proxy = null; // don't use proxy anymore
             } else if ( argh instanceof SocketException ) {
                // continue using proxy
             } else if ( argh instanceof IOException ) {
-               _log.warn("forgetting proxy " + proxy);
+               if ( _params.isUseProxies() ) {
+                  _log.warn("forgetting proxy " + proxy);
+               }
                proxy = null; // don't use proxy anymore
             }
          }
