@@ -238,6 +238,9 @@ public class CrawlTask implements Runnable {
    }
 
    protected int getMaxRetries() {
+      if ( _params.getMaxRetries() > 0 ) {
+         return _params.getMaxRetries();
+      }
       return _params._useProxies ? 20 : 1;
    }
 
