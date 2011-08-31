@@ -18,6 +18,7 @@ public class CrawlParams {
    int                      _numberOfThreads    = 3;
    int                      _socketTimeout      = HttpClientFactory.DEFAULT_VALUE_SOCKET_TIMEOUT;
    int                      _connectionTimeout  = HttpClientFactory.DEFAULT_VALUE_CONNECTION_TIMEOUT;
+   int                      _maxRetries         = -1;
    String                   _userAgent          = HttpClientFactory.DEFAULT_VALUE_USER_AGENT;
    private String           _id;
    String                   _host;
@@ -100,6 +101,10 @@ public class CrawlParams {
 
    public List<String> getInsaneRegexes() {
       return _insaneRegexes;
+   }
+
+   public int getMaxRetries() {
+      return _maxRetries;
    }
 
    public int getNumberOfThreads() {
@@ -220,6 +225,10 @@ public class CrawlParams {
       for ( String r : insaneRegexes ) {
          _insanePatterns.add(Pattern.compile(r));
       }
+   }
+
+   public void setMaxRetries( int maxRetries ) {
+      _maxRetries = maxRetries;
    }
 
    public void setNumberOfThreads( int numberOfThreads ) {
