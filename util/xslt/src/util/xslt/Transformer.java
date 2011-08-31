@@ -75,7 +75,7 @@ public class Transformer {
    }
 
    /**
-    * same as {@link #toMap(String)} only that it throws Exceptions
+    * same as {@link #toMap(String)} only that it throws Exceptions if anything fails 
     */
    public static List<Map<String, String>> toMapLoud( String transformed ) throws Exception {
       transformed = NON_BREAKING_SPACE.matcher(transformed).replaceAll(" ");
@@ -103,7 +103,7 @@ public class Transformer {
 
    public static TransformationResult transform( String page, String xslt, Map<String, String> variablesForXSLT ) {
       StringWriter sw;
-      final TransformationResult r = new TransformationResult();
+      final TransformationResult result = new TransformationResult();
       try {
          Processor proc = new Processor(false);
          XsltCompiler comp = proc.newXsltCompiler();
@@ -138,7 +138,7 @@ public class Transformer {
                      columnNumber = sex.getColumnNumber();
                   }
                }
-               r._errors.add(new TransformationError(error, lineNumber, columnNumber));
+               result._errors.add(new TransformationError(error, lineNumber, columnNumber));
             }
 
          };
@@ -170,13 +170,13 @@ public class Transformer {
          trans.setDestination(out);
          trans.getUnderlyingController().setErrorListener(errorListener);
          trans.transform();
-         r._result = sw.toString();
-         replaceJavaScriptBlocks(xslt, r);
+         result._result = sw.toString();
+         replaceJavaScriptBlocks(xslt, result);
       }
       catch ( Exception argh ) {
          _log.warn("Failed to execute xslt", argh);
       }
-      return r;
+      return result;
    }
 
    public static TransformationResult transform( String url, String linklabel, String page, String xslt ) {
