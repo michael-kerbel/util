@@ -145,7 +145,8 @@ public class Transformer {
          comp.setErrorListener(errorListener);
          XsltExecutable exp = comp.compile(new StreamSource(new StringReader(xslt)));
 
-         if ( variablesForXSLT.containsKey("treatAsJavascript") ) {
+         if ( isNotHtml(page) ) {
+            // script tag preserves the text as text in the DOM, i.e. it doesn't try to parse any html elements which might occur in the text 
             page = "<script>" + page + "</script>";
          }
          HtmlCleaner cleaner = new HtmlCleaner();
@@ -218,6 +219,11 @@ public class Transformer {
          }
       }
       return out.toString().trim();
+   }
+
+   private static boolean isNotHtml( String page ) {
+      page = page.toLowerCase();
+      return !page.trim().startsWith("<") && !page.contains("<!DOCTYPE") && !page.contains("<html") && !page.contains("<head") && !page.contains("<body");
    }
 
    private static void replaceJavaScriptBlocks( String xslt, TransformationResult r ) {
