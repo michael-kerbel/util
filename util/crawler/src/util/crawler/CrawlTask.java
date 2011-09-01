@@ -199,7 +199,7 @@ public class CrawlTask implements Runnable {
          }
          catch ( Exception argh ) {
             if ( maxRetries > 0 ) {
-               _log.info("Failed to get page" + (_params.isUseProxies() ? " using proxy " + proxy : "") + " (will retry): " + argh);
+               _log.info("Failed to get page (will retry)" + (_params.isUseProxies() ? " using proxy " + proxy : "") + ": " + argh);
             } else {
                _log.warn("Failed to get page", argh);
                if ( argh instanceof UnexceptedStatuscodeException ) {
