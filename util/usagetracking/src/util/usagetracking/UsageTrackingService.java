@@ -79,7 +79,9 @@ public class UsageTrackingService {
    }
 
    public static UsageTrackingService getInstance() {
-      if ( TRACKDATA ) return INSTANCE;
+      if ( TRACKDATA ) {
+         return INSTANCE;
+      }
       return null;
    }
 
@@ -299,11 +301,15 @@ public class UsageTrackingService {
       int size = _keys.size();
       if ( size != 0 ) {
          long currentMaxT = _keys.get(size - 1);
-         if ( currentMaxT == t ) return _data.get(size - 1);
+         if ( currentMaxT == t ) {
+            return _data.get(size - 1);
+         }
          if ( currentMaxT > t ) {
             // a latecomer
             for ( int i = size - 2; i >= 0; i-- ) {
-               if ( _keys.get(i) == t ) return _data.get(i);
+               if ( _keys.get(i) == t ) {
+                  return _data.get(i);
+               }
             }
             _log.error("Failed to find values for latecomer usage tracking. latecomer's t=" + t + ", current t=" + currentMaxT);
             return new int[MAX_ID + 1]; // fake a return value
@@ -346,6 +352,7 @@ public class UsageTrackingService {
       Dump<StatData> dump = null;
       try {
          dump = new Dump<StatData>(StatData.class, dumpFile);
+         dump.setWillBeClosedDuringShutdown(true);
          dump.add(data);
       }
       finally {
@@ -393,9 +400,12 @@ public class UsageTrackingService {
       public void addAll( TLongList keys, List<int[]> data ) {
          int i = 0;
          for ( int myI = 0, length = Math.min(keys.size(), _keys.size()); myI < length; myI++ ) {
-            while ( i < length && keys.get(i) < _keys.get(myI) )
+            while ( i < length && keys.get(i) < _keys.get(myI) ) {
                i++;
-            if ( keys.get(i) != _keys.get(myI) ) continue;
+            }
+            if ( keys.get(i) != _keys.get(myI) ) {
+               continue;
+            }
             addAll(_data.get(myI), data.get(i));
          }
       }
@@ -407,7 +417,9 @@ public class UsageTrackingService {
       private void addAll( int[] target, int[] source ) {
          for ( int i = 0, length = Math.min(target.length, source.length); i < length; i++ ) {
             TrackingId id = _exampleTrackingIdInstance.getForId(i);
-            if ( id == null ) continue;
+            if ( id == null ) {
+               continue;
+            }
             switch ( id.getAggregation() ) {
             case Max:
                target[i] = Math.max(target[i], source[i]);
