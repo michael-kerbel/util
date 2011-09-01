@@ -198,8 +198,8 @@ public class CrawlTask implements Runnable {
             break; // we were successful
          }
          catch ( Exception argh ) {
-            if ( _params.isUseProxies() ) {
-               _log.warn("Failed to get page using proxy " + proxy + ": " + argh);
+            if ( maxRetries > 0 ) {
+               _log.warn("Failed to get page" + (_params.isUseProxies() ? " using proxy " + proxy : "") + ": " + argh);
             } else {
                _log.warn("Failed to get page", argh);
                if ( argh instanceof UnexceptedStatuscodeException ) {
