@@ -198,7 +198,7 @@ public class CrawlTask implements Runnable {
             break; // we were successful
          }
          catch ( Exception argh ) {
-            if ( maxRetries > 0 ) {
+            if ( _params.isUseProxies() ) {
                _log.warn("Failed to get page using proxy " + proxy + ": " + argh);
             } else {
                _log.warn("Failed to get page", argh);
@@ -450,17 +450,17 @@ public class CrawlTask implements Runnable {
    private void sanityCheck( String page ) throws IOException {
       for ( Pattern p : _params.getSanePatterns() ) {
          if ( !p.matcher(page).find() ) {
-            throw new IOException("insane result, " + p + " does not match, will forget this proxy");
+            throw new IOException("insane result, " + p + " does not match" + (_params.isUseProxies() ? ", will forget this proxy" : ""));
          }
       }
       for ( Pattern p : _params.getInsanePatterns() ) {
          if ( p.matcher(page).find() ) {
-            throw new IOException("insane result, " + p + " matches, will forget this proxy");
+            throw new IOException("insane result, " + p + " matches" + (_params.isUseProxies() ? ", will forget this proxy" : ""));
          }
       }
       for ( Pattern p : _params.getRetryPatterns() ) {
          if ( p.matcher(page).find() ) {
-            throw new SocketException("suspicious result, " + p + " matches, will retry this proxy");
+            throw new SocketException("suspicious result, " + p + " matches" + (_params.isUseProxies() ? ", will retry this proxy" : ""));
          }
       }
       if ( _params._useProxies ) {
@@ -471,7 +471,7 @@ public class CrawlTask implements Runnable {
          }
          catch ( Exception argh ) {
             _log.debug("Exception in xslt step", argh);
-            throw new SocketException("suspicious result, exception in xslt step, will retry this proxy");
+            throw new SocketException("suspicious result, exception in xslt step" + (_params.isUseProxies() ? ", will retry this proxy" : ""));
          }
       }
    }
