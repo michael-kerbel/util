@@ -26,6 +26,7 @@ import util.crawler.Crawler.CrawlItem;
 import util.crawler.proxy.Proxy;
 import util.http.HttpClientFactory;
 import util.string.StringTool;
+import util.time.TimeUtils;
 import util.xslt.Transformer;
 import util.xslt.Transformer.TransformationError;
 import util.xslt.Transformer.TransformationResult;
@@ -200,6 +201,10 @@ public class CrawlTask implements Runnable {
          catch ( Exception argh ) {
             if ( maxRetries > 0 ) {
                _log.info("Failed to get page (will retry)" + (_params.isUseProxies() ? " using proxy " + proxy : "") + ": " + argh);
+               if ( !_params.isUseProxies() ) {
+                  _log.debug("waiting for 10 seconds before retrying");
+                  TimeUtils.sleepQuietlySeconds(10);
+               }
             } else {
                _log.warn("Failed to get page", argh);
                if ( argh instanceof UnexceptedStatuscodeException ) {
