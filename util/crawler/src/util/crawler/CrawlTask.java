@@ -173,7 +173,7 @@ public class CrawlTask implements Runnable {
                get.abort(); // to return connection of httpClient back to the pool
                throw new UnexceptedStatuscodeException(response.getStatusLine().getStatusCode());
             }
-            String page = readPage(response, _crawlItem._httpContext);
+            String page = readPage(response, _crawlItem._httpContext, _params.getForcedPageEncoding());
             page = applyPageReplacements(_params, page);
             sanityCheck(page);
             checkForHtmlBaseElement(page);
@@ -249,8 +249,8 @@ public class CrawlTask implements Runnable {
       return _params._useProxies ? 20 : 1;
    }
 
-   protected String readPage( HttpResponse response, HttpContext httpContext ) throws Exception {
-      return HttpClientFactory.readPage(response);
+   protected String readPage( HttpResponse response, HttpContext httpContext, String pageEncoding ) throws Exception {
+      return HttpClientFactory.readPage(response, pageEncoding);
    }
 
    private String applyFollowXPaths( String page ) {

@@ -24,6 +24,7 @@ public class CrawlParams {
    String                   _host;
    String                   _authenticationUser;
    String                   _authenticationPassword;
+   String                   _forcedPageEncoding;
    String                   _xsl;
    String                   _followXSLT;
    List<String>             _startURLs;
@@ -85,6 +86,10 @@ public class CrawlParams {
 
    public String getFollowXSLT() {
       return _followXSLT;
+   }
+
+   public String getForcedPageEncoding() {
+      return _forcedPageEncoding;
    }
 
    public String getHost() {
@@ -206,6 +211,10 @@ public class CrawlParams {
 
    public void setFollowXSLT( String followXSLT ) {
       _followXSLT = StringUtils.trimToNull(followXSLT);
+   }
+
+   public void setForcedPageEncoding( String forcedPageEncoding ) {
+      _forcedPageEncoding = forcedPageEncoding;
    }
 
    public void setHost( String host ) {

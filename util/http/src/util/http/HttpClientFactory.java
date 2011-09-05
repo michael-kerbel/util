@@ -130,10 +130,14 @@ public class HttpClientFactory {
       return DateUtils.parseDate(lastModified.getValue());
    }
 
-   public static String readPage( HttpResponse response ) throws Exception {
+   public static String readPage( HttpResponse response, String pageEncoding ) throws Exception {
       HttpEntity entity = response.getEntity();
       InputStream content = entity.getContent();
       byte[] bytes = IOUtils.toByteArray(content);
+
+      if ( pageEncoding != null ) {
+         return new String(bytes, pageEncoding);
+      }
 
       String charset = EntityUtils.getContentCharSet(entity);
       if ( charset == null ) {
