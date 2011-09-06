@@ -92,7 +92,9 @@ public class EditorHelper {
             // Update the comments
             if ( _lineStyleListener != null ) {
                _lineStyleListener.refreshMultilineComments(_editor.getText());
-               if ( _redrawOnChange ) _editor.redraw();
+               if ( _redrawOnChange ) {
+                  _editor.redraw();
+               }
             }
          }
       });
@@ -105,6 +107,10 @@ public class EditorHelper {
 
    public EditorHelper( StyledText editor, String extension ) {
       this(null, editor, extension);
+   }
+
+   public void clearHistory() {
+      _changes.clear();
    }
 
    public void setErrorLines( int[] lines ) {
@@ -120,7 +126,9 @@ public class EditorHelper {
    }
 
    void afterFocusOut( Event e ) {
-      if ( _editor.isDisposed() || _autoCompleteShell == null || _autoCompleteShell._shell.isDisposed() ) return;
+      if ( _editor.isDisposed() || _autoCompleteShell == null || _autoCompleteShell._shell.isDisposed() ) {
+         return;
+      }
       Control focusControl = _editor.getDisplay().getFocusControl();
       if ( _autoCompleteShell != null && focusControl != _autoCompleteShell._shell
          && (focusControl == null || focusControl.getShell() != _autoCompleteShell._shell) ) {
@@ -132,7 +140,9 @@ public class EditorHelper {
       Keyword keyword = _keywords.get(keywordHandle);
       if ( keyword == null ) {
          List<Keyword> keywords = autoCompleteKeyword(keywordHandle);
-         if ( keywords.size() == 1 ) keyword = keywords.get(0);
+         if ( keywords.size() == 1 ) {
+            keyword = keywords.get(0);
+         }
       }
       if ( keyword != null ) {
          _editor.replaceTextRange(caretPos - word.length(), word.length(), keyword._handle);
@@ -145,7 +155,9 @@ public class EditorHelper {
       Template template = _templates.get(templateHandle);
       if ( template == null ) {
          List<Template> templates = autoCompleteTemplate(templateHandle);
-         if ( templates.size() == 1 ) template = templates.get(0);
+         if ( templates.size() == 1 ) {
+            template = templates.get(0);
+         }
       }
       if ( template != null ) {
          int caretOffsetAtLine = caretPos - _editor.getOffsetAtLine(_editor.getLineAtOffset(caretPos));
@@ -161,8 +173,9 @@ public class EditorHelper {
       if ( caretPos != _lastExpandWordPosition ) {
          _expandWordVetos.clear();
          _lastExpandWord = wordToSearch;
-      } else
+      } else {
          wordToSearch = _lastExpandWord;
+      }
 
       Set<String> tokenSet = getTokens(text);
       tokenSet.remove(wordToSearch);
@@ -191,7 +204,9 @@ public class EditorHelper {
       }
       if ( e.stateMask == SWT.CONTROL && e.keyCode == 'k' ) {
          _incrementalSearchString = _editor.getSelectionText();
-         if ( _incrementalSearchString.isEmpty() ) _incrementalSearchString = _lastIncrementalSearchString;
+         if ( _incrementalSearchString.isEmpty() ) {
+            _incrementalSearchString = _lastIncrementalSearchString;
+         }
          updateIncrementalSearchStatus();
          searchForward(true);
       }
@@ -290,9 +305,13 @@ public class EditorHelper {
    }
 
    private void autoComplete( boolean autoExpand ) {
-      if ( _autoCompleteShell != null ) _autoCompleteShell._shell.dispose();
+      if ( _autoCompleteShell != null ) {
+         _autoCompleteShell._shell.dispose();
+      }
 
-      if ( (_editor.getStyle() & SWT.READ_ONLY) != 0 ) return;
+      if ( (_editor.getStyle() & SWT.READ_ONLY) != 0 ) {
+         return;
+      }
 
       String text = _editor.getText();
       int pos = _editor.getCaretOffset();
@@ -306,7 +325,9 @@ public class EditorHelper {
       }
       if ( word.length() == 0 ) {
          // for some weird one char templates like @
-         if ( _templates.containsKey("" + text.charAt(pos - 1)) ) word.append(text.charAt(pos - 1));
+         if ( _templates.containsKey("" + text.charAt(pos - 1)) ) {
+            word.append(text.charAt(pos - 1));
+         }
       }
 
       String w = word.toString().trim();
@@ -328,7 +349,9 @@ public class EditorHelper {
    private List<Keyword> autoCompleteKeyword( String wordToSearch ) {
       List<Keyword> propositions = new ArrayList<Keyword>();
       for ( Keyword keyword : _keywords.values() ) {
-         if ( keyword._handle.startsWith(wordToSearch) ) propositions.add(keyword);
+         if ( keyword._handle.startsWith(wordToSearch) ) {
+            propositions.add(keyword);
+         }
       }
       return propositions;
    }
@@ -336,7 +359,9 @@ public class EditorHelper {
    private List<Template> autoCompleteTemplate( String wordToSearch ) {
       List<Template> propositions = new ArrayList<Template>();
       for ( Template template : _templates.values() ) {
-         if ( template._handle.startsWith(wordToSearch) ) propositions.add(template);
+         if ( template._handle.startsWith(wordToSearch) ) {
+            propositions.add(template);
+         }
       }
       return propositions;
    }
@@ -359,13 +384,23 @@ public class EditorHelper {
       int lineOffset = _editor.getOffsetAtLine(lineIndex);
       int indexInLine = caretOffset - lineOffset - 1;
       String line = _editor.getLine(lineIndex);
-      if ( indexInLine == 0 ) return;
-      if ( line.charAt(indexInLine - 1) == '/' ) return;
+      if ( indexInLine == 0 ) {
+         return;
+      }
+      if ( line.charAt(indexInLine - 1) == '/' ) {
+         return;
+      }
       int openingTagIndex = line.lastIndexOf('<', indexInLine);
-      if ( openingTagIndex < 0 ) return;
-      if ( line.charAt(openingTagIndex + 1) == '/' ) return;
+      if ( openingTagIndex < 0 ) {
+         return;
+      }
+      if ( line.charAt(openingTagIndex + 1) == '/' ) {
+         return;
+      }
       int tagnameEndIndex = line.indexOf(' ', openingTagIndex);
-      if ( tagnameEndIndex < 0 ) tagnameEndIndex = indexInLine;
+      if ( tagnameEndIndex < 0 ) {
+         tagnameEndIndex = indexInLine;
+      }
       String tagname = line.substring(openingTagIndex + 1, tagnameEndIndex);
       _editor.insert("</" + tagname + ">");
       //      StringBuilder indent = new StringBuilder();
@@ -456,7 +491,9 @@ public class EditorHelper {
    }
 
    private void keyDownIncrementalSearch( Event e ) {
-      if ( e.keyCode == SWT.SHIFT ) return;
+      if ( e.keyCode == SWT.SHIFT ) {
+         return;
+      }
       char c = e.character;
       if ( e.keyCode == SWT.ARROW_UP ) {
          searchBackwards();
@@ -531,11 +568,15 @@ public class EditorHelper {
       String line = _editor.getLine(lineNumber);
       int i = 0;
       for ( int length = line.length(); i < length; i++ ) {
-         if ( !Character.isWhitespace(line.charAt(i)) ) break;
+         if ( !Character.isWhitespace(line.charAt(i)) ) {
+            break;
+         }
       }
       int offsetAtLine = _editor.getOffsetAtLine(lineNumber);
       int smartHomeOffset = offsetAtLine + i;
-      if ( caretOffset == smartHomeOffset ) i = 0;
+      if ( caretOffset == smartHomeOffset ) {
+         i = 0;
+      }
       _editor.setCaretOffset(offsetAtLine + i);
       _editor.showSelection();
    }
@@ -544,9 +585,12 @@ public class EditorHelper {
       if ( _window != null ) {
          if ( _incrementalSearchString != null ) {
             _window.setStatus("incremental search " + _incrementalSearchString);
-            if ( !_incrementalSearchString.trim().isEmpty() ) _lastIncrementalSearchString = _incrementalSearchString;
-         } else
+            if ( !_incrementalSearchString.trim().isEmpty() ) {
+               _lastIncrementalSearchString = _incrementalSearchString;
+            }
+         } else {
             _window.setStatus(null);
+         }
       }
 
       _lineStyleListener.setSearchString(_incrementalSearchString);
