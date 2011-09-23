@@ -201,6 +201,16 @@ public abstract class DumpIndex<E> implements Closeable {
       return true;
    }
 
+   public void flush() throws IOException {
+      if ( _lookupOutputStream != null ) {
+         _lookupOutputStream.flush();
+      }
+   }
+
+   public void flushMeta() throws IOException {
+      writeMeta();
+   }
+
    public abstract TLongList getAllPositions();
 
    public FieldAccessor getFieldAccessor() {
@@ -387,8 +397,8 @@ public abstract class DumpIndex<E> implements Closeable {
       try {
          if ( !_fieldIsInt && !_fieldIsLong && !_fieldIsString ) {
             if ( _fieldIsExternalizable ) {
-               _lookupOutputStream = new SingleTypeObjectOutputStream(new BufferedOutputStream(new FileOutputStream(_lookupFile, true)), _fieldAccessor
-                     .getType());
+               _lookupOutputStream = new SingleTypeObjectOutputStream(new BufferedOutputStream(new FileOutputStream(_lookupFile, true)),
+                  _fieldAccessor.getType());
             } else {
                _lookupOutputStream = new ExternalizableObjectOutputStream(new DataOutputStream(
                   new BufferedOutputStream(new FileOutputStream(_lookupFile, true))));

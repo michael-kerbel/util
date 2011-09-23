@@ -372,6 +372,9 @@ public class Dump<E> implements DumpInput<E> {
     */
    public void flush() throws IOException {
       _outputStream.flush();
+      for ( DumpIndex index : new ArrayList<DumpIndex<E>>(_indexes) ) {
+         index.flush();
+      }
    }
 
    /**
@@ -383,6 +386,9 @@ public class Dump<E> implements DumpInput<E> {
          _deletionsOutput.flush();
       }
       writeMeta();
+      for ( DumpIndex index : new ArrayList<DumpIndex<E>>(_indexes) ) {
+         index.flushMeta();
+      }
    }
 
    /**
