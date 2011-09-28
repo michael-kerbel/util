@@ -163,6 +163,7 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
       }
       catch ( Exception e ) {
          _nextObject = null;
+         closeStreams(true);
          throw new RuntimeException(e);
       }
    }
