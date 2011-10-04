@@ -14,24 +14,20 @@
     <proxies>
       <xsl:variable name="t" select="//table[@class='tablelist']"/>
       <xsl:if test="$t">
-        <xsl:for-each select="$t//td/script/../text()">
-          <xsl:variable name="port" select="replace(replace(../script,'document.write\(&quot;:&quot;',''),'[+)]','')"/>
-          <proxy>
-            <ip>
-              <xsl:value-of select="."/>
-            </ip>
-            <port>
-							<xsl:value-of select="$port"/>
-            </port>
-            <portTranslation>
-              <xsl:analyze-string regex="(.)=(\d);"
-                                  select="//head/script[2]">
-                <xsl:matching-substring>
-                  <xsl:value-of select="regex-group(1)"/><xsl:value-of select="'='"/><xsl:value-of select="regex-group(2)"/><xsl:value-of select="$newline"/>
-                </xsl:matching-substring>
-              </xsl:analyze-string>
-            </portTranslation>
-          </proxy>
+        <xsl:for-each select="$t//td/text()">
+          <xsl:analyze-string regex="(\d+\.\d+\.\d+\.\d+):(\d+)"
+                              select=".">
+            <xsl:matching-substring>
+              <proxy>
+                <ip>
+                  <xsl:value-of select="regex-group(1)"/>
+                </ip>
+                <port>
+                  <xsl:value-of select="regex-group(2)"/>
+                </port>
+              </proxy>
+            </xsl:matching-substring>
+          </xsl:analyze-string>
         </xsl:for-each>
       </xsl:if>
     </proxies>

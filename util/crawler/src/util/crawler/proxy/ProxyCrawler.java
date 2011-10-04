@@ -3,18 +3,17 @@ package util.crawler.proxy;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.log4j.Logger;
 
@@ -134,29 +133,10 @@ public class ProxyCrawler extends Crawler {
       for ( Map<String, String> map : maps ) {
          String ip = map.get("ip");
          String port = map.get("port");
-         String portTranslation = map.get("portTranslation");
-         if ( portTranslation == null ) {
-            continue;
-         }
-         Properties props = new Properties();
-         try {
-            props.load(new StringReader(portTranslation));
-
-            StringBuffer p = new StringBuffer();
-            for ( int i = 0, length = port.length(); i < length; i++ ) {
-               String c = port.substring(i, i + 1);
-               p.append(props.get(c));
+         if ( ip != null && !ip.isEmpty() && StringUtils.trimToNull(port) != null ) {
+            if ( _proxyAdresses.add(ip + ":" + port) ) {
+               added++;
             }
-
-            if ( ip != null && !ip.isEmpty() && p.length() == port.length() ) {
-               port = p.toString();
-               if ( _proxyAdresses.add(ip + ":" + port) ) {
-                  added++;
-               }
-            }
-         }
-         catch ( IOException argh ) {
-            _log.warn("Failed to parse portTranslation: " + portTranslation, argh);
          }
       }
       return added;
