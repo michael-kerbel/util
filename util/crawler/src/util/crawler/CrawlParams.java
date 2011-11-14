@@ -44,6 +44,7 @@ public class CrawlParams {
    File                     _parentFile;
    boolean                  _useProxies         = false;
    boolean                  _useCookies         = false;
+   boolean                  _LIFO               = false;
 
    transient String         _xslContents;
 
@@ -165,6 +166,10 @@ public class CrawlParams {
       return _xslContents;
    }
 
+   public boolean isLIFO() {
+      return _LIFO;
+   }
+
    public boolean isUseCookies() {
       return _useCookies;
    }
@@ -234,6 +239,10 @@ public class CrawlParams {
       for ( String r : insaneRegexes ) {
          _insanePatterns.add(Pattern.compile(r));
       }
+   }
+
+   public void setLIFO( boolean lIFO ) {
+      _LIFO = lIFO;
    }
 
    public void setMaxRetries( int maxRetries ) {

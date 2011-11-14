@@ -147,6 +147,8 @@ public class CrawlTask implements Runnable {
 
    private CrawlParams     _params;
 
+   int                     _index;
+
 
    public CrawlTask( Crawler crawler, CrawlItem crawlItem ) {
       _crawler = crawler;
@@ -168,12 +170,7 @@ public class CrawlTask implements Runnable {
             HttpClient httpClient = proxy.getHttpClient();
             HttpHost host = new HttpHost(_crawlItem._host != null ? _crawlItem._host : _params.getHost());
             HttpGet get = new HttpGet(_crawlItem._path);
-            HttpResponse response = executeRequest(httpClient, host, get);
-            if ( response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 404 ) {
-               get.abort(); // to return connection of httpClient back to the pool
-               throw new UnexceptedStatuscodeException(response.getStatusLine().getStatusCode());
-            }
-            String page = readPage(response, _crawlItem._httpContext, _params.getForcedPageEncoding());
+            String page = requestPage(httpClient, host, get);
             page = applyPageReplacements(_params, page);
             sanityCheck(page);
             checkForHtmlBaseElement(page);
@@ -251,6 +248,16 @@ public class CrawlTask implements Runnable {
 
    protected String readPage( HttpResponse response, HttpContext httpContext, String pageEncoding ) throws Exception {
       return HttpClientFactory.readPage(response, pageEncoding);
+   }
+
+   protected String requestPage( HttpClient httpClient, HttpHost host, HttpGet get ) throws Exception {
+      HttpResponse response = executeRequest(httpClient, host, get);
+      if ( response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 404 ) {
+         get.abort(); // to return connection of httpClient back to the pool
+         throw new UnexceptedStatuscodeException(response.getStatusLine().getStatusCode());
+      }
+      String page = readPage(response, _crawlItem._httpContext, _params.getForcedPageEncoding());
+      return page;
    }
 
    private String applyFollowXPaths( String page ) {

@@ -2,15 +2,19 @@ package util.crawler;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.http.HttpHost;
 import org.apache.http.protocol.HttpContext;
@@ -68,11 +72,12 @@ public class Crawler {
 
    protected CrawlParams        _params;
    protected ThreadPoolExecutor _executor;
-   protected Set<CrawlItem>     _crawlItems = new LinkedHashSet<CrawlItem>();
+   protected Set<CrawlItem>     _crawlItems     = new LinkedHashSet<CrawlItem>();
    protected Proxy              _proxy;
    protected ProxyPool          _proxyPool;
-   protected List<CrawlItem>    _errorPaths = new ArrayList<CrawlItem>();
-   protected int                _pathNumber = 0;
+   protected List<CrawlItem>    _errorPaths     = new ArrayList<CrawlItem>();
+   protected int                _pathNumber     = 0;
+   protected AtomicInteger      _crawlTaskIndex = new AtomicInteger(0);
 
 
    public Crawler( CrawlParams params ) {
@@ -152,6 +157,24 @@ public class Crawler {
       return new CrawlTask(crawler, crawlItem);
    }
 
+   protected ThreadPoolExecutor createCrawlTaskExecutor() {
+      int numberOfThreads = _params.getNumberOfThreads();
+      if ( _params.isLIFO() ) {
+         BlockingQueue<Runnable> queue = new PriorityBlockingQueue<Runnable>(11, new Comparator<Runnable>() {
+
+            @Override
+            public int compare( Runnable o1, Runnable o2 ) {
+               CrawlTask c1 = (CrawlTask)o1;
+               CrawlTask c2 = (CrawlTask)o2;
+               return -(c1._index < c2._index ? -1 : (c1._index == c2._index ? 0 : 1));
+            }
+         });
+         return new ThreadPoolExecutor(numberOfThreads, numberOfThreads, 0L, TimeUnit.MILLISECONDS, queue);
+      } else {
+         return (ThreadPoolExecutor)Executors.newFixedThreadPool(numberOfThreads);
+      }
+   }
+
    protected void init() {
       if ( _params.isUseProxies() ) {
          ProxyList proxyList = ProxyCrawler.getCurrentProxyList();
@@ -188,7 +211,7 @@ public class Crawler {
          _proxy.setHttpClient(httpClientFactory.create());
       }
 
-      _executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(_params.getNumberOfThreads());
+      _executor = createCrawlTaskExecutor();
    }
 
    protected void returnProxy( Proxy p ) {
@@ -206,7 +229,9 @@ public class Crawler {
          }
          try {
             synchronized ( _executor ) {
-               _executor.execute(createCrawlTask(this, crawlItem));
+               CrawlTask crawlTask = createCrawlTask(this, crawlItem);
+               crawlTask._index = _crawlTaskIndex.getAndIncrement();
+               _executor.execute(crawlTask);
             }
          }
          catch ( RejectedExecutionException e ) {
