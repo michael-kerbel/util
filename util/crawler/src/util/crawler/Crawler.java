@@ -113,7 +113,8 @@ public class Crawler {
    protected void crawl() {
       for ( String startPath : _params.getStartURLs() ) {
          String[] normalizedPath = CrawlTask.makeAbsolute(null, null, startPath);
-         CrawlItem crawlItem = new CrawlItem(null, normalizedPath[0], normalizedPath[1], null, HttpClientFactory.createHttpContext(_params.isUseCookies()));
+         CrawlItem crawlItem = new CrawlItem(_params, null, normalizedPath[0], normalizedPath[1], null, HttpClientFactory.createHttpContext(_params
+               .isUseCookies()));
          addCrawlItem(crawlItem);
       }
 
@@ -259,7 +260,7 @@ public class Crawler {
 
    public static class CrawlItem {
 
-      String                  _host;
+      String                  _host             = null;
       String                  _path;
       String                  _linklabel;
       int                     _depth            = 0;
@@ -269,8 +270,10 @@ public class Crawler {
       int                     _errorStatusCode  = 0;
 
 
-      public CrawlItem( CrawlItem parent, String host, String path, String linklabel, HttpContext httpContext ) {
-         _host = host;
+      public CrawlItem( CrawlParams params, CrawlItem parent, String host, String path, String linklabel, HttpContext httpContext ) {
+         if ( host != null && !host.equalsIgnoreCase(params.getHost()) ) {
+            _host = host;
+         }
          _path = path;
          _linklabel = linklabel;
          _parent = parent;

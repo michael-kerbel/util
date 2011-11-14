@@ -365,7 +365,7 @@ public class CrawlTask implements Runnable {
          String[] normalizedPath = makeAbsolute(_crawlItem, _pathDir, normalize(path));
          for ( Pattern p : _params.getFollowPatterns() ) {
             if ( p.matcher(normalizedPath[1]).matches() && !isDontFollow(normalizedPath[1]) ) {
-               paths.add(new CrawlItem(_crawlItem, normalizedPath[0], normalizedPath[1], linklabel, getHttpContext(_crawlItem)));
+               paths.add(new CrawlItem(_params, _crawlItem, normalizedPath[0], normalizedPath[1], linklabel, getHttpContext(_crawlItem)));
             }
          }
       }
@@ -419,7 +419,7 @@ public class CrawlTask implements Runnable {
       String[] s = StringTool.split(value, '$');
       String url = s[s.length - 1].trim();
       String[] normalizedPath = makeAbsolute(_crawlItem, _pathDir, url);
-      CrawlItem ci = new CrawlItem(_crawlItem, normalizedPath[0], normalizedPath[1], null, getHttpContext(_crawlItem));
+      CrawlItem ci = new CrawlItem(_params, _crawlItem, normalizedPath[0], normalizedPath[1], null, getHttpContext(_crawlItem));
 
       for ( int i = 0, length = s.length - 1; i < length; i++ ) {
          if ( s[i].isEmpty() || s[i].equals("followurl") ) {
