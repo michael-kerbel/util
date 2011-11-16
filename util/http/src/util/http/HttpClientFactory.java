@@ -80,7 +80,7 @@ public class HttpClientFactory {
 
    private static Logger        _log                             = Logger.getLogger(HttpClientFactory.class);
 
-   private static final Pattern HTML_CHARSET_DECLARATION         = Pattern.compile("(?i)charset=(.*?)\"");
+   private static final Pattern HTML_CHARSET_DECLARATION         = Pattern.compile("(?i)charset=[\"']?(.*?)[\"'/>]");
 
 
    public static void close( HttpClient httpClient ) {
