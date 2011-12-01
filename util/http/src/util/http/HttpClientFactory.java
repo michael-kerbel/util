@@ -40,6 +40,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.params.AllClientPNames;
+import org.apache.http.client.params.CookiePolicy;
 import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -80,7 +81,7 @@ public class HttpClientFactory {
 
    private static Logger        _log                             = Logger.getLogger(HttpClientFactory.class);
 
-   private static final Pattern HTML_CHARSET_DECLARATION         = Pattern.compile("(?i)charset=[\"']?(.*?)[\"'/>]");
+   private static final Pattern HTML_CHARSET_DECLARATION         = Pattern.compile("(?i)(?:charset|encoding)=[\"']?(.*?)[\"'/>]");
 
 
    public static void close( HttpClient httpClient ) {
@@ -155,6 +156,10 @@ public class HttpClientFactory {
          charset = sanitizeCharset(charset);
          try {
             page = new String(bytes, charset);
+            if ( page.length() > 0 && page.charAt(0) == 0xfeff ) {
+               // remove BOM
+               page = page.substring(1);
+            }
          }
          catch ( UnsupportedEncodingException argh ) {
             _log.warn("Failed to decode encoding " + charset, argh);
@@ -252,6 +257,7 @@ public class HttpClientFactory {
    String      _password               = null;
    boolean     _trustAllSsl            = true;
    boolean     _neverRetryHttpRequests = false;
+   boolean     _useCookies             = true;
 
 
    public HttpClient create() {
@@ -273,7 +279,10 @@ public class HttpClientFactory {
       HttpProtocolParams.setUseExpectContinue(params, _useExpectContinue);
       HttpProtocolParams.setUserAgent(params, _userAgent);
       HttpClientParams.setRedirecting(params, _executeRedirects);
-
+      HttpClientParams.setCookiePolicy(params, CookiePolicy.BROWSER_COMPATIBILITY);
+      if ( !_useCookies ) {
+         HttpClientParams.setCookiePolicy(params, CookiePolicy.IGNORE_COOKIES);
+      }
       params.setParameter(AllClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME, ThreadSafeConnManagerFactory.class.getName());
 
       // http://hc.apache.org/httpcomponents-client/tutorial/html/ch02.html
@@ -342,6 +351,10 @@ public class HttpClientFactory {
 
    public void setTrustAllSsl( boolean trustAllSsl ) {
       _trustAllSsl = trustAllSsl;
+   }
+
+   public void setUseCookies( boolean useCookies ) {
+      _useCookies = useCookies;
    }
 
    /** @see {@link org.apache.http.params.CoreProtocolPNames#USE_EXPECT_CONTINUE} */
