@@ -205,6 +205,7 @@ public class Crawler {
          httpClientFactory.setUserAgent(_params.getUserAgent());
          httpClientFactory.setConnectionTimeout(_params.getConnectionTimeout());
          httpClientFactory.setSoTimeout(_params.getSocketTimeout());
+         httpClientFactory.setUseCookies(_params.isUseCookies());
          if ( _params.getAuthenticationUser() != null ) {
             httpClientFactory.setUser(_params.getAuthenticationUser());
             httpClientFactory.setPassword(_params.getAuthenticationPassword());
