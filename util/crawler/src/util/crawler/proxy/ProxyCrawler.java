@@ -1,8 +1,5 @@
 package util.crawler.proxy;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -11,7 +8,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
@@ -19,7 +15,6 @@ import org.apache.log4j.Logger;
 
 import util.crawler.CrawlParams;
 import util.crawler.Crawler;
-import util.crawler.proxy.ProxyList.ProxyAddress;
 
 
 public class ProxyCrawler extends Crawler {
@@ -47,26 +42,6 @@ public class ProxyCrawler extends Crawler {
    }
 
 
-   public static ProxyList getCurrentProxyList() {
-      ProxyList proxyList = null;
-      String proxyListFilename = System.getProperty("proxyListFilename");
-      if ( proxyListFilename != null ) {
-         proxyList = new ProxyList();
-         FileInputStream in = null;
-         try {
-            in = new FileInputStream(proxyListFilename);
-            proxyList.initFromDisk(in);
-         }
-         catch ( IOException argh ) {
-            _log.warn("Failed to read proxy list from " + proxyListFilename, argh);
-         }
-         finally {
-            IOUtils.closeQuietly(in);
-         }
-      }
-      return proxyList;
-   }
-
    public static void main( String[] args ) {
       refreshProxyList(null, null, null, 120, 3000);
    }
@@ -80,19 +55,7 @@ public class ProxyCrawler extends Crawler {
       ProxyPool proxyPool = new ProxyPool(proxyCrawler._proxyList, latencyTestHost, sanePatterns, insanePatterns, null, null, null);
       ProxyList fastProxies = proxyPool.measureLatency(maxTimeToMeasureLatency, maxResponseTimeInMillis);
 
-      StringBuilder sb = new StringBuilder();
-      sb.append("lastRefreshTime=");
-      sb.append(System.currentTimeMillis());
-      sb.append("\n");
-      for ( ProxyAddress p : fastProxies.getProxies() ) {
-         sb.append(p.toString()).append("\n");
-      }
-      try {
-         FileUtils.writeStringToFile(new File(System.getProperty("proxyListFilename", "proxies.txt")), sb.toString());
-      }
-      catch ( IOException argh ) {
-         _log.error("Failed to write to file", argh);
-      }
+      ProxyList.storeProxyList(fastProxies);
    }
 
 

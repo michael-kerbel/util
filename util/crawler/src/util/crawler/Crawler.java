@@ -111,12 +111,7 @@ public class Crawler {
    }
 
    protected void crawl() {
-      for ( String startPath : _params.getStartURLs() ) {
-         String[] normalizedPath = CrawlTask.makeAbsolute(null, null, startPath);
-         CrawlItem crawlItem = new CrawlItem(_params, null, normalizedPath[0], normalizedPath[1], null, HttpClientFactory.createHttpContext(_params
-               .isUseCookies()));
-         addCrawlItem(crawlItem);
-      }
+      addStartURLs();
 
       while ( true ) {
          boolean check = false;
@@ -178,10 +173,10 @@ public class Crawler {
 
    protected void init() {
       if ( _params.isUseProxies() ) {
-         ProxyList proxyList = ProxyCrawler.getCurrentProxyList();
+         ProxyList proxyList = ProxyList.getCurrentProxyList();
          if ( proxyList == null ) {
             synchronized ( Crawler.class ) {
-               proxyList = ProxyCrawler.getCurrentProxyList();
+               proxyList = ProxyList.getCurrentProxyList();
                if ( proxyList == null ) {
                   ProxyCrawler proxyCrawler = new ProxyCrawler();
                   proxyCrawler.crawl();
@@ -242,6 +237,37 @@ public class Crawler {
          return true;
       }
       return false;
+   }
+
+   private void addStartURLs() {
+      List<String> startURLs = _params.getStartURLs();
+      if ( _params.isLIFO() ) {
+         /* We have to do some voodoo, to make LIFO work: 
+          * We reverse the order of the startURLs, since it is unnatural, to put the first URLs to the end.
+          * But as soon as we add the first of our startURLs, it is executed. Not really LIFO. That's why we add the first URLs (un-reversed) first, 
+          * as long as there is a Thread available in our Threadpool.  
+          */
+         List<String> reversedStartURLs = new ArrayList<String>();
+
+         for ( int i = 0, length = Math.min(_params.getNumberOfThreads(), startURLs.size()); i < length; i++ ) {
+            addCrawlItem(createCrawlItem(startURLs.get(i)));
+         }
+         for ( int i = startURLs.size() - 1; i >= 0; i-- ) {
+            reversedStartURLs.add(startURLs.get(i));
+         }
+         startURLs = reversedStartURLs;
+      }
+
+      for ( String startPath : startURLs ) {
+         addCrawlItem(createCrawlItem(startPath));
+      }
+   }
+
+   private CrawlItem createCrawlItem( String url ) {
+      String[] normalizedPath = CrawlTask.makeAbsolute(null, null, url);
+      CrawlItem crawlItem = new CrawlItem(_params, null, normalizedPath[0], normalizedPath[1], null,
+         HttpClientFactory.createHttpContext(_params.isUseCookies()));
+      return crawlItem;
    }
 
    private void sleep( long ms ) {
