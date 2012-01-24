@@ -511,7 +511,9 @@ public class Externalizer implements Externalizable {
                      Class<? extends Enum> c = f.getType();
                      Enum[] values = c.getEnumConstants();
                      int b = in.readInt();
-                     e = values[b];
+                     if ( b < values.length ) {
+                        e = values[b];
+                     }
                   } else {
                      in.readInt();
                   }
@@ -531,7 +533,9 @@ public class Externalizer implements Externalizable {
                      Enum[] values = c.getEnumConstants();
                      long l = in.readLong();
                      for ( int k = 0, length = values.length; k < length; k++ ) {
-                        if ( (l & (1 << k)) != 0 ) enumSet.add(values[k]);
+                        if ( (l & (1 << k)) != 0 ) {
+                           enumSet.add(values[k]);
+                        }
                      }
                   } else {
                      in.readLong();
@@ -560,7 +564,7 @@ public class Externalizer implements Externalizable {
       catch ( EOFException e ) {
          throw e;
       }
-      catch ( Exception e ) {
+      catch ( Throwable e ) {
          throw new RuntimeException("Failed to read externalized instance. Maybe the field order was changed? class " + getClass(), e);
       }
    }
@@ -847,7 +851,9 @@ public class Externalizer implements Externalizable {
                   Enum[] values = c.getEnumConstants();
                   int b = -1;
                   for ( int j = 0, llength = values.length; j < llength; j++ ) {
-                     if ( e == values[j] ) b = j;
+                     if ( e == values[j] ) {
+                        b = j;
+                     }
                   }
                   out.writeInt(b);
                }
@@ -859,10 +865,14 @@ public class Externalizer implements Externalizable {
                if ( enumSet != null ) {
                   Class<? extends Enum> c = f.getGenericTypes()[0];
                   Enum[] values = c.getEnumConstants();
-                  if ( values.length > 64 ) throw new IllegalArgumentException("Enum " + c + " has more than 64 values. This is unsupported by Externalizer.");
+                  if ( values.length > 64 ) {
+                     throw new IllegalArgumentException("Enum " + c + " has more than 64 values. This is unsupported by Externalizer.");
+                  }
                   long l = 0;
                   for ( int j = 0, llength = values.length; j < llength; j++ ) {
-                     if ( enumSet.contains(values[j]) ) l |= 1 << j;
+                     if ( enumSet.contains(values[j]) ) {
+                        l |= 1 << j;
+                     }
                   }
                   out.writeLong(l);
                }
@@ -1306,7 +1316,7 @@ public class Externalizer implements Externalizable {
     * It's enough to annotate either the getter or the setter. Of course you can also annotate both, but the indexes must match.
     */
    @Retention(RetentionPolicy.RUNTIME)
-   @Target( { ElementType.FIELD, ElementType.METHOD })
+   @Target({ ElementType.FIELD, ElementType.METHOD })
    public @interface externalize {
 
       public byte value();
@@ -1496,12 +1506,13 @@ public class Externalizer implements Externalizable {
                }
                if ( ft == FieldType.ListOfExternalizables
                   && (fi._fieldAccessor.getGenericTypes().length != 1 || !Externalizable.class.isAssignableFrom(fi._fieldAccessor.getGenericTypes()[0])) ) {
-                  if ( fi._fieldAccessor.getGenericTypes().length == 1 && String.class == fi._fieldAccessor.getGenericTypes()[0] )
+                  if ( fi._fieldAccessor.getGenericTypes().length == 1 && String.class == fi._fieldAccessor.getGenericTypes()[0] ) {
                      ft = FieldType.ListOfStrings;
-                  else
+                  } else {
                      ft = FieldType.Object;
-                  //               throw new RuntimeException(_class + " extends Externalizer, but the member variable " + f.getName()
-                  //                  + " has a generic List with an unsupported type: " + type + " - the generic type of a list must be Externalizable");
+                     //               throw new RuntimeException(_class + " extends Externalizer, but the member variable " + f.getName()
+                     //                  + " has a generic List with an unsupported type: " + type + " - the generic type of a list must be Externalizable");
+                  }
                }
                fi._fieldType = ft;
 
@@ -1641,12 +1652,13 @@ public class Externalizer implements Externalizable {
             }
             if ( ft == FieldType.ListOfExternalizables
                && (fi._fieldAccessor.getGenericTypes().length != 1 || !Externalizable.class.isAssignableFrom(fi._fieldAccessor.getGenericTypes()[0])) ) {
-               if ( fi._fieldAccessor.getGenericTypes().length == 1 && String.class == fi._fieldAccessor.getGenericTypes()[0] )
+               if ( fi._fieldAccessor.getGenericTypes().length == 1 && String.class == fi._fieldAccessor.getGenericTypes()[0] ) {
                   ft = FieldType.ListOfStrings;
-               else
+               } else {
                   ft = FieldType.Object;
-               //                           throw new RuntimeException(_class + " extends Externalizer, but the getter/setter pair " + getter.getName()
-               //                              + " has a generic List with an unsupported type: " + type + " - the generic type of a list must be Externalizable");
+                  //                           throw new RuntimeException(_class + " extends Externalizer, but the getter/setter pair " + getter.getName()
+                  //                              + " has a generic List with an unsupported type: " + type + " - the generic type of a list must be Externalizable");
+               }
             }
             fi._fieldType = ft;
 
