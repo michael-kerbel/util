@@ -84,12 +84,13 @@ public class CrawlTask implements Runnable {
       if ( path.startsWith("/") ) {
          return new String[] { host, path };
       }
-      if ( path.startsWith("http://") ) {
-         int firstSlashIndex = path.indexOf('/', 7);
+      if ( path.startsWith("http://") || path.startsWith("https://") ) {
+         int hostNameStartIndex = path.indexOf("//") + 2;
+         int firstSlashIndex = path.indexOf('/', hostNameStartIndex);
          if ( firstSlashIndex < 0 ) {
             return new String[] { path, "/" };
          }
-         return new String[] { path.substring(7, firstSlashIndex), path.substring(firstSlashIndex) };
+         return new String[] { path.substring(hostNameStartIndex, firstSlashIndex), path.substring(firstSlashIndex) };
       }
       if ( path.startsWith("?") && parentCrawlItem != null ) {
          String name = parentCrawlItem._path.substring(pathDir.length() + 1);
@@ -111,10 +112,14 @@ public class CrawlTask implements Runnable {
             sb.insert(0, '/' + s[i]);
          }
       }
+      if ( path.endsWith("/") ) {
+         sb.append('/');
+      }
       return new String[] { host, sb.toString() };
    }
 
    public static String normalize( String path ) {
+      path = path.trim();
       path = SPACE.matcher(path).replaceAll("+");
       path = PIPE.matcher(path).replaceAll("%7C");
       path = AMP_ENTITY.matcher(path).replaceAll("&");
