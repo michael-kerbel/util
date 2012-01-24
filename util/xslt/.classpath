@@ -2,8 +2,6 @@
   <classpathentry kind="src" path="test" output="target/test-classes" including="**/*.java"/>
   <classpathentry kind="src" path="src"/>
   <classpathentry kind="output" path="target/classes"/>
-  <classpathentry kind="var" path="M2_REPO/org/apache/ant/ant/1.7.0/ant-1.7.0.jar" sourcepath="M2_REPO/org/apache/ant/ant/1.7.0/ant-1.7.0-sources.jar"/>
-  <classpathentry kind="var" path="M2_REPO/org/apache/ant/ant-launcher/1.7.0/ant-launcher-1.7.0.jar"/>
   <classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6.jar" sourcepath="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6-sources.jar">
     <attributes>
       <attribute value="jar:file:/D:/dev/maven-repository/commons-lang/commons-lang/2.6/commons-lang-2.6-javadoc.jar!/" name="javadoc_location"/>
@@ -11,8 +9,7 @@
   </classpathentry>
   <classpathentry kind="var" path="M2_REPO/org/easytesting/fest-assert/1.1/fest-assert-1.1.jar" sourcepath="M2_REPO/org/easytesting/fest-assert/1.1/fest-assert-1.1-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/easytesting/fest-util/1.1/fest-util-1.1.jar" sourcepath="M2_REPO/org/easytesting/fest-util/1.1/fest-util-1.1-sources.jar"/>
-  <classpathentry kind="var" path="M2_REPO/net/sourceforge/htmlcleaner/htmlcleaner/2.2/htmlcleaner-2.2.jar" sourcepath="M2_REPO/net/sourceforge/htmlcleaner/htmlcleaner/2.2/htmlcleaner-2.2-sources.jar"/>
-  <classpathentry kind="var" path="M2_REPO/org/jdom/jdom/1.1/jdom-1.1.jar" sourcepath="M2_REPO/org/jdom/jdom/1.1/jdom-1.1-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/htmlcleaner/htmlcleaner/2.1/htmlcleaner-2.1.jar"/>
   <classpathentry kind="var" path="M2_REPO/junit/junit/4.5/junit-4.5.jar" sourcepath="M2_REPO/junit/junit/4.5/junit-4.5-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16.jar" sourcepath="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16-sources.jar">
     <attributes>
