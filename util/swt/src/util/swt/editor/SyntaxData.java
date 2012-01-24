@@ -19,6 +19,9 @@ class SyntaxData {
    private Pattern          _multiLineCommentStart;
    private Pattern          _multiLineCommentEnd;
 
+   private String           _bracesStart = "";
+   private String           _bracesEnd   = "";
+
    private List<StyleGroup> _styleGroups = new ArrayList<StyleGroup>();
 
 
@@ -28,6 +31,14 @@ class SyntaxData {
 
    public void addStyleGroup( StyleGroup styleGroup ) {
       _styleGroups.add(styleGroup);
+   }
+
+   public String getBracesEnd() {
+      return _bracesEnd;
+   }
+
+   public String getBracesStart() {
+      return _bracesStart;
    }
 
    public String getExtension() {
@@ -44,6 +55,14 @@ class SyntaxData {
 
    public List<StyleGroup> getStyleGroups() {
       return _styleGroups;
+   }
+
+   public void setBracesEnd( String bracesEnd ) {
+      _bracesEnd = bracesEnd;
+   }
+
+   public void setBracesStart( String bracesStart ) {
+      _bracesStart = bracesStart;
    }
 
    public void setMultiLineCommentEnd( String multiLineCommentEnd ) {
@@ -74,9 +93,13 @@ class SyntaxData {
       }
 
       Color getColor( String color ) {
-         if ( color == null ) return null;
+         if ( color == null ) {
+            return null;
+         }
          String rgb = color.trim();
-         if ( rgb.length() > 6 ) throw new IllegalArgumentException("color " + color + " is invalid");
+         if ( rgb.length() > 6 ) {
+            throw new IllegalArgumentException("color " + color + " is invalid");
+         }
          int r = Integer.parseInt(rgb.substring(0, 2), 16);
          int g = Integer.parseInt(rgb.substring(2, 4), 16);
          int b = Integer.parseInt(rgb.substring(4, 6), 16);
@@ -84,4 +107,5 @@ class SyntaxData {
       }
 
    }
+
 }

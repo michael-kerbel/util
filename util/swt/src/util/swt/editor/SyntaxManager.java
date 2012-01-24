@@ -27,7 +27,9 @@ class SyntaxManager {
       if ( sd == null ) {
          // Not in cache; load it and put in cache
          sd = loadSyntaxData(extension);
-         if ( sd != null ) data.put(sd.getExtension(), sd);
+         if ( sd != null ) {
+            data.put(sd.getExtension(), sd);
+         }
       }
       return sd;
    }
@@ -48,10 +50,18 @@ class SyntaxManager {
          sd = new SyntaxData(extension);
          sd.setMultiLineCommentStart(rb.getString("multilinecommentstart"));
          sd.setMultiLineCommentEnd(rb.getString("multilinecommentend"));
+         if ( rb.containsKey("bracesstart") ) {
+            sd.setBracesStart(rb.getString("bracesstart"));
+         }
+         if ( rb.containsKey("bracesend") ) {
+            sd.setBracesEnd(rb.getString("bracesend"));
+         }
 
          for ( int i = 1;; i++ ) {
             String regex = getValue(rb, "regex." + i);
-            if ( regex == null ) break;
+            if ( regex == null ) {
+               break;
+            }
 
             String foreground = getValue(rb, "foreground." + i);
 

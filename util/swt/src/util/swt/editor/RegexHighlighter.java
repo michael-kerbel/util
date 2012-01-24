@@ -39,6 +39,8 @@ public class RegexHighlighter implements LineStyleListener {
    private Pattern                               _searchStringPattern;
    private Map<Pattern, NextOccurenceCacheEntry> _nextOccurenceCache     = new HashMap<Pattern, NextOccurenceCacheEntry>();
 
+   int                                           _highlightedCharIndex   = -1;
+
 
    public RegexHighlighter( String extension ) {
       this(SyntaxManager.getSyntaxData(extension));
@@ -49,6 +51,52 @@ public class RegexHighlighter implements LineStyleListener {
       commentOffsets = new LinkedList();
    }
 
+   public void highlightBraceMatch( String text, int caretOffset ) {
+      _highlightedCharIndex = -1;
+
+      if ( caretOffset >= text.length() ) {
+         return;
+      }
+
+      char c = text.charAt(caretOffset);
+
+      int bracesStartIndex = syntaxData.getBracesStart().indexOf(c);
+      if ( bracesStartIndex >= 0 ) {
+         char closingChar = syntaxData.getBracesEnd().charAt(bracesStartIndex);
+         int closingCharsToFind = 1;
+         for ( int i = caretOffset + 1, length = text.length(); i < length; i++ ) {
+            if ( text.charAt(i) == c ) {
+               closingCharsToFind++;
+            } else if ( text.charAt(i) == closingChar ) {
+               closingCharsToFind--;
+            }
+
+            if ( closingCharsToFind == 0 ) {
+               _highlightedCharIndex = i;
+               return;
+            }
+         }
+      }
+
+      int bracesEndIndex = syntaxData.getBracesEnd().indexOf(c);
+      if ( bracesEndIndex >= 0 ) {
+         char openingChar = syntaxData.getBracesStart().charAt(bracesEndIndex);
+         int openingCharsToFind = 1;
+         for ( int i = caretOffset - 1; i >= 0; i-- ) {
+            if ( text.charAt(i) == c ) {
+               openingCharsToFind++;
+            } else if ( text.charAt(i) == openingChar ) {
+               openingCharsToFind--;
+            }
+
+            if ( openingCharsToFind == 0 ) {
+               _highlightedCharIndex = i;
+               return;
+            }
+         }
+      }
+   }
+
    /**
     * Called by StyledText to get styles for a line
     */
@@ -57,11 +105,13 @@ public class RegexHighlighter implements LineStyleListener {
       if ( syntaxData != null ) {
          TextPresentation textPresentation = new TextPresentation();
 
+         String line = event.lineText;
+
          int start = 0;
          int lineNum = ((StyledText)event.widget).getLineAtOffset(event.lineOffset);
-         int length = event.lineText.length();
-         for ( int line : _errorLines ) {
-            if ( lineNum == line ) {
+         int length = line.length();
+         for ( int errorLine : _errorLines ) {
+            if ( lineNum == errorLine ) {
                StyleRange s = new StyleRange(event.lineOffset, length, null, null, SWT.NORMAL);
                s.underline = true;
                s.underlineStyle = SWT.UNDERLINE_SQUIGGLE;
@@ -70,10 +120,15 @@ public class RegexHighlighter implements LineStyleListener {
             }
          }
 
-         String line = event.lineText;
+         if ( _highlightedCharIndex >= event.lineOffset && _highlightedCharIndex <= event.lineOffset + line.length() ) {
+            StyleRange range = new StyleRange(_highlightedCharIndex, 1, null, null);
+            range.borderColor = COMMENT_COLOR;
+            range.borderStyle = SWT.BORDER_SOLID;
+            textPresentation.mergeStyleRange(range);
+         }
 
          // Check if line begins inside a multiline comment
-         int mlIndex = getBeginsInsideComment(event.lineOffset, event.lineText.length());
+         int mlIndex = getBeginsInsideComment(event.lineOffset, line.length());
          if ( mlIndex > -1 ) {
             // Line begins inside multiline comment; create the range
             textPresentation.mergeStyleRange(new StyleRange(event.lineOffset, mlIndex - event.lineOffset, COMMENT_COLOR, COMMENT_BACKGROUND));

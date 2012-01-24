@@ -62,6 +62,7 @@ public class EditorHelper {
       OnEvent.addListener(_editor, SWT.KeyDown).on(EditorHelper.class, this).keyDown(null);
       OnEvent.addListener(_editor, SWT.FocusOut).on(EditorHelper.class, this).focusOut(null);
       OnEvent.addListener(_editor, SWT.MouseDown).on(EditorHelper.class, this).mouseDown(null);
+      OnEvent.addListener(_editor, 3011 /*StyledText.CaretMoved*/).on(EditorHelper.class, this).caretMoved(null);
 
       // Store undo information
       _editor.addExtendedModifyListener(new ExtendedModifyListener() {
@@ -133,6 +134,24 @@ public class EditorHelper {
       if ( _autoCompleteShell != null && focusControl != _autoCompleteShell._shell
          && (focusControl == null || focusControl.getShell() != _autoCompleteShell._shell) ) {
          _autoCompleteShell._shell.dispose();
+      }
+   }
+
+   void caretMoved( Event e ) {
+      int caretOffset = _editor.getCaretOffset();
+      String text = _editor.getText();
+
+      int oldHighlightIndex = _lineStyleListener._highlightedCharIndex;
+
+      _lineStyleListener.highlightBraceMatch(text, caretOffset);
+
+      if ( oldHighlightIndex != _lineStyleListener._highlightedCharIndex ) {
+         if ( oldHighlightIndex >= 0 ) {
+            _editor.redrawRange(oldHighlightIndex, 1, false);
+         }
+         if ( _lineStyleListener._highlightedCharIndex >= 0 ) {
+            _editor.redrawRange(_lineStyleListener._highlightedCharIndex, 1, false);
+         }
       }
    }
 
