@@ -17,28 +17,28 @@ import util.crawler.CrawlParams;
 import util.crawler.Crawler;
 
 
-public class ProxyCrawler extends Crawler {
+public class ProxyCrawler {
 
-   private static Logger      _log   = Logger.getLogger(ProxyCrawler.class);
-   private static CrawlParams PARAMS = new CrawlParams() {
+   private static Logger      _log             = Logger.getLogger(ProxyCrawler.class);
 
-                                        @Override
-                                        public String getXslContents() {
-                                           try {
-                                              return IOUtils.toString(ProxyCrawler.class.getResourceAsStream("proxies.xsl"));
-                                           }
-                                           catch ( Exception argh ) {
-                                              throw new RuntimeException("Failed to read proxy xsl file.", argh);
-                                           }
-                                        };
-                                     };
+   private static CrawlParams SAMAIR_PARAMS    = new CrawlParamsWithXsltFromClasspath("proxies-samair.xsl");
    static {
-      PARAMS.setDontFollowRegexes(Collections.EMPTY_LIST);
-      PARAMS.setFollowRegexes(Arrays.asList("/proxy/proxy-..\\.htm"));
-      PARAMS.setHost("www.samair.ru");
-      PARAMS.setId("proxies");
-      PARAMS.setNumberOfThreads(1);
-      PARAMS.setStartURLs(Arrays.asList("/proxy/proxy-01.htm"));
+      SAMAIR_PARAMS.setDontFollowRegexes(Collections.EMPTY_LIST);
+      SAMAIR_PARAMS.setFollowRegexes(Arrays.asList("/proxy/proxy-..\\.htm"));
+      SAMAIR_PARAMS.setHost("www.samair.ru");
+      SAMAIR_PARAMS.setId("proxies");
+      SAMAIR_PARAMS.setNumberOfThreads(1);
+      SAMAIR_PARAMS.setStartURLs(Arrays.asList("/proxy/proxy-100.htm", "/proxy/proxy-200.htm", "/proxy/proxy-300.htm", "/proxy/proxy-1.htm"));
+   }
+
+   private static CrawlParams HIDEMYASS_PARAMS = new CrawlParamsWithXsltFromClasspath("proxies-hidemyass.xsl");
+   static {
+      HIDEMYASS_PARAMS.setDontFollowRegexes(Collections.EMPTY_LIST);
+      HIDEMYASS_PARAMS.setFollowRegexes(Arrays.asList("/proxy-list/\\d+"));
+      HIDEMYASS_PARAMS.setHost("hidemyass.com");
+      HIDEMYASS_PARAMS.setId("proxies");
+      HIDEMYASS_PARAMS.setNumberOfThreads(1);
+      HIDEMYASS_PARAMS.setStartURLs(Arrays.asList("http://hidemyass.com/proxy-list/"));
    }
 
 
@@ -60,24 +60,14 @@ public class ProxyCrawler extends Crawler {
 
 
    Set<String> _proxyAdresses = new HashSet<String>();
+
    ProxyList   _proxyList     = new ProxyList();
 
 
-   public ProxyCrawler() {
-      super(PARAMS);
-   }
-
-   @Override
    public void crawl() {
-      _log.info("starting crawl for proxies");
-
-      super.crawl();
-
-      for ( String a : _proxyAdresses ) {
-         _proxyList.addProxy(a);
-      }
+      new TheRealProxyCrawler(SAMAIR_PARAMS).crawl();
+      new TheRealProxyCrawler(HIDEMYASS_PARAMS).crawl();
       int n = _proxyList.getProxies().size();
-      _log.info("got " + n + " proxies");
       if ( n == 0 ) {
          _log.warn("initializing from static file");
          _proxyList.initFromDisk();
@@ -90,18 +80,59 @@ public class ProxyCrawler extends Crawler {
       return _proxyList;
    }
 
-   @Override
-   protected synchronized int addResult( Map<String, String>[] maps ) {
-      int added = 0;
-      for ( Map<String, String> map : maps ) {
-         String ip = map.get("ip");
-         String port = map.get("port");
-         if ( ip != null && !ip.isEmpty() && StringUtils.trimToNull(port) != null ) {
-            if ( _proxyAdresses.add(ip + ":" + port) ) {
-               added++;
-            }
+
+   private static final class CrawlParamsWithXsltFromClasspath extends CrawlParams {
+
+      private String _filename;
+
+
+      public CrawlParamsWithXsltFromClasspath( String filename ) {
+         _filename = filename;
+      }
+
+      @Override
+      public String getXslContents() {
+         try {
+            return IOUtils.toString(ProxyCrawler.class.getResourceAsStream(_filename));
+         }
+         catch ( Exception argh ) {
+            throw new RuntimeException("Failed to read proxy xsl file.", argh);
          }
       }
-      return added;
+   }
+
+   private class TheRealProxyCrawler extends Crawler {
+
+      public TheRealProxyCrawler( CrawlParams params ) {
+         super(params);
+      }
+
+      @Override
+      public void crawl() {
+         _log.info("starting crawl for proxies using " + getParams().getHost());
+
+         super.crawl();
+
+         for ( String a : _proxyAdresses ) {
+            _proxyList.addProxy(a);
+         }
+         int n = _proxyList.getProxies().size();
+         _log.info("got " + n + " proxies");
+      }
+
+      @Override
+      protected synchronized int addResult( Map<String, String>[] maps ) {
+         int added = 0;
+         for ( Map<String, String> map : maps ) {
+            String ip = map.get("ip");
+            String port = map.get("port");
+            if ( ip != null && !ip.isEmpty() && StringUtils.trimToNull(port) != null ) {
+               if ( _proxyAdresses.add(ip + ":" + port) ) {
+                  added++;
+               }
+            }
+         }
+         return added;
+      }
    }
 }
