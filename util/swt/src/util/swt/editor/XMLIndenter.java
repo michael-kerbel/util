@@ -11,6 +11,7 @@ public class XMLIndenter {
    private static final Pattern ATTRIBUTE             = Pattern.compile("[\\w-:]*=");
    private static final Pattern LINE_START_WHITESPACE = Pattern.compile("^[\\s]*");
 
+
    public static String indent( String doc ) {
       String[] lines = doc.split("(\\r\\n)|\\n");
       int depth = 0, oldDepth = 0;
@@ -32,8 +33,9 @@ public class XMLIndenter {
 
          int index = -1;
          while ( (index = lines[i].indexOf(">", index + 1)) >= 0 && !comment(index, commentBeginIndex, commentEndIndex, comment)
-            && lines[i].charAt(index - 1) != '-' )
+            && lines[i].charAt(index - 1) != '-' ) {
             closeTagIndex = index;
+         }
 
          matcher = TAG_END.matcher(lines[i]);
          while ( matcher.find() && !comment(matcher.start(), commentBeginIndex, commentEndIndex, comment) ) {
@@ -47,22 +49,30 @@ public class XMLIndenter {
          commentEndIndex = indentedLine.indexOf("-->");
 
          index = -1;
-         while ( (index = indentedLine.indexOf("\"", index + 1)) >= 0 && !comment(index, commentBeginIndex, commentEndIndex, comment) ) {
+         while ( (index = indentedLine.indexOf("\"", index + 1)) >= 0 && !comment(index, commentBeginIndex, commentEndIndex, comment)
+            && !apostrophe(indentedLine, index) ) {
             quoteCount++;
             quoteIndex = index + 1;
          }
 
          if ( openTagIndex > closeTagIndex ) {
             matcher = ATTRIBUTE.matcher(indentedLine);
-            if ( matcher.find() )
+            if ( matcher.find() ) {
                attributeIndex = matcher.start();
-            else
+            } else {
                attributeIndex = depth;
+            }
          }
-         if ( openTagIndex < closeTagIndex ) attributeIndex = -1;
+         if ( openTagIndex < closeTagIndex ) {
+            attributeIndex = -1;
+         }
 
-         if ( commentBeginIndex > commentEndIndex ) comment = true;
-         if ( commentBeginIndex < commentEndIndex ) comment = false;
+         if ( commentBeginIndex > commentEndIndex ) {
+            comment = true;
+         }
+         if ( commentBeginIndex < commentEndIndex ) {
+            comment = false;
+         }
 
          lines[i] = indentedLine;
       }
@@ -74,9 +84,19 @@ public class XMLIndenter {
       return newDoc.toString();
    }
 
+   private static boolean apostrophe( String indentedLine, int index ) {
+      int lastAposStart = indentedLine.lastIndexOf("='", index);
+      int nextAposEnd = indentedLine.indexOf("'", index);
+      return lastAposStart >= 0 && nextAposEnd >= 0 && lastAposStart < index && index < nextAposEnd;
+   }
+
    private static boolean comment( int index, int commentBeginIndex, int commentEndIndex, boolean comment ) {
-      if ( comment && (commentEndIndex == -1 || commentEndIndex > index) ) return true;
-      if ( commentBeginIndex != -1 && commentBeginIndex < index && (commentEndIndex == -1 || commentEndIndex > index) ) return true;
+      if ( comment && (commentEndIndex == -1 || commentEndIndex > index) ) {
+         return true;
+      }
+      if ( commentBeginIndex != -1 && commentBeginIndex < index && (commentEndIndex == -1 || commentEndIndex > index) ) {
+         return true;
+      }
       return false;
    }
 
@@ -88,10 +108,15 @@ public class XMLIndenter {
       }
       StringBuffer indent = new StringBuffer();
       int indentSize = depth * 2;
-      if ( attributeIndex >= 0 ) indentSize = attributeIndex;
-      if ( quoteIndex >= 0 ) indentSize = quoteIndex;
-      for ( int i = 0; i < indentSize; i++ )
+      if ( attributeIndex >= 0 ) {
+         indentSize = attributeIndex;
+      }
+      if ( quoteIndex >= 0 ) {
+         indentSize = quoteIndex;
+      }
+      for ( int i = 0; i < indentSize; i++ ) {
          indent.append(' ');
+      }
 
       return indent + line.substring(firstRealCharIndex);
    }
