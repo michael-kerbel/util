@@ -39,6 +39,10 @@
 			<groupId>mkr</groupId>
 			<artifactId>util-xslt</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>mkr</groupId>
+			<artifactId>util-dump</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>commons-io</groupId>

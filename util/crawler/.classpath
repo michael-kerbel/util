@@ -37,8 +37,9 @@
   <classpathentry kind="var" path="M2_REPO/net/sf/saxon/saxon-s9api/9.0/saxon-s9api-9.0.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/springframework/spring/2.5.6/spring-2.5.6.jar" sourcepath="M2_REPO/org/springframework/spring/2.5.6/spring-2.5.6-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/trove/trove/3.0.0rc1/trove-3.0.0rc1.jar" sourcepath="M2_REPO/trove/trove/3.0.0rc1/trove-3.0.0rc1-sources.jar"/>
-  <classpathentry kind="src" path="/util-base"/>
-  <classpathentry kind="src" path="/util-http"/>
-  <classpathentry kind="src" path="/util-xslt"/>
+  <classpathentry kind="var" path="M2_REPO/mkr/util-base/1.0-SNAPSHOT/util-base-1.0-SNAPSHOT.jar" sourcepath="M2_REPO/mkr/util-base/1.0-SNAPSHOT/util-base-1.0-SNAPSHOT-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/mkr/util-dump/1.0-SNAPSHOT/util-dump-1.0-SNAPSHOT.jar"/>
+  <classpathentry kind="var" path="M2_REPO/mkr/util-http/1.0-SNAPSHOT/util-http-1.0-SNAPSHOT.jar" sourcepath="M2_REPO/mkr/util-http/1.0-SNAPSHOT/util-http-1.0-SNAPSHOT-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/mkr/util-xslt/1.0-SNAPSHOT/util-xslt-1.0-SNAPSHOT.jar" sourcepath="M2_REPO/mkr/util-xslt/1.0-SNAPSHOT/util-xslt-1.0-SNAPSHOT-sources.jar"/>
   <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 </classpath>
