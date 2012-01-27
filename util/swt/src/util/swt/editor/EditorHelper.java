@@ -114,6 +114,10 @@ public class EditorHelper {
       _changes.clear();
    }
 
+   public RegexHighlighter getRegexHighlighter() {
+      return _lineStyleListener;
+   }
+
    public void setErrorLines( int[] lines ) {
       _lineStyleListener.setErrorLines(lines);
    }
