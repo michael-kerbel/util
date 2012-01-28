@@ -105,6 +105,10 @@ public class Crawler {
 
    protected Proxy checkoutProxy() {
       if ( _proxyPool != null ) {
+         if ( _proxyPool.size() == 0 ) {
+            _log.warn("got no proxies left, re-initializing proxy pool!");
+            initProxyPool();
+         }
          return _proxyPool.checkoutProxy();
       }
       return _proxy;
@@ -173,27 +177,7 @@ public class Crawler {
 
    protected void init() {
       if ( _params.isUseProxies() ) {
-         ProxyList proxyList = ProxyList.getCurrentProxyList();
-         if ( proxyList == null ) {
-            synchronized ( Crawler.class ) {
-               proxyList = ProxyList.getCurrentProxyList();
-               if ( proxyList == null ) {
-                  ProxyCrawler proxyCrawler = new ProxyCrawler();
-                  proxyCrawler.crawl();
-                  proxyList = proxyCrawler.getProxyList();
-               }
-            }
-         }
-         if ( System.getProperty(HttpClientFactory.PARAM_KEY_CONNECTION_TIMEOUT) == null ) {
-            System.setProperty(HttpClientFactory.PARAM_KEY_CONNECTION_TIMEOUT, "" + _params.getConnectionTimeout());
-         }
-         if ( System.getProperty(HttpClientFactory.PARAM_KEY_SOCKET_TIMEOUT) == null ) {
-            System.setProperty(HttpClientFactory.PARAM_KEY_SOCKET_TIMEOUT, "" + _params.getSocketTimeout());
-         }
-         HttpHost latencyTestHost = new HttpHost(_params.getHost());
-         _proxyPool = new ProxyPool(proxyList, latencyTestHost, _params.getSanePatterns(), _params.getInsanePatterns(), _params.getUserAgent(),
-            _params.getAuthenticationUser(), _params.getAuthenticationPassword());
-         _log.info("using proxy pool with " + _proxyPool.size() + " proxies");
+         initProxyPool();
       } else {
          _proxy = new Proxy(new ProxyAddress("127.0.0.1:80"));
          HttpClientFactory httpClientFactory = new HttpClientFactory();
@@ -209,6 +193,30 @@ public class Crawler {
       }
 
       _executor = createCrawlTaskExecutor();
+   }
+
+   protected void initProxyPool() {
+      ProxyList proxyList = ProxyList.getCurrentProxyList();
+      if ( proxyList == null ) {
+         synchronized ( Crawler.class ) {
+            proxyList = ProxyList.getCurrentProxyList();
+            if ( proxyList == null ) {
+               ProxyCrawler proxyCrawler = new ProxyCrawler();
+               proxyCrawler.crawl();
+               proxyList = proxyCrawler.getProxyList();
+            }
+         }
+      }
+      if ( System.getProperty(HttpClientFactory.PARAM_KEY_CONNECTION_TIMEOUT) == null ) {
+         System.setProperty(HttpClientFactory.PARAM_KEY_CONNECTION_TIMEOUT, "" + _params.getConnectionTimeout());
+      }
+      if ( System.getProperty(HttpClientFactory.PARAM_KEY_SOCKET_TIMEOUT) == null ) {
+         System.setProperty(HttpClientFactory.PARAM_KEY_SOCKET_TIMEOUT, "" + _params.getSocketTimeout());
+      }
+      HttpHost latencyTestHost = new HttpHost(_params.getHost());
+      _proxyPool = new ProxyPool(proxyList, latencyTestHost, _params.getSanePatterns(), _params.getInsanePatterns(), _params.getUserAgent(),
+         _params.getAuthenticationUser(), _params.getAuthenticationPassword());
+      _log.info("using proxy pool with " + _proxyPool.size() + " proxies");
    }
 
    protected void returnProxy( Proxy p ) {
