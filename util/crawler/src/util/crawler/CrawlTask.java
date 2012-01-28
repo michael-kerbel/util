@@ -179,8 +179,7 @@ public class CrawlTask implements Runnable {
             page = applyPageReplacements(_params, page);
             sanityCheck(page);
             checkForHtmlBaseElement(page);
-            int numberItemsAdded = calcResult(host, page);
-            //            _log.info(_path + "\n" + transformed);
+            int numberItemsAdded = transformAndAddResult(host, page);
             Set<CrawlItem> paths = extractCrawlItems(page);
             int numberCrawlItemsAdded = 0;
             for ( CrawlItem path : paths ) {
@@ -201,35 +200,8 @@ public class CrawlTask implements Runnable {
             break; // we were successful
          }
          catch ( Exception argh ) {
-            if ( maxRetries > 0 ) {
-               _log.info("Failed to get page (will retry)" + (_params.isUseProxies() ? " using proxy " + proxy : "") + ": " + argh);
-               if ( !_params.isUseProxies() ) {
-                  _log.debug("waiting for 10 seconds before retrying");
-                  TimeUtils.sleepQuietlySeconds(10);
-               }
-            } else {
-               _log.warn("Failed to get page", argh);
-               if ( argh instanceof UnexceptedStatuscodeException ) {
-                  _crawlItem._errorStatusCode = ((UnexceptedStatuscodeException)argh)._statuscode;
-               }
-               _crawler._errorPaths.add(_crawlItem);
-            }
-            if ( proxy != null ) {
-               proxy.addFaultyGet((int)(System.currentTimeMillis() - t));
-            }
-            if ( argh instanceof ConnectException ) {
-               if ( _params.isUseProxies() ) {
-                  _log.warn("forgetting proxy " + proxy);
-               }
-               proxy = null; // don't use proxy anymore
-            } else if ( argh instanceof SocketException ) {
-               // continue using proxy
-            } else if ( argh instanceof IOException ) {
-               if ( _params.isUseProxies() ) {
-                  _log.warn("forgetting proxy " + proxy);
-               }
-               proxy = null; // don't use proxy anymore
-            }
+            int requestTimeInMillis = (int)(System.currentTimeMillis() - t);
+            proxy = handleException(argh, requestTimeInMillis, maxRetries, proxy);
          }
          finally {
             if ( proxy != null ) {
@@ -249,6 +221,42 @@ public class CrawlTask implements Runnable {
          return _params.getMaxRetries();
       }
       return _params._useProxies ? 20 : 1;
+   }
+
+   /**
+    * @return the proxy parameter, or null, if the proxy is not to be used again 
+    */
+   protected Proxy handleException( Exception argh, int requestTimeInMillis, int numberOfRetriesLeft, Proxy proxy ) {
+      if ( numberOfRetriesLeft > 0 ) {
+         _log.info("Failed to get page (will retry)" + (_params.isUseProxies() ? " using proxy " + proxy : "") + ": " + argh);
+         if ( !_params.isUseProxies() ) {
+            _log.debug("waiting for 10 seconds before retrying");
+            TimeUtils.sleepQuietlySeconds(10);
+         }
+      } else {
+         _log.warn("Failed to get page", argh);
+         if ( argh instanceof UnexceptedStatuscodeException ) {
+            _crawlItem._errorStatusCode = ((UnexceptedStatuscodeException)argh)._statuscode;
+         }
+         _crawler._errorPaths.add(_crawlItem);
+      }
+      if ( proxy != null ) {
+         proxy.addFaultyGet(requestTimeInMillis);
+      }
+      if ( argh instanceof ConnectException ) {
+         if ( _params.isUseProxies() ) {
+            _log.warn("forgetting proxy " + proxy);
+         }
+         proxy = null; // don't use proxy anymore
+      } else if ( argh instanceof SocketException ) {
+         // continue using proxy
+      } else if ( argh instanceof IOException ) {
+         if ( _params.isUseProxies() ) {
+            _log.warn("forgetting proxy " + proxy);
+         }
+         proxy = null; // don't use proxy anymore
+      }
+      return proxy;
    }
 
    protected String readPage( HttpResponse response, HttpContext httpContext, String pageEncoding ) throws Exception {
@@ -296,39 +304,6 @@ public class CrawlTask implements Runnable {
          _log.warn("Transformation errors while applying XSLT to page: " + s);
       }
       return transformationResult._result;
-   }
-
-   private int calcResult( HttpHost host, String page ) {
-      try {
-         String transformed = Transformer.transform(page, _params.getXslContents(), _crawlItem._variablesForXSLT)._result;
-         Map<String, String>[] maps = Transformer.toMap(transformed);
-         for ( Map<String, String> map : maps ) {
-            for ( Map.Entry<String, String> e : new HashMap<String, String>(map).entrySet() ) {
-               String key = e.getKey();
-               String value = e.getValue();
-               if ( value.contains(FOLLOWURL) ) {
-                  Map<String, String> followUrlResults = followUrl(key, value);
-                  if ( followUrlResults != null ) {
-                     for ( Map.Entry<String, String> ee : followUrlResults.entrySet() ) {
-                        if ( ee.getValue() != null && !ee.getValue().trim().isEmpty() ) {
-                           map.put(ee.getKey(), ee.getValue());
-                        }
-                     }
-                  }
-               }
-            }
-         }
-         for ( Map<String, String> map : maps ) {
-            map.put(Crawler.RESULT_KEY_DEEPLINK, host + _crawlItem._path);
-            map.put(Crawler.RESULT_KEY_CRAWLITEM_DEPTH, "" + _crawlItem._depth);
-            map.put(Crawler.RESULT_KEY_ORIGINAL_PAGE, page);
-         }
-         return _crawler.addResult(maps);
-      }
-      catch ( Exception argh ) {
-         _log.warn("failed to extract result from html page " + _crawlItem, argh);
-         return 0;
-      }
    }
 
    /** search for a <base> tag and overwrite _pathDir with its value if present */
@@ -490,6 +465,39 @@ public class CrawlTask implements Runnable {
             _log.debug("Exception in xslt step", argh);
             throw new SocketException("suspicious result, exception in xslt step" + (_params.isUseProxies() ? ", will retry this proxy" : ""));
          }
+      }
+   }
+
+   private int transformAndAddResult( HttpHost host, String page ) {
+      try {
+         String transformed = Transformer.transform(page, _params.getXslContents(), _crawlItem._variablesForXSLT)._result;
+         Map<String, String>[] maps = Transformer.toMap(transformed);
+         for ( Map<String, String> map : maps ) {
+            for ( Map.Entry<String, String> e : new HashMap<String, String>(map).entrySet() ) {
+               String key = e.getKey();
+               String value = e.getValue();
+               if ( value.contains(FOLLOWURL) ) {
+                  Map<String, String> followUrlResults = followUrl(key, value);
+                  if ( followUrlResults != null ) {
+                     for ( Map.Entry<String, String> ee : followUrlResults.entrySet() ) {
+                        if ( ee.getValue() != null && !ee.getValue().trim().isEmpty() ) {
+                           map.put(ee.getKey(), ee.getValue());
+                        }
+                     }
+                  }
+               }
+            }
+         }
+         for ( Map<String, String> map : maps ) {
+            map.put(Crawler.RESULT_KEY_DEEPLINK, host + _crawlItem._path);
+            map.put(Crawler.RESULT_KEY_CRAWLITEM_DEPTH, "" + _crawlItem._depth);
+            map.put(Crawler.RESULT_KEY_ORIGINAL_PAGE, page);
+         }
+         return _crawler.addResult(maps);
+      }
+      catch ( Exception argh ) {
+         _log.warn("failed to extract result from html page " + _crawlItem, argh);
+         return 0;
       }
    }
 
