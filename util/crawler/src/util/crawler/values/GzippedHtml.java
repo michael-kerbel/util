@@ -50,6 +50,10 @@ public class GzippedHtml extends Externalizer {
       }
    }
 
+   public String getUrl() {
+      return _url;
+   }
+
    public void setPageBytes( byte[] b ) {
       InputStream in = null;
       try {
