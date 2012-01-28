@@ -25,6 +25,7 @@ import javax.xml.transform.stream.StreamSource;
 
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
 import net.sf.saxon.s9api.XdmAtomicValue;
 import net.sf.saxon.s9api.XdmNode;
@@ -61,6 +62,15 @@ public class Transformer {
                                                                         }
                                                                      };
 
+
+   public static XsltExecutable createXsltExecutable( String xslt, List<TransformationError> errors ) throws SaxonApiException {
+      Processor proc = new Processor(false);
+      XsltCompiler comp = proc.newXsltCompiler();
+      ErrorListener errorListener = new ErrorCollector(errors);
+      comp.setErrorListener(errorListener);
+      XsltExecutable exp = comp.compile(new StreamSource(new StringReader(xslt)));
+      return exp;
+   }
 
    public static Map<String, String>[] toMap( String transformed ) {
       List<Map<String, String>> maps;
@@ -102,48 +112,31 @@ public class Transformer {
    }
 
    public static TransformationResult transform( String page, String xslt, Map<String, String> variablesForXSLT ) {
+      List<TransformationError> errors = new ArrayList<TransformationError>();
+      XsltExecutable exp;
+      try {
+         exp = createXsltExecutable(xslt, errors);
+      }
+      catch ( SaxonApiException argh ) {
+         TransformationResult r = new TransformationResult();
+         r._errors = errors;
+         return r;
+      }
+      return transform(page, xslt, exp, variablesForXSLT);
+   }
+
+   public static TransformationResult transform( String url, String linklabel, String page, String xslt ) {
+      Map<String, String> variablesForXSLT = new HashMap<String, String>();
+      variablesForXSLT.put("url", url);
+      variablesForXSLT.put("linklabel", linklabel);
+      return transform(page, xslt, variablesForXSLT);
+   }
+
+   public static TransformationResult transform( String page, String xslt, XsltExecutable exp, Map<String, String> variablesForXSLT ) {
       StringWriter sw;
       final TransformationResult r = new TransformationResult();
       try {
          Processor proc = new Processor(false);
-         XsltCompiler comp = proc.newXsltCompiler();
-         ErrorListener errorListener = new ErrorListener() {
-
-            @Override
-            public void error( TransformerException exception ) throws TransformerException {
-               addError(exception);
-            }
-
-            @Override
-            public void fatalError( TransformerException exception ) throws TransformerException {
-               addError(exception);
-            }
-
-            @Override
-            public void warning( TransformerException exception ) throws TransformerException {
-               addError(exception);
-            }
-
-            private void addError( TransformerException exception ) {
-               String error = exception.getMessage();
-               SourceLocator loc = exception.getLocator();
-               int lineNumber = 0, columnNumber = 0;
-               if ( loc != null ) {
-                  lineNumber = loc.getLineNumber();
-                  columnNumber = loc.getColumnNumber();
-               } else {
-                  if ( exception.getException() instanceof SAXParseException ) {
-                     SAXParseException sex = (SAXParseException)exception.getException();
-                     lineNumber = sex.getLineNumber();
-                     columnNumber = sex.getColumnNumber();
-                  }
-               }
-               r._errors.add(new TransformationError(error, lineNumber, columnNumber));
-            }
-
-         };
-         comp.setErrorListener(errorListener);
-         XsltExecutable exp = comp.compile(new StreamSource(new StringReader(xslt)));
 
          if ( isNotHtml(page) ) {
             // script tag preserves the text as text in the DOM, i.e. it doesn't try to parse any html elements which might occur in the text 
@@ -169,6 +162,7 @@ public class Transformer {
 
          trans.setInitialContextNode(source);
          trans.setDestination(out);
+         ErrorListener errorListener = new ErrorCollector(r._errors);
          trans.getUnderlyingController().setErrorListener(errorListener);
          trans.transform();
          r._result = sw.toString();
@@ -178,13 +172,6 @@ public class Transformer {
          _log.warn("Failed to execute xslt", argh);
       }
       return r;
-   }
-
-   public static TransformationResult transform( String url, String linklabel, String page, String xslt ) {
-      Map<String, String> variablesForXSLT = new HashMap<String, String>();
-      variablesForXSLT.put("url", url);
-      variablesForXSLT.put("linklabel", linklabel);
-      return transform(page, xslt, variablesForXSLT);
    }
 
    private static void addChildren( Map<String, String> map, NodeList childNodes ) {
@@ -267,5 +254,47 @@ public class Transformer {
 
       public String                    _result = "";
       public List<TransformationError> _errors = new ArrayList<TransformationError>();
+   }
+
+   private static final class ErrorCollector implements ErrorListener {
+
+      List<TransformationError> _errors;
+
+
+      public ErrorCollector( List<TransformationError> errors ) {
+         _errors = errors;
+      }
+
+      @Override
+      public void error( TransformerException exception ) throws TransformerException {
+         addError(exception);
+      }
+
+      @Override
+      public void fatalError( TransformerException exception ) throws TransformerException {
+         addError(exception);
+      }
+
+      @Override
+      public void warning( TransformerException exception ) throws TransformerException {
+         addError(exception);
+      }
+
+      private void addError( TransformerException exception ) {
+         String error = exception.getMessage();
+         SourceLocator loc = exception.getLocator();
+         int lineNumber = 0, columnNumber = 0;
+         if ( loc != null ) {
+            lineNumber = loc.getLineNumber();
+            columnNumber = loc.getColumnNumber();
+         } else {
+            if ( exception.getException() instanceof SAXParseException ) {
+               SAXParseException sex = (SAXParseException)exception.getException();
+               lineNumber = sex.getLineNumber();
+               columnNumber = sex.getColumnNumber();
+            }
+         }
+         _errors.add(new TransformationError(error, lineNumber, columnNumber));
+      }
    }
 }
