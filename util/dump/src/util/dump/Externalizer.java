@@ -1479,30 +1479,19 @@ public class Externalizer implements Externalizable {
          this(1024);
       }
 
-<<<<<<< HEAD
       public BytesCache( int size ) {
          if ( size < 0 ) {
             throw new IllegalArgumentException("Negative initial size: " + size);
          }
          this._buffer = new byte[size];
-=======
-      public BytesCache( int paramInt ) {
-         if ( paramInt < 0 ) {
-            throw new IllegalArgumentException("Negative initial size: " + paramInt);
-         }
-         this._buffer = new byte[paramInt];
->>>>>>>  - using fieldType.defaultType in both ExternalizableArray and
       }
 
       public void reset() {
          _count = 0;
-<<<<<<< HEAD
          if ( _buffer.length > 1048576 ) {
             // let it shrink
             _buffer = new byte[1024];
          }
-=======
->>>>>>>  - using fieldType.defaultType in both ExternalizableArray and
       }
 
       public int size() {
@@ -1510,60 +1499,33 @@ public class Externalizer implements Externalizable {
       }
 
       @Override
-<<<<<<< HEAD
       public void write( byte[] bytes, int start, int length ) {
          if ( (start < 0) || (start > bytes.length) || (length < 0) || (start + length > bytes.length) || (start + length < 0) ) {
-=======
-      public void write( byte[] paramArrayOfByte, int paramInt1, int paramInt2 ) {
-         if ( (paramInt1 < 0) || (paramInt1 > paramArrayOfByte.length) || (paramInt2 < 0) || (paramInt1 + paramInt2 > paramArrayOfByte.length)
-            || (paramInt1 + paramInt2 < 0) ) {
->>>>>>>  - using fieldType.defaultType in both ExternalizableArray and
             throw new IndexOutOfBoundsException();
          }
          if ( length == 0 ) {
             return;
          }
-<<<<<<< HEAD
          int i = _count + length;
          if ( i > _buffer.length ) {
             _buffer = Arrays.copyOf(_buffer, Math.max(_buffer.length << 1, i));
          }
          System.arraycopy(bytes, start, _buffer, _count, length);
-=======
-         int i = _count + paramInt2;
-         if ( i > _buffer.length ) {
-            _buffer = Arrays.copyOf(_buffer, Math.max(_buffer.length << 1, i));
-         }
-         System.arraycopy(paramArrayOfByte, paramInt1, _buffer, _count, paramInt2);
->>>>>>>  - using fieldType.defaultType in both ExternalizableArray and
          this._count = i;
       }
 
       @Override
-<<<<<<< HEAD
       public void write( int data ) {
-=======
-      public void write( int paramInt ) {
->>>>>>>  - using fieldType.defaultType in both ExternalizableArray and
          int i = this._count + 1;
          if ( i > this._buffer.length ) {
             this._buffer = Arrays.copyOf(_buffer, Math.max(_buffer.length << 1, i));
          }
-<<<<<<< HEAD
          _buffer[_count] = (byte)data;
          _count = i;
       }
 
       public void writeTo( ObjectOutput out ) throws IOException {
          out.write(_buffer, 0, _count);
-=======
-         _buffer[_count] = (byte)paramInt;
-         _count = i;
-      }
-
-      public void writeTo( ObjectOutput paramOutputStream ) throws IOException {
-         paramOutputStream.write(_buffer, 0, _count);
->>>>>>>  - using fieldType.defaultType in both ExternalizableArray and
       }
    }
 
