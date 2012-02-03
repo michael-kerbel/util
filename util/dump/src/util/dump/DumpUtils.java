@@ -80,6 +80,11 @@ public class DumpUtils {
                }
             }
 
+            @Override
+            void closeStreams( boolean isEOF ) {
+               // don't
+            };
+
             private long getMostFrequentElementSize() {
                final int[] maxNumber = { 0 };
                final int[] mostFrequentSize = { 1 };
