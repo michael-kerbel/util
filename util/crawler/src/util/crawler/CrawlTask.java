@@ -35,7 +35,7 @@ import util.xslt.Transformer.TransformationResult;
 public class CrawlTask implements Runnable {
 
    private static final String  FOLLOWURL         = "$followurl$";
-   private static final Pattern HREF              = Pattern.compile("(?i)<a.+?href=\"(.*?)\".*?>(?s)(.*?)</a");
+   private static final Pattern HREF              = Pattern.compile("(?i)<a.+?href=\"(.*?)\"[^>]*?(?:>(?s)(.*?)</a|/>)");
    private static final Pattern BASE              = Pattern.compile("(?i)<base.+?href=\"(.*?)\".*?>");
    private static final Pattern LINEBREAKS        = Pattern.compile("(\\n|\\r\\n)");
    private static final Pattern SPACE             = Pattern.compile(" ");
@@ -341,7 +341,7 @@ public class CrawlTask implements Runnable {
       Matcher matcher = HREF.matcher(page);
       while ( matcher.find() ) {
          String path = convertXmlCharEntitiesToUrl(matcher.group(1));
-         String linklabel = new String(matcher.group(2)); // new String(.) to get rid of memory leak because of substring not copying!
+         String linklabel = new String(StringUtils.trimToEmpty(matcher.group(2))); // new String(.) to get rid of memory leak because of substring not copying!
          String[] normalizedPath = makeAbsolute(_crawlItem, _pathDir, normalize(path));
          for ( Pattern p : _params.getFollowPatterns() ) {
             if ( p.matcher(normalizedPath[1]).matches() && !isDontFollow(normalizedPath[1]) ) {
