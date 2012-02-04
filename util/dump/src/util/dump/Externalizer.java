@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
+
 import util.dump.stream.ExternalizableObjectOutputStream;
 import util.reflection.FieldAccessor;
 import util.reflection.FieldFieldAccessor;
@@ -90,30 +92,19 @@ import util.reflection.UnsafeFieldFieldAccessor;
  */
 public class Externalizer implements Externalizable {
 
-   protected static final long              serialVersionUID           = -1816997029156670474L;
+   protected static final long             serialVersionUID           = -1816997029156670474L;
 
-   private static boolean                   USE_UNSAFE_FIELD_ACCESSORS = true;
-   private static Map<Class, ClassConfig>   CLASS_CONFIGS              = new HashMap<Class, ClassConfig>();
-   private static ThreadLocal<BytesCache>   BYTES_CACHE                = new ThreadLocal<BytesCache>() {
+   private static Logger                   _log                       = Logger.getLogger(Externalizer.class);
 
-                                                                          @Override
-                                                                          protected BytesCache initialValue() {
-                                                                             return new BytesCache();
-                                                                          }
-                                                                       };
-   private static ThreadLocal<ObjectOutput> CACHING_OUT                = new ThreadLocal<ObjectOutput>() {
+   private static boolean                  USE_UNSAFE_FIELD_ACCESSORS = true;
+   private static Map<Class, ClassConfig>  CLASS_CONFIGS              = new HashMap<Class, ClassConfig>();
+   private static ThreadLocal<StreamCache> STREAM_CACHE               = new ThreadLocal<StreamCache>() {
 
-                                                                          @Override
-                                                                          protected ObjectOutput initialValue() {
-                                                                             try {
-                                                                                return new ExternalizableObjectOutputStream(BYTES_CACHE.get());
-                                                                             }
-                                                                             catch ( IOException argh ) {
-                                                                                // insane, cannot happen
-                                                                                return null;
-                                                                             }
-                                                                          };
-                                                                       };
+                                                                         @Override
+                                                                         protected StreamCache initialValue() {
+                                                                            return new StreamCache();
+                                                                         }
+                                                                      };
 
    static {
       try {
@@ -126,7 +117,7 @@ public class Externalizer implements Externalizable {
       }
    }
 
-   private ClassConfig                      _config;
+   private ClassConfig                     _config;
 
 
    public Externalizer() {
@@ -503,11 +494,11 @@ public class Externalizer implements Externalizable {
                break;
             }
             case ListOfExternalizables: {
-               readListOfExternalizables(in, f);
+               readListOfExternalizables(in, f, defaultType, _config._defaultGenericTypes0[j]);
                break;
             }
             case ListOfStrings: {
-               readListOfStrings(in, f);
+               readListOfStrings(in, f, defaultType);
                break;
             }
             case ExternalizableArray: {
@@ -598,6 +589,7 @@ public class Externalizer implements Externalizable {
    public void writeExternal( ObjectOutput out ) throws IOException {
       try {
          ObjectOutput originalOut = out;
+         StreamCache streamCache = null;
          BytesCache bytesCache = null;
          ObjectOutput cachingOut = null;
 
@@ -615,9 +607,15 @@ public class Externalizer implements Externalizable {
             out.writeByte(ft._id);
 
             if ( ft.isLengthDynamic() ) {
-               if ( bytesCache == null ) {
-                  bytesCache = BYTES_CACHE.get();
-                  cachingOut = CACHING_OUT.get();
+               if ( streamCache == null ) {
+                  streamCache = STREAM_CACHE.get();
+                  if ( streamCache._inUse ) {
+                     // if our instance contains another instance of the same type, we cannot re-use the stream cache, so we create a fresh one
+                     streamCache = new StreamCache();
+                  }
+                  bytesCache = streamCache._bytesCache;
+                  cachingOut = streamCache._objectOutput;
+                  streamCache._inUse = true;
                }
                bytesCache.reset();
                out = cachingOut;
@@ -862,11 +860,11 @@ public class Externalizer implements Externalizable {
                break;
             }
             case ListOfExternalizables: {
-               writeListOfExternalizables(out, f);
+               writeListOfExternalizables(out, f, defaultType, _config._defaultGenericTypes0[i]);
                break;
             }
             case ListOfStrings: {
-               writeListOfStrings(out, f);
+               writeListOfStrings(out, f, defaultType);
                break;
             }
             case ExternalizableArray: {
@@ -935,6 +933,7 @@ public class Externalizer implements Externalizable {
                originalOut.writeInt(bytesCache.size());
                bytesCache.writeTo(originalOut);
                out = originalOut;
+               streamCache._inUse = false;
             }
          }
       }
@@ -1060,31 +1059,32 @@ public class Externalizer implements Externalizable {
       return d;
    }
 
-   private void readListOfExternalizables( ObjectInput in, FieldAccessor f ) throws Exception {
+   private void readListOfExternalizables( ObjectInput in, FieldAccessor f, Class defaultType, Class defaultGenericType ) throws Exception {
       List d = null;
       boolean isNotNull = in.readBoolean();
       if ( isNotNull ) {
-         boolean isArrayList = in.readBoolean();
+         boolean isDefaultType = in.readBoolean();
          int size = in.readInt();
-         if ( isArrayList ) {
-            d = new ArrayList(size);
+         if ( isDefaultType ) {
+            if ( defaultType.equals(ArrayList.class) ) {
+               d = new ArrayList(size);
+            } else {
+               d = (List)defaultType.newInstance();
+            }
          } else {
-            // TODO [MKR 12.10.2008] improvable by caching, but beware of threading issues (link to in?) and unneccessary loss of performance with hash lookups
             String className = in.readUTF();
             Class c = forName(className);
             d = (List)c.newInstance();
          }
-         String defaultContentClassName = in.readUTF();
-         Class<? extends Externalizable> externalizableClass = forName(defaultContentClassName);
 
          Class lastNonDefaultClass = null;
          for ( int k = 0; k < size; k++ ) {
             Externalizable instance = null;
             isNotNull = in.readBoolean();
             if ( isNotNull ) {
-               boolean isDefaultType = in.readBoolean();
-               if ( isDefaultType ) {
-                  instance = externalizableClass.newInstance();
+               boolean isDefaultGenericType = in.readBoolean();
+               if ( isDefaultGenericType ) {
+                  instance = (Externalizable)defaultGenericType.newInstance();
                } else {
                   boolean isSameAsLastNonDefault = in.readBoolean();
                   Class c;
@@ -1106,16 +1106,19 @@ public class Externalizer implements Externalizable {
       }
    }
 
-   private void readListOfStrings( ObjectInput in, FieldAccessor f ) throws Exception {
+   private void readListOfStrings( ObjectInput in, FieldAccessor f, Class defaultType ) throws Exception {
       List d = null;
       boolean isNotNull = in.readBoolean();
       if ( isNotNull ) {
-         boolean isArrayList = in.readBoolean();
+         boolean isDefaultType = in.readBoolean();
          int size = in.readInt();
-         if ( isArrayList ) {
-            d = new ArrayList(size);
+         if ( isDefaultType ) {
+            if ( defaultType.equals(ArrayList.class) ) {
+               d = new ArrayList(size);
+            } else {
+               d = (List)defaultType.newInstance();
+            }
          } else {
-            // TODO [MKR 12.10.2008] improvable by caching, but beware of threading issues (link to in?) and unneccessary loss of performance with hash lookups
             String className = in.readUTF();
             Class c = forName(className);
             d = (List)c.newInstance();
@@ -1264,22 +1267,17 @@ public class Externalizer implements Externalizable {
       }
    }
 
-   private void writeListOfExternalizables( ObjectOutput out, FieldAccessor f ) throws Exception, IOException {
-      // TODO use defaultType
-      // TODO add generic0DefaultType and use it here
-
+   private void writeListOfExternalizables( ObjectOutput out, FieldAccessor f, Class defaultType, Class defaultGenericType ) throws Exception, IOException {
       List d = (List)f.get(this);
       out.writeBoolean(d != null);
       if ( d != null ) {
          Class listClass = d.getClass();
-         boolean isArrayList = listClass.equals(ArrayList.class);
-         out.writeBoolean(isArrayList);
+         boolean isDefaultType = listClass.equals(defaultType);
+         out.writeBoolean(isDefaultType);
          out.writeInt(d.size());
-         if ( !isArrayList ) {
+         if ( !isDefaultType ) {
             out.writeUTF(listClass.getName());
          }
-         Class defaultType = f.getGenericTypes()[0];
-         out.writeUTF(defaultType.getName());
 
          Class lastNonDefaultClass = null;
          for ( int j = 0, llength = d.size(); j < llength; j++ ) {
@@ -1287,9 +1285,9 @@ public class Externalizer implements Externalizable {
             out.writeBoolean(instance != null);
             if ( instance != null ) {
                Class c = instance.getClass();
-               boolean isDefaultType = c.equals(defaultType);
-               out.writeBoolean(isDefaultType);
-               if ( !isDefaultType ) {
+               boolean isDefaultGenericType = c.equals(defaultGenericType);
+               out.writeBoolean(isDefaultGenericType);
+               if ( !isDefaultGenericType ) {
                   boolean isSameAsLastNonDefault = c.equals(lastNonDefaultClass);
                   out.writeBoolean(isSameAsLastNonDefault);
                   if ( !isSameAsLastNonDefault ) {
@@ -1303,16 +1301,15 @@ public class Externalizer implements Externalizable {
       }
    }
 
-   private void writeListOfStrings( ObjectOutput out, FieldAccessor f ) throws Exception, IOException {
-      // TODO use defaultType, set to ArrayList, if List
+   private void writeListOfStrings( ObjectOutput out, FieldAccessor f, Class defaultType ) throws Exception, IOException {
       List d = (List)f.get(this);
       out.writeBoolean(d != null);
       if ( d != null ) {
          Class listClass = d.getClass();
-         boolean isArrayList = listClass.equals(ArrayList.class);
-         out.writeBoolean(isArrayList);
+         boolean isDefaultType = listClass.equals(defaultType);
+         out.writeBoolean(isDefaultType);
          out.writeInt(d.size());
-         if ( !isArrayList ) {
+         if ( !isDefaultType ) {
             out.writeUTF(listClass.getName());
          }
          for ( int j = 0, llength = d.size(); j < llength; j++ ) {
@@ -1368,6 +1365,18 @@ public class Externalizer implements Externalizable {
    @Target({ ElementType.FIELD, ElementType.METHOD })
    public @interface externalize {
 
+      /** The default type of the first generic argument, like in <code>List&lt;GenericType0&gt;</code>.
+       * If it does not match the field type's generic argument, you should set this, to improve both space requirement and performance  */
+      public Class defaultGenericType0() default System.class; // System.class is just a placeholder for nothing, in order to make this argument optional
+
+      /** The default type of the second generic argument, like in <code>Map&lt;K, GenericType1&gt;</code>. 
+      * If it does not match the field type's generic argument, you should set this, to improve both space requirement and performance  */
+      public Class defaultGenericType1() default System.class; // System.class is just a placeholder for nothing, in order to make this argument optional
+
+      /** The default type of this field. 
+       * If it does not match the field type, you should set this, to improve both space requirement and performance  */
+      public Class defaultType() default System.class; // System.class is just a placeholder for nothing, in order to make this argument optional
+
       public byte value();
    }
 
@@ -1398,7 +1407,7 @@ public class Externalizer implements Externalizable {
       pDoubleArray(double[].class, 23), //
       pFloatArray(float[].class, 24), //
       pLongArray(long[].class, 25), //
-      ListOfExternalizables(List.class, 26), //
+      ListOfExternalizables(List.class, 26, true), //
       ExternalizableArray(Externalizable[].class, 27, true), //
       ExternalizableArrayArray(Externalizable[][].class, 28, true), //
       Object(Object.class, 29), //
@@ -1412,7 +1421,7 @@ public class Externalizer implements Externalizable {
       pLongArrayArray(long[][].class, 37), //      
       Enum(Enum.class, 38), // 
       EnumSet(EnumSet.class, 39), //
-      ListOfStrings(System.class, 40), // System is just a placeholder - this FieldType is handled specially 
+      ListOfStrings(System.class, 40, true), // System is just a placeholder - this FieldType is handled specially 
       // TODO add Set, Map (beware of Treemaps & -sets using custom Comparators!)
       ;
 
@@ -1531,6 +1540,8 @@ public class Externalizer implements Externalizable {
       byte[]          _fieldIndexes;
       FieldType[]     _fieldTypes;
       Class[]         _defaultTypes;
+      Class[]         _defaultGenericTypes0;
+      Class[]         _defaultGenericTypes1;
 
 
       public ClassConfig( Class clientClass ) {
@@ -1555,12 +1566,16 @@ public class Externalizer implements Externalizable {
          _fieldIndexes = new byte[fieldInfos.size()];
          _fieldTypes = new FieldType[fieldInfos.size()];
          _defaultTypes = new Class[fieldInfos.size()];
+         _defaultGenericTypes0 = new Class[fieldInfos.size()];
+         _defaultGenericTypes1 = new Class[fieldInfos.size()];
          for ( int i = 0, length = fieldInfos.size(); i < length; i++ ) {
             FieldInfo fi = fieldInfos.get(i);
             _fieldAccessors[i] = fi._fieldAccessor;
             _fieldIndexes[i] = fi._fieldIndex;
             _fieldTypes[i] = fi._fieldType;
             _defaultTypes[i] = fi._defaultType;
+            _defaultGenericTypes0[i] = fi._defaultGenericType0;
+            _defaultGenericTypes1[i] = fi._defaultGenericType1;
          }
          if ( _fieldAccessors.length == 0 ) {
             throw new RuntimeException(_class + " extends Externalizer, but it has no externalizable fields or methods. "
@@ -1572,7 +1587,7 @@ public class Externalizer implements Externalizable {
          FieldInfo fi = new FieldInfo();
          fi._fieldAccessor = fieldAccessor;
          fi._fieldType = getFieldType(fi, type);
-         fi.setDefaultType(type, fi._fieldType);
+         fi.setDefaultType(type, fi._fieldAccessor, fi._fieldType, annotation);
 
          byte index = annotation.value();
          for ( FieldInfo ffi : fieldInfos ) {
@@ -1618,7 +1633,9 @@ public class Externalizer implements Externalizable {
          }
          if ( ft == null ) {
             ft = FieldType.Object;
-            //               throw new RuntimeException(_class + " extends Externalizer, but the member variable " + f.getName() + " has an unsupported type: " + type);
+            _log.warn("The field type of index "
+               + fi._fieldIndex
+               + " is not of a supported type, thus falling back to Object serialization. This might be very slow of even fail, dependant on your ObjectStreamProvider. Please check, whether this is really what you wanted!");
          }
          if ( ft == FieldType.ListOfExternalizables
             && (fi._fieldAccessor.getGenericTypes().length != 1 || !Externalizable.class.isAssignableFrom(fi._fieldAccessor.getGenericTypes()[0])) ) {
@@ -1626,8 +1643,9 @@ public class Externalizer implements Externalizable {
                ft = FieldType.ListOfStrings;
             } else {
                ft = FieldType.Object;
-               //               throw new RuntimeException(_class + " extends Externalizer, but the member variable " + f.getName()
-               //                  + " has a generic List with an unsupported type: " + type + " - the generic type of a list must be Externalizable");
+               _log.warn("The field type of index "
+                  + fi._fieldIndex
+                  + " has a List with an unsupported type as generic parameter, thus falling back to Object serialization. This might be very slow of even fail, dependant on your ObjectStreamProvider. Please check, whether this is really what you wanted!");
             }
          }
 
@@ -1782,18 +1800,62 @@ public class Externalizer implements Externalizable {
       FieldType     _fieldType;
       byte          _fieldIndex;
       Class         _defaultType;
+      Class         _defaultGenericType0;
+      Class         _defaultGenericType1;
 
 
       public int compareTo( FieldInfo o ) {
          return (_fieldIndex < o._fieldIndex ? -1 : (_fieldIndex == o._fieldIndex ? 0 : 1));
       }
 
-      private void setDefaultType( Class type, FieldType ft ) {
+      private void setDefaultType( Class type, FieldAccessor fieldAccessor, FieldType ft, externalize annotation ) {
          _defaultType = type;
          if ( ft == FieldType.ExternalizableArray ) {
             _defaultType = type.getComponentType();
          } else if ( ft == FieldType.ExternalizableArrayArray ) {
             _defaultType = type.getComponentType().getComponentType();
+         } else if ( ft == FieldType.ListOfExternalizables || ft == FieldType.ListOfStrings ) {
+            _defaultType = ArrayList.class;
+         }
+
+         if ( annotation.defaultType() != System.class ) {
+            _defaultType = annotation.defaultType();
+
+            if ( ft == FieldType.ListOfExternalizables || ft == FieldType.ListOfStrings ) {
+               if ( List.class.isAssignableFrom(_defaultType) ) {
+                  throw new RuntimeException("defaultType for a List field must be a List! Field " + fieldAccessor.getName() + " with index " + _fieldIndex
+                     + " has defaultType " + _defaultType);
+               }
+            }
+         }
+
+         if ( ft == FieldType.ListOfExternalizables ) {
+            _defaultGenericType0 = fieldAccessor.getGenericTypes()[0];
+            if ( annotation.defaultGenericType0() != System.class ) {
+               _defaultGenericType0 = annotation.defaultType();
+
+               if ( Externalizable.class.isAssignableFrom(_defaultType) ) {
+                  throw new RuntimeException("defaultGenericType0 for a ListOfExternalizables field must be an Externalizable! Field "
+                     + fieldAccessor.getName() + " with index " + _fieldIndex + " has defaultGenericType0 " + _defaultGenericType0);
+               }
+            }
+         }
+      }
+   }
+
+   private static class StreamCache {
+
+      BytesCache   _bytesCache = new BytesCache();
+      ObjectOutput _objectOutput;
+      boolean      _inUse      = false;
+
+
+      public StreamCache() {
+         try {
+            _objectOutput = new ExternalizableObjectOutputStream(_bytesCache);
+         }
+         catch ( IOException argh ) {
+            // insane, cannot happen
          }
       }
    }
