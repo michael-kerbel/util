@@ -257,9 +257,7 @@ public class Externalizer implements Externalizable {
                   instance = c.newInstance();
                   instance.readExternal(in);
                }
-               if ( f != null ) {
-                  f.set(this, instance);
-               }
+               f.set(this, instance);
                break;
             }
             case Integer: {
@@ -513,10 +511,8 @@ public class Externalizer implements Externalizable {
                break;
             }
             case ExternalizableArray: {
-               Externalizable[] d = readExternalizableArray(in, defaultType);
-               if ( f != null ) {
-                  f.set(this, d);
-               }
+               Externalizable[] d = readExternalizableArray(in, f.getType().getComponentType(), defaultType);
+               f.set(this, d);
                break;
             }
             case ExternalizableArrayArray: {
@@ -524,15 +520,13 @@ public class Externalizer implements Externalizable {
                boolean isNotNull = in.readBoolean();
                if ( isNotNull ) {
                   int size = in.readInt();
-                  Class externalizableClass = Array.newInstance(defaultType, 0).getClass();
+                  Class externalizableClass = f.getType().getComponentType();
                   d = (Externalizable[][])Array.newInstance(externalizableClass, size);
                   for ( int k = 0, length = d.length; k < length; k++ ) {
-                     d[k] = readExternalizableArray(in, defaultType);
+                     d[k] = readExternalizableArray(in, f.getType().getComponentType().getComponentType(), defaultType);
                   }
                }
-               if ( f != null ) {
-                  f.set(this, d);
-               }
+               f.set(this, d);
                break;
             }
             case Enum: {
@@ -1008,12 +1002,12 @@ public class Externalizer implements Externalizable {
       return d;
    }
 
-   private Externalizable[] readExternalizableArray( ObjectInput in, Class defaultType ) throws Exception {
+   private Externalizable[] readExternalizableArray( ObjectInput in, Class componentType, Class defaultType ) throws Exception {
       Externalizable[] d = null;
       boolean isNotNull = in.readBoolean();
       if ( isNotNull ) {
          int size = in.readInt();
-         Class<? extends Externalizable> externalizableClass = defaultType;
+         Class<? extends Externalizable> externalizableClass = componentType;
          d = (Externalizable[])Array.newInstance(externalizableClass, size);
          Class lastNonDefaultClass = null;
          for ( int k = 0; k < size; k++ ) {
