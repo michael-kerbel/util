@@ -307,7 +307,9 @@ public class ExternalizerTest {
                EnumSet d = EnumSet.noneOf(genericType);
                Enum[] values = (Enum[])genericType.getEnumConstants();
                for ( int i = 0, length = values.length; i < length; i++ ) {
-                  if ( r.nextBoolean() ) d.add(values[i]);
+                  if ( r.nextBoolean() ) {
+                     d.add(values[i]);
+                  }
                }
                f.set(t, d);
             } else {
@@ -448,7 +450,9 @@ public class ExternalizerTest {
             assert o1 != null;
 
             if ( o1 instanceof String ) {
-               if ( !o1.equals(o2) ) return false;
+               if ( !o1.equals(o2) ) {
+                  return false;
+               }
             } else if ( !equals(o1.getClass(), (Externalizable)o1, (Externalizable)o2) ) {
                return false;
             }

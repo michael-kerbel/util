@@ -1,7 +1,6 @@
 package util.dump.stream;
 
 import java.io.BufferedOutputStream;
-import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
@@ -14,8 +13,8 @@ import java.util.zip.GZIPInputStream;
  * The ExternalizableObjectStreamProvider uses high-performance implementations for ObjectInput and ObjectOutput.<br><br>
  * 
  * If the instance that is to be serialized is {@link Externalizable}, the storage of the instance is more efficient than with JavaObjectStreamProvider.
- * Any instances which are only {@link Serializable} are stored the same way as with JavaObjectStreamProvider.
- * So the performance benefit exists only, when at least a part of the instances are {@link Externalizable}.<br><br>
+ * Also some basic types are supported for efficient externalization: String, Date, UUID, Integer, Double, Float, Long.
+ * Any other instances which are only {@link Serializable} are stored the same way as with JavaObjectStreamProvider.<br><br>
  * 
  * <b>Beware</b>: if you put an instance twice into the dump, you will have two instances after deserialization in memory.<br><br>
  * 
@@ -29,6 +28,7 @@ import java.util.zip.GZIPInputStream;
 public class ExternalizableObjectStreamProvider implements ObjectStreamProvider {
 
    private final int _compression;
+
 
    public ExternalizableObjectStreamProvider() {
       _compression = 0;
@@ -54,5 +54,34 @@ public class ExternalizableObjectStreamProvider implements ObjectStreamProvider 
          out = new BufferedOutputStream(new ConfigurableGZIPOutputStream(out, _compression));
       }
       return new ExternalizableObjectOutputStream(out);
+   }
+
+
+   enum InstanceType {
+      Object(0), Externalizable(1), String(2), Date(3), UUID(4), Integer(5), Double(6), Float(7), Long(8);
+
+      static InstanceType[] LOOKUP = new InstanceType[255];
+      static {
+         for ( InstanceType it : values() ) {
+            LOOKUP[it.getId()] = it;
+         }
+      }
+
+
+      static InstanceType forId( byte id ) {
+         return LOOKUP[id];
+      }
+
+
+      private final byte _id;
+
+
+      private InstanceType( int id ) {
+         _id = (byte)id;
+      }
+
+      public byte getId() {
+         return _id;
+      }
    }
 }

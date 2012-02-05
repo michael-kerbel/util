@@ -6,6 +6,10 @@ import java.io.IOException;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.util.Date;
+import java.util.UUID;
+
+import util.dump.stream.ExternalizableObjectStreamProvider.InstanceType;
 
 
 public class ExternalizableObjectOutputStream extends DataOutputStream implements ObjectOutput {
@@ -20,7 +24,7 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
 
          @Override
          protected void writeStreamHeader() throws IOException {
-         // do nothing
+            // do nothing
          }
       };
    }
@@ -42,17 +46,42 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
    }
 
    public void writeObject( Object obj ) throws IOException {
-      if ( obj != null && obj instanceof Externalizable ) {
-         writeBoolean(true);
-         writeUTF(obj.getClass().getName());
-         ((Externalizable)obj).writeExternal(this);
-      } else {
-         writeBoolean(false);
-         if ( _resetPending ) {
-            _objectOutputStream.reset();
-            _resetPending = false;
+      writeBoolean(obj != null);
+      if ( obj != null ) {
+         if ( obj instanceof Externalizable ) {
+            writeByte(InstanceType.Externalizable.getId());
+            writeUTF(obj.getClass().getName());
+            ((Externalizable)obj).writeExternal(this);
+         } else if ( obj instanceof String ) {
+            writeByte(InstanceType.String.getId());
+            writeUTF((String)obj);
+         } else if ( obj instanceof Date ) {
+            writeByte(InstanceType.Date.getId());
+            writeLong(((Date)obj).getTime());
+         } else if ( obj instanceof UUID ) {
+            writeByte(InstanceType.UUID.getId());
+            writeLong(((UUID)obj).getMostSignificantBits());
+            writeLong(((UUID)obj).getLeastSignificantBits());
+         } else if ( obj instanceof Integer ) {
+            writeByte(InstanceType.Integer.getId());
+            writeInt((Integer)obj);
+         } else if ( obj instanceof Double ) {
+            writeByte(InstanceType.Double.getId());
+            writeDouble((Double)obj);
+         } else if ( obj instanceof Float ) {
+            writeByte(InstanceType.Float.getId());
+            writeFloat((Float)obj);
+         } else if ( obj instanceof Long ) {
+            writeByte(InstanceType.Long.getId());
+            writeLong((Long)obj);
+         } else {
+            writeByte(InstanceType.Object.getId());
+            if ( _resetPending ) {
+               _objectOutputStream.reset();
+               _resetPending = false;
+            }
+            _objectOutputStream.writeObject(obj);
          }
-         _objectOutputStream.writeObject(obj);
       }
    }
 }

@@ -7,8 +7,12 @@ import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.StreamCorruptedException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+
+import util.dump.stream.ExternalizableObjectStreamProvider.InstanceType;
 
 
 public class ExternalizableObjectInputStream extends DataInputStream implements ObjectInput {
@@ -23,7 +27,7 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
 
          @Override
          protected void readStreamHeader() throws IOException, StreamCorruptedException {
-         // do nothing
+            // do nothing
          }
       };
    }
@@ -35,22 +39,43 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
    }
 
    public Object readObject() throws ClassNotFoundException, IOException {
-      boolean externalizable = readBoolean();
-      if ( externalizable ) {
-         String className = readUTF();
-         try {
-            Object obj = getClass(className).newInstance();
-            ((Externalizable)obj).readExternal(this);
-            return obj;
-         }
-         catch ( IllegalAccessException e ) {
-            throw new RuntimeException("Failed to instantiate " + className, e);
-         }
-         catch ( InstantiationException e ) {
-            throw new RuntimeException("Failed to instantiate " + className, e);
+      boolean isNotNull = readBoolean();
+      if ( isNotNull ) {
+         byte instanceTypeId = readByte();
+         InstanceType instanceType = InstanceType.forId(instanceTypeId);
+         switch ( instanceType ) {
+         case Externalizable:
+            String className = readUTF();
+            try {
+               Object obj = getClass(className).newInstance();
+               ((Externalizable)obj).readExternal(this);
+               return obj;
+            }
+            catch ( IllegalAccessException e ) {
+               throw new RuntimeException("Failed to instantiate " + className, e);
+            }
+            catch ( InstantiationException e ) {
+               throw new RuntimeException("Failed to instantiate " + className, e);
+            }
+         case String:
+            return readUTF();
+         case Date:
+            return new Date(readLong());
+         case UUID:
+            return new UUID(readLong(), readLong());
+         case Integer:
+            return Integer.valueOf(readInt());
+         case Double:
+            return Double.valueOf(readDouble());
+         case Float:
+            return Float.valueOf(readFloat());
+         case Long:
+            return Long.valueOf(readLong());
+         default:
+            return _objectInputStream.readObject();
          }
       } else {
-         return _objectInputStream.readObject();
+         return null;
       }
    }
 
