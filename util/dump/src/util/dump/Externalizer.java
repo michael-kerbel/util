@@ -89,7 +89,7 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * Enums and {@link EnumSet}s are not really downward and upward compatible: you can only add enum values at the end. 
  * Reordering or deleting values breaks downward and upward compatibility! 
  * </li><li>
- * Cyclic references in the object graph are not handled! A field containing an Externalizable, which references
+ * Cyclic references in the object graph are not handled! E.g. a field containing an Externalizable, which references
  * the root instance, will lead to an infinite loop. While this is a serious limitation, in real life it doesn't
  * happen too often. In most cases, you can work around this issue, by not externalizing such fields multiple times
  * and wiring them by hand, after externalization. Overwrite <code>readExternal()</code> to do so. 
