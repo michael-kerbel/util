@@ -37,7 +37,7 @@ import util.reflection.UnsafeFieldFieldAccessor;
 /**
  * This class provides an easy way to make beans <code>Externalizable</code>.<p/>
  *
- * All you have to do is extends this class with your bean and add the <code>@externalize</code> annotation
+ * All you have to do is extends this class with your bean and add the <code>@</code>{@link externalize} annotation
  * for each field or getter setter pair. This annotation has a parameter where you set unique, non-reusable indexes.
  *
  * The serialization and deserialization works even with different revisions of your bean. It is both downward and upward
@@ -47,12 +47,12 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * <b>Limitations:</b>
  * <ul><li>
  * Downward and upward compatibility will not work, if you reuse indexes between different revisions of your bean.
+ * I.e. you may never change the field type or any of the default*Types of a field annotated with a given index.
  * </li><li>
  * While externalization with this method is about 3-6 times faster than serialization (depending on the amount
  * of non-primitive or array members), hand written externalization is still about 40% faster, because no reflection
  * is used and upwards/downwards compatibility is not taken care of. This method of serialization is a bit faster 
- * than Google's protobuffers, unless your object graph is complex, i.e. you have fields containing <code>Externalizable</code> 
- * instances. For optimal performance use jre 1.6 and the <code>-server</code> switch.
+ * than Google's protobuffers in most cases. For optimal performance use jre 1.6 and the <code>-server</code> switch.
  * </li><li>
  * All types are allowed for your members, but if your member is not included in the following list of supported
  * types, serialization falls back to normal java.io.Serializable mechanisms by using {@link ObjectOutput#writeObject(Object)},
@@ -71,6 +71,8 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * </li><li>
  * generic Lists of any <code>Externalizable</code> type, i.e. <code>List&lt;Externalizable&gt;</code>
  * </li><li>
+ * generic Lists of <code>String</code> type, i.e. <code>List&lt;String&gt;</code>
+ * </li><li>
  * Enums and {@link EnumSet}s, as long as the enum has less than 64 values. 
  * </li>
  * </ul>
@@ -86,9 +88,15 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * </li><li>
  * Enums and {@link EnumSet}s are not really downward and upward compatible: you can only add enum values at the end. 
  * Reordering or deleting values breaks downward and upward compatibility! 
+ * </li><li>
+ * Cyclic references in the object graph are not handled! A field containing an Externalizable, which references
+ * the root instance, will lead to an infinite loop. While this is a serious limitation, in real life it doesn't
+ * happen too often. In most cases, you can work around this issue, by not externalizing such fields multiple times
+ * and wiring them by hand, after externalization. Overwrite <code>readExternal()</code> to do so. 
  * </li>
  * </ul>
  * @see {@link util.dump.ExternalizerTest}
+ * @see externalize
  */
 public class Externalizer implements Externalizable {
 
@@ -1359,24 +1367,33 @@ public class Externalizer implements Externalizable {
 
 
    /**
-    * It's enough to annotate either the getter or the setter. Of course you can also annotate both, but the indexes must match.
+    * Annotating fields gives a better performance compared to methods. You can annotate even private fields.
+    * If you annotate methods, it's enough to annotate either the getter or the setter. Of course you can also annotate both, but the indexes must match.
     */
    @Retention(RetentionPolicy.RUNTIME)
    @Target({ ElementType.FIELD, ElementType.METHOD })
    public @interface externalize {
 
       /** The default type of the first generic argument, like in <code>List&lt;GenericType0&gt;</code>.
-       * If it does not match the field type's generic argument, you should set this, to improve both space requirement and performance  */
+       * You should set this, if the most frequent type of this container's generic argument (the List values in the example) does not match the declared generic type.
+       * In that case setting this value improves both space requirement and performance.  */
       public Class defaultGenericType0() default System.class; // System.class is just a placeholder for nothing, in order to make this argument optional
 
       /** The default type of the second generic argument, like in <code>Map&lt;K, GenericType1&gt;</code>. 
-      * If it does not match the field type's generic argument, you should set this, to improve both space requirement and performance  */
+       * You should set this, if the most frequent type of this container's second generic argument (the Map values in the example) does not match the declared generic type.
+       * In that case setting this value improves both space requirement and performance.  */
       public Class defaultGenericType1() default System.class; // System.class is just a placeholder for nothing, in order to make this argument optional
 
       /** The default type of this field. 
-       * If it does not match the field type, you should set this, to improve both space requirement and performance  */
+       * You should set this, if the most frequent type of this field's instances does not match the declared field type.
+       * In that case setting this value improves both space requirement and performance.  */
       public Class defaultType() default System.class; // System.class is just a placeholder for nothing, in order to make this argument optional
 
+      /**
+       * Aka index. Must be unique. Convention is to start from 1. To guarantee compatibility between revisions of a bean, 
+       * you may never change the field type or any of the default*Types while reusing the same index specified with this parameter.
+       * Doing so will corrupt old data dumps.       
+       */
       public byte value();
    }
 
@@ -1422,7 +1439,9 @@ public class Externalizer implements Externalizable {
       Enum(Enum.class, 38), // 
       EnumSet(EnumSet.class, 39), //
       ListOfStrings(System.class, 40, true), // System is just a placeholder - this FieldType is handled specially 
-      // TODO add Set, Map (beware of Treemaps & -sets using custom Comparators!)
+      // TODO add Set, Map (beware of Collections.*sets or Treemaps & -sets using custom Comparators!)
+      //SetOfExternalizables(Set.class, 41, true), // 
+      //SetOfStrings(Runtime.class, 42, true), // Runtime is just a placeholder - this FieldType is handled specially 
       ;
 
       private static final Map<Class, FieldType> _classLookup = new HashMap<Class, FieldType>(FieldType.values().length);
