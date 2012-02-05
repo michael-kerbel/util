@@ -57,7 +57,7 @@ import util.time.StopWatch;
  * adding {@link DumpIndex}es for fast lookup of data.<p/>
  *
  * To optimize speed, put only {@link Externalizable} objects of a single type into the dump.
- * The simplest way to do this, is to extend {@link Externalizer} with your bean, and to use the
+ * The simplest way to do this, is to extend {@link ExternalizableBean} with your bean, and to use the
  * constructor {@link #Dump(Class, File)}. By using the other constructors you can provide a
  * {@link ObjectStreamProvider}, like {@link JavaObjectStreamProvider}, which allows you to put arbitrary
  * {@link Serializable} objects into the dump.<p/>

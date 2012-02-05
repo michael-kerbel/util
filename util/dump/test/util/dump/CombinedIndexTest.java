@@ -13,7 +13,7 @@ import org.junit.Test;
 
 import util.dump.CombinedIndex;
 import util.dump.Dump;
-import util.dump.Externalizer;
+import util.dump.ExternalizableBean;
 import util.dump.GroupIndex;
 
 
@@ -150,7 +150,7 @@ public class CombinedIndexTest {
    }
 
 
-   public static class Bean extends Externalizer {
+   public static class Bean extends ExternalizableBean {
 
       @externalize(1)
       private long   _groupLong;

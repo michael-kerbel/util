@@ -61,7 +61,7 @@ import util.dump.DumpIndex;
 import util.dump.DumpIndex.IndexMeta;
 import util.dump.DumpIterator;
 import util.dump.DumpUtils;
-import util.dump.Externalizer.externalize;
+import util.dump.ExternalizableBean.externalize;
 import util.dump.InfiniteGroupIndex;
 import util.dump.sort.InfiniteSorter;
 import util.dump.stream.SingleTypeObjectStreamProvider;
@@ -394,12 +394,13 @@ public class GUI extends ApplicationWindow {
                String[] text = new String[_accessors.size()];
                for ( int i = 0, length = text.length; i < length; i++ ) {
                   Object o = de == null ? null : _accessors.get(i).get(de);
-                  if ( o == null )
+                  if ( o == null ) {
                      text[i] = "";
-                  else if ( o.getClass().isArray() )
+                  } else if ( o.getClass().isArray() ) {
                      text[i] = ArrayUtils.toString(o);
-                  else
+                  } else {
                      text[i] = o.toString();
+                  }
                }
                item.setText(text);
             }
@@ -584,7 +585,9 @@ public class GUI extends ApplicationWindow {
 
    void lookupButtonSelected( Event e ) {
       FieldAccessor fa = (FieldAccessor)_lookupField.getData("" + _lookupField.getSelectionIndex());
-      if ( fa == null ) return;
+      if ( fa == null ) {
+         return;
+      }
 
       Object key = getLookupObject();
       if ( isFieldIndexSearchable(fa) ) {
@@ -604,21 +607,26 @@ public class GUI extends ApplicationWindow {
 
    void lookupFieldSelected( Event e ) {
       FieldAccessor fa = (FieldAccessor)_lookupField.getData("" + _lookupField.getSelectionIndex());
-      if ( fa == null ) return;
+      if ( fa == null ) {
+         return;
+      }
 
       MyInfiniteGroupIndex index = null;
       for ( MyInfiniteGroupIndex i : _indexes ) {
-         if ( i.getFieldAccessor().equals(fa) ) index = i;
+         if ( i.getFieldAccessor().equals(fa) ) {
+            index = i;
+         }
       }
 
       if ( index == null ) {
-         if ( isFieldIndexSearchable(fa) )
+         if ( isFieldIndexSearchable(fa) ) {
             _lookupFieldErrorDecoration.setDescriptionText("Loaded no index for field '" + fa.getName() + "' yet.\n" + //
                "Will have to create or load one for the first lookup, which will take some time.");
-         else
+         } else {
             _lookupFieldErrorDecoration.setDescriptionText("Cannot use index for field '" + fa.getName() //
                + "' because I don't know how to instantiate items of type " + fa.getType() + ".\n" //
                + "I will have to search the whole dump, which will take some time.");
+         }
          _lookupFieldErrorDecoration.show();
       } else {
          _lookupFieldErrorDecoration.hide();
@@ -640,7 +648,9 @@ public class GUI extends ApplicationWindow {
    void lookupWithIndex( IProgressMonitor mon, FieldAccessor fa, Object key ) {
       MyInfiniteGroupIndex index = null;
       for ( MyInfiniteGroupIndex i : _indexes ) {
-         if ( i.getFieldAccessor().equals(fa) ) index = i;
+         if ( i.getFieldAccessor().equals(fa) ) {
+            index = i;
+         }
       }
       if ( index == null ) {
          mon.beginTask("Creating index for field '" + fa.getName() + "'", IProgressMonitor.UNKNOWN);
@@ -660,7 +670,9 @@ public class GUI extends ApplicationWindow {
       } else if ( fa.getType().equals(String.class) ) {
          positions = index.getPositions(key);
       }
-      if ( positions == null ) return;
+      if ( positions == null ) {
+         return;
+      }
       _elementPositions = new TLongArrayList(positions);
       SWTUtils.asyncExec(getShell().getDisplay()).on(_table.getClass(), _table).setItemCount(positions.length);
       SWTUtils.asyncExec(getShell().getDisplay()).on(_table.getClass(), _table).clearAll();
@@ -678,7 +690,9 @@ public class GUI extends ApplicationWindow {
             Object o = iterator.next();
             long pos = iterator.getPosition();
             try {
-               if ( fa.get(o).toString().equals(key.toString()) ) _elementPositions.add(pos);
+               if ( fa.get(o).toString().equals(key.toString()) ) {
+                  _elementPositions.add(pos);
+               }
             }
             catch ( Exception argh ) {
                throw new RuntimeException(argh);
@@ -791,9 +805,13 @@ public class GUI extends ApplicationWindow {
                StringBuilder sb = new StringBuilder();
                for ( FieldAccessor fa : _accessors ) {
                   Object oo = fa.get(o);
-                  if ( oo != null ) sb.append(" ").append(oo.toString());
+                  if ( oo != null ) {
+                     sb.append(" ").append(oo.toString());
+                  }
                }
-               if ( !stringFilter.filter(sb.toString()) ) _elementPositions.add(pos);
+               if ( !stringFilter.filter(sb.toString()) ) {
+                  _elementPositions.add(pos);
+               }
             }
             catch ( Exception argh ) {
                throw new RuntimeException(argh);
@@ -817,7 +835,9 @@ public class GUI extends ApplicationWindow {
       try {
          // try to open dump, if not already opened
          if ( _dump == null ) {
-            if ( !openDump() ) return;
+            if ( !openDump() ) {
+               return;
+            }
             initFieldAccessors();
             _indexes = new ArrayList<MyInfiniteGroupIndex>();
          }
@@ -840,12 +860,14 @@ public class GUI extends ApplicationWindow {
          _searchButton.setEnabled((_dump != null || loadDumpPreconditionsMet(lookupClass(), checkFileName())) && _searchText.getText().length() > 0);
       }
       catch ( ClassNotFoundException argh ) {
-         if ( _searchButton != null ) // during createFindTabFolder _searchButton can be null
+         if ( _searchButton != null ) {
             _searchButton.setEnabled(false);
+         }
       }
       catch ( NoClassDefFoundError argh ) {
-         if ( _searchButton != null ) // during createFindTabFolder _searchButton can be null
+         if ( _searchButton != null ) {
             _searchButton.setEnabled(false);
+         }
       }
    }
 
@@ -875,8 +897,9 @@ public class GUI extends ApplicationWindow {
          _elementPositions = _elementPositionsFullDump;
          _table.setItemCount(_elementPositions.size());
          _table.clearAll();
-      } else
+      } else {
          loadDumpButtonSelected(e);
+      }
    }
 
    void showFileDialog( Event e ) {
@@ -911,9 +934,11 @@ public class GUI extends ApplicationWindow {
                   try {
                      Comparable f1 = (Comparable)fa.get(o1);
                      Comparable f2 = (Comparable)fa.get(o2);
-                     if ( f1 == null )
+                     if ( f1 == null ) {
                         return f2 == null ? 0 : (descending ? 1 : -1);
-                     else if ( f2 == null ) return (descending ? -1 : 1);
+                     } else if ( f2 == null ) {
+                        return (descending ? -1 : 1);
+                     }
                      return f1.compareTo(f2) * (descending ? -1 : 1);
                   }
                   catch ( Exception argh ) {
@@ -972,7 +997,9 @@ public class GUI extends ApplicationWindow {
             setText(col != null ? "copy " + col.getText() : "copy cell");
          }
       };
-      if ( copyFieldAction.isEnabled() ) mm.add(copyFieldAction);
+      if ( copyFieldAction.isEnabled() ) {
+         mm.add(copyFieldAction);
+      }
       mm.add(new CopyColumnMenuManager("copy cell" + (selection.length > 1 ? "s" : ""), selection, _accessors));
       Menu menu = mm.createContextMenu(_table);
       menu.setLocation(getShell().getDisplay().getCursorLocation());
@@ -1208,7 +1235,7 @@ public class GUI extends ApplicationWindow {
       Class c = _class;
       List<Field> fields = new ArrayList<Field>();
       while ( c != Object.class ) {
-         if ( !c.getSimpleName().equals("Externalizer") ) { // compare using name instead of class to beat the copy&paste pattern...
+         if ( !c.getSimpleName().equals("ExternalizableBean") ) { // compare using name instead of class to beat the copy&paste pattern...
             for ( Field f : c.getDeclaredFields() ) {
                if ( Modifier.isStatic(f.getModifiers()) ) {
                   continue;
@@ -1272,7 +1299,9 @@ public class GUI extends ApplicationWindow {
          _prefs.addClassName(_class.getName().replaceAll("\\$", "."));
          updateClassNames();
 
-         if ( _dump != null ) _dump.close();
+         if ( _dump != null ) {
+            _dump.close();
+         }
 
          _dump = new Dump(_class, _dumpFile, Dump.SHARED_MODE);
 

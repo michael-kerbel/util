@@ -254,7 +254,7 @@ public class DumpTest {
    }
 
 
-   public static class Bean extends Externalizer {
+   public static class Bean extends ExternalizableBean {
 
       @externalize(1)
       int _id;

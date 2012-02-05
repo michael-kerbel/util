@@ -454,7 +454,7 @@ public class UniqueIndexTest {
    }
 
 
-   public static class Bean extends Externalizer {
+   public static class Bean extends ExternalizableBean {
 
       @externalize(1)
       long             _idLong;
@@ -538,7 +538,7 @@ public class UniqueIndexTest {
       }
    }
 
-   public static class ExternalizableId extends Externalizer {
+   public static class ExternalizableId extends ExternalizableBean {
 
       @externalize(1)
       long _id;

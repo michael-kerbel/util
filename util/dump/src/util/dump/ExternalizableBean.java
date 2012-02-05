@@ -57,7 +57,7 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * All types are allowed for your members, but if your member is not included in the following list of supported
  * types, serialization falls back to normal java.io.Serializable mechanisms by using {@link ObjectOutput#writeObject(Object)},
  * which are slow and break downward and upward compatibility.
- * These are the supported types (see also {@link Externalizer.FieldType}):
+ * These are the supported types (see also {@link ExternalizableBean.FieldType}):
  * <ul><li>
  * primitive fields (<code>int</code>, <code>float</code>, ...) and single-dimensional arrays containing primitives
  * </li><li>
@@ -82,7 +82,7 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * </li><li>
  * While annotated fields can be any of public, protected, package protected or private, annotated methods must be public.
  * </li><li>
- * Unless the system property <code>Externalizer.USE_UNSAFE_FIELD_ACCESSORS</code> is set to <code>false</code>
+ * Unless the system property <code>ExternalizableBean.USE_UNSAFE_FIELD_ACCESSORS</code> is set to <code>false</code>
  * an incredibly daring hack is used for making field access using reflection faster. That's why you should 
  * annotate fields rather than methods, unless you need some transformation before or after serialization. 
  * </li><li>
@@ -95,14 +95,14 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * and wiring them by hand, after externalization. Overwrite <code>readExternal()</code> to do so. 
  * </li>
  * </ul>
- * @see {@link util.dump.ExternalizerTest}
+ * @see {@link util.dump.ExternalizableBeanTest}
  * @see externalize
  */
-public class Externalizer implements Externalizable {
+public class ExternalizableBean implements Externalizable {
 
    protected static final long             serialVersionUID           = -1816997029156670474L;
 
-   private static Logger                   _log                       = Logger.getLogger(Externalizer.class);
+   private static Logger                   _log                       = Logger.getLogger(ExternalizableBean.class);
 
    private static boolean                  USE_UNSAFE_FIELD_ACCESSORS = true;
    private static Map<Class, ClassConfig>  CLASS_CONFIGS              = new HashMap<Class, ClassConfig>();
@@ -116,7 +116,7 @@ public class Externalizer implements Externalizable {
 
    static {
       try {
-         boolean config = Boolean.parseBoolean(System.getProperty("Externalizer.USE_UNSAFE_FIELD_ACCESSORS", "true"));
+         boolean config = Boolean.parseBoolean(System.getProperty("ExternalizableBean.USE_UNSAFE_FIELD_ACCESSORS", "true"));
          USE_UNSAFE_FIELD_ACCESSORS &= config;
          Class.forName("sun.misc.Unsafe");
       }
@@ -128,7 +128,7 @@ public class Externalizer implements Externalizable {
    private ClassConfig                     _config;
 
 
-   public Externalizer() {
+   public ExternalizableBean() {
       init();
    }
 
@@ -581,7 +581,7 @@ public class Externalizer implements Externalizable {
                   f.set(this, o);
                }
                //               throw new IllegalArgumentException("The field type " + fieldTypes[i] + " in class " + getClass()
-               //                  + " is unsupported by util.dump.Externalizer.");
+               //                  + " is unsupported by util.dump.ExternalizableBean.");
             }
             }
          }
@@ -914,7 +914,7 @@ public class Externalizer implements Externalizable {
                   Class<? extends Enum> c = f.getGenericTypes()[0];
                   Enum[] values = c.getEnumConstants();
                   if ( values.length > 64 ) {
-                     throw new IllegalArgumentException("Enum " + c + " has more than 64 values. This is unsupported by Externalizer.");
+                     throw new IllegalArgumentException("Enum " + c + " has more than 64 values. This is unsupported by ExternalizableBean.");
                   }
                   long l = 0;
                   for ( int j = 0, llength = values.length; j < llength; j++ ) {
@@ -933,7 +933,7 @@ public class Externalizer implements Externalizable {
                   out.writeObject(d);
                }
                //               throw new IllegalArgumentException("The field type " + fieldTypes[i] + " in class " + getClass()
-               //                  + " is unsupported by util.dump.Externalizer.");
+               //                  + " is unsupported by util.dump.ExternalizableBean.");
             }
 
             if ( ft.isLengthDynamic() ) {
@@ -1568,7 +1568,7 @@ public class Externalizer implements Externalizable {
             clientClass.getConstructor();
          }
          catch ( NoSuchMethodException argh ) {
-            throw new RuntimeException(clientClass + " extends Externalizer, but does not have a public nullary constructor.");
+            throw new RuntimeException(clientClass + " extends ExternalizableBean, but does not have a public nullary constructor.");
          }
 
          _class = clientClass;
@@ -1597,7 +1597,7 @@ public class Externalizer implements Externalizable {
             _defaultGenericTypes1[i] = fi._defaultGenericType1;
          }
          if ( _fieldAccessors.length == 0 ) {
-            throw new RuntimeException(_class + " extends Externalizer, but it has no externalizable fields or methods. "
+            throw new RuntimeException(_class + " extends ExternalizableBean, but it has no externalizable fields or methods. "
                + "This is most probably a bug. Externalizable fields and methods must be public.");
          }
       }
@@ -1611,7 +1611,7 @@ public class Externalizer implements Externalizable {
          byte index = annotation.value();
          for ( FieldInfo ffi : fieldInfos ) {
             if ( ffi._fieldIndex == index ) {
-               throw new RuntimeException(_class + " extends Externalizer, but " + fieldName + " has a non-unique index " + index);
+               throw new RuntimeException(_class + " extends ExternalizableBean, but " + fieldName + " has a non-unique index " + index);
             }
          }
          fi._fieldIndex = index;
@@ -1726,7 +1726,8 @@ public class Externalizer implements Externalizable {
                if ( getter.getParameterTypes().length > 0 ) {
                   externalize getterAnnotation = getter.getAnnotation(externalize.class);
                   if ( getterAnnotation != null ) {
-                     throw new RuntimeException(_class + " extends Externalizer, but the annotated getter method " + getter.getName() + " has a parameter.");
+                     throw new RuntimeException(_class + " extends ExternalizableBean, but the annotated getter method " + getter.getName()
+                        + " has a parameter.");
                   } else {
                      continue;
                   }
@@ -1740,7 +1741,7 @@ public class Externalizer implements Externalizable {
                catch ( NoSuchMethodException e ) {
                   externalize getterAnnotation = getter.getAnnotation(externalize.class);
                   if ( getterAnnotation != null ) {
-                     throw new RuntimeException(_class + " extends Externalizer, but the annotated getter method " + getter.getName()
+                     throw new RuntimeException(_class + " extends ExternalizableBean, but the annotated getter method " + getter.getName()
                         + " has no appropriate setter with the correct parameter.");
                   } else {
                      continue;
@@ -1759,7 +1760,7 @@ public class Externalizer implements Externalizable {
                if ( setter.getParameterTypes().length != 1 ) {
                   externalize setterAnnotation = setter.getAnnotation(externalize.class);
                   if ( setterAnnotation != null ) {
-                     throw new RuntimeException(_class + " extends Externalizer, but the annotated setter method " + setter.getName()
+                     throw new RuntimeException(_class + " extends ExternalizableBean, but the annotated setter method " + setter.getName()
                         + " does not have a single parameter.");
                   } else {
                      continue;
@@ -1773,7 +1774,7 @@ public class Externalizer implements Externalizable {
                catch ( NoSuchMethodException e ) {
                   externalize setterAnnotation = setter.getAnnotation(externalize.class);
                   if ( setterAnnotation != null ) {
-                     throw new RuntimeException(_class + " extends Externalizer, but the annotated setter method " + setter.getName()
+                     throw new RuntimeException(_class + " extends ExternalizableBean, but the annotated setter method " + setter.getName()
                         + " has no appropriate getter.");
                   } else {
                      continue;
@@ -1784,7 +1785,7 @@ public class Externalizer implements Externalizable {
                   externalize setterAnnotation = setter.getAnnotation(externalize.class);
                   externalize getterAnnotation = getter.getAnnotation(externalize.class);
                   if ( getterAnnotation != null || setterAnnotation != null ) {
-                     throw new RuntimeException(_class + " extends Externalizer, but the annotated setter method " + setter.getName()
+                     throw new RuntimeException(_class + " extends ExternalizableBean, but the annotated setter method " + setter.getName()
                         + " has no getter with the correct return type.");
                   } else {
                      continue;
@@ -1801,7 +1802,7 @@ public class Externalizer implements Externalizable {
                continue;
             }
             if ( getterAnnotation != null && setterAnnotation != null && getterAnnotation.value() != setterAnnotation.value() ) {
-               throw new RuntimeException(_class + " extends Externalizer, but the getter/setter pair " + getter.getName()
+               throw new RuntimeException(_class + " extends ExternalizableBean, but the getter/setter pair " + getter.getName()
                   + " has different indexes in the externalize annotations.");
             }
             externalize annotation = getterAnnotation == null ? setterAnnotation : getterAnnotation;

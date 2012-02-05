@@ -142,9 +142,9 @@ public class ExternalizationBenchmark {
          }
 
          {
-            DumpOfferBeanExternalizerFields[] beans = new DumpOfferBeanExternalizerFields[100000];
+            DumpOfferBeanExternalizableBeanFields[] beans = new DumpOfferBeanExternalizableBeanFields[100000];
             for ( int i = 0, length = beans.length; i < length; i++ ) {
-               beans[i] = DumpOfferBeanExternalizerFields.createRandomBean();
+               beans[i] = DumpOfferBeanExternalizableBeanFields.createRandomBean();
             }
 
             System.gc();
@@ -152,16 +152,16 @@ public class ExternalizationBenchmark {
             StopWatch t = new StopWatch();
 
             ByteArrayOutputStream bo = new ByteArrayOutputStream();
-            ObjectOutput o = new SingleTypeObjectOutputStream<DumpOfferBeanExternalizerFields>(bo, DumpOfferBeanExternalizerFields.class);
+            ObjectOutput o = new SingleTypeObjectOutputStream<DumpOfferBeanExternalizableBeanFields>(bo, DumpOfferBeanExternalizableBeanFields.class);
             for ( int i = 0, length = beans.length; i < length; i++ ) {
                beans[i].writeExternal(o);
             }
             o.close();
 
-            ObjectInput i = new SingleTypeObjectInputStream<DumpOfferBeanExternalizerFields>(new ByteArrayInputStream(bo.toByteArray()),
-               DumpOfferBeanExternalizerFields.class);
+            ObjectInput i = new SingleTypeObjectInputStream<DumpOfferBeanExternalizableBeanFields>(new ByteArrayInputStream(bo.toByteArray()),
+               DumpOfferBeanExternalizableBeanFields.class);
             for ( int j = 0, length = beans.length; j < length; j++ ) {
-               DumpOfferBeanExternalizerFields dd = new DumpOfferBeanExternalizerFields();
+               DumpOfferBeanExternalizableBeanFields dd = new DumpOfferBeanExternalizableBeanFields();
                dd.readExternal(i);
                assert (dd.equals(beans[j]));
             }
@@ -171,9 +171,9 @@ public class ExternalizationBenchmark {
          }
 
          {
-            DumpOfferBeanExternalizerMethods[] beans = new DumpOfferBeanExternalizerMethods[100000];
+            DumpOfferBeanExternalizableBeanMethods[] beans = new DumpOfferBeanExternalizableBeanMethods[100000];
             for ( int i = 0, length = beans.length; i < length; i++ ) {
-               beans[i] = DumpOfferBeanExternalizerMethods.createRandomBean();
+               beans[i] = DumpOfferBeanExternalizableBeanMethods.createRandomBean();
             }
 
             System.gc();
@@ -181,16 +181,16 @@ public class ExternalizationBenchmark {
             StopWatch t = new StopWatch();
 
             ByteArrayOutputStream bo = new ByteArrayOutputStream();
-            ObjectOutput o = new SingleTypeObjectOutputStream<DumpOfferBeanExternalizerMethods>(bo, DumpOfferBeanExternalizerMethods.class);
+            ObjectOutput o = new SingleTypeObjectOutputStream<DumpOfferBeanExternalizableBeanMethods>(bo, DumpOfferBeanExternalizableBeanMethods.class);
             for ( int i = 0, length = beans.length; i < length; i++ ) {
                beans[i].writeExternal(o);
             }
             o.close();
 
-            ObjectInput i = new SingleTypeObjectInputStream<DumpOfferBeanExternalizerMethods>(new ByteArrayInputStream(bo.toByteArray()),
-               DumpOfferBeanExternalizerMethods.class);
+            ObjectInput i = new SingleTypeObjectInputStream<DumpOfferBeanExternalizableBeanMethods>(new ByteArrayInputStream(bo.toByteArray()),
+               DumpOfferBeanExternalizableBeanMethods.class);
             for ( int j = 0, length = beans.length; j < length; j++ ) {
-               DumpOfferBeanExternalizerMethods dd = new DumpOfferBeanExternalizerMethods();
+               DumpOfferBeanExternalizableBeanMethods dd = new DumpOfferBeanExternalizableBeanMethods();
                dd.readExternal(i);
                assert (dd.equals(beans[j]));
             }

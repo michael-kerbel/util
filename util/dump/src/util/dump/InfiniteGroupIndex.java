@@ -929,7 +929,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
    }
 
 
-   public static class ExternalizableKeyPosition extends Externalizer implements Comparable<ExternalizableKeyPosition> {
+   public static class ExternalizableKeyPosition extends ExternalizableBean implements Comparable<ExternalizableKeyPosition> {
 
       @externalize(1)
       Externalizable _key;
@@ -1012,7 +1012,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
    }
 
-   public static class StringKeyPosition extends Externalizer implements Comparable<StringKeyPosition> {
+   public static class StringKeyPosition extends ExternalizableBean implements Comparable<StringKeyPosition> {
 
       @externalize(1)
       String _key;

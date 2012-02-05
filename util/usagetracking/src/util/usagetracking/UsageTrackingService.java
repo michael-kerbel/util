@@ -22,7 +22,7 @@ import org.apache.log4j.Logger;
 
 import util.dump.Dump;
 import util.dump.DumpUtils;
-import util.dump.Externalizer;
+import util.dump.ExternalizableBean;
 import util.time.TimeUtils;
 
 
@@ -371,7 +371,7 @@ public class UsageTrackingService {
    }
 
 
-   public static class StatData extends Externalizer {
+   public static class StatData extends ExternalizableBean {
 
       private static final long serialVersionUID = -1816997029156670474L;
 

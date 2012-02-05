@@ -28,10 +28,10 @@ import java.util.UUID;
 
 import org.junit.Test;
 
-import util.dump.Externalizer.externalize;
+import util.dump.ExternalizableBean.externalize;
 
 
-public class ExternalizerTest {
+public class ExternalizableBeanTest {
 
    private static final int NUMBER_OF_INSTANCES_TO_CREATE = 100;
 
@@ -629,7 +629,7 @@ public class ExternalizerTest {
    }
 
 
-   public static class TestBean extends Externalizer {
+   public static class TestBean extends ExternalizableBean {
 
       @externalize(1)
       public int                  _int;
@@ -719,7 +719,7 @@ public class ExternalizerTest {
       public int _int2;
    }
 
-   public static class TestBean3 extends Externalizer {
+   public static class TestBean3 extends ExternalizableBean {
 
       // the member vars get initialized randomly only if the field is public - a limitation of this testcase
 
@@ -928,7 +928,7 @@ public class ExternalizerTest {
       }
    }
 
-   public static class TestBean4 extends Externalizer {
+   public static class TestBean4 extends ExternalizableBean {
 
       // this member var gets initialized randomly only if the field is public - a limitation of this testcase
 
@@ -1117,7 +1117,7 @@ public class ExternalizerTest {
       }
    }
 
-   public static class TestBeanSimple extends Externalizer {
+   public static class TestBeanSimple extends ExternalizableBean {
 
       // the member vars get initialized randomly only if the field is public - a limitation of this testcase
 

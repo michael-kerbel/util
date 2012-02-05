@@ -50,7 +50,7 @@ public class InfiniteSorterTest {
       Assert.assertEquals(n, 10000000);
    }
 
-   public static class Bean extends Externalizer implements Comparable<Bean> {
+   public static class Bean extends ExternalizableBean implements Comparable<Bean> {
 
       @externalize(1)
       private long _id;

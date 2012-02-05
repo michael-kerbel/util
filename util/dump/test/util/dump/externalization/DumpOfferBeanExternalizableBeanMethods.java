@@ -2,19 +2,19 @@ package util.dump.externalization;
 
 import java.util.Random;
 
-import util.dump.Externalizer;
+import util.dump.ExternalizableBean;
 
 
 
 
-public class DumpOfferBeanExternalizerFields extends Externalizer implements Comparable<DumpOfferBeanExternalizerFields> {
+public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean implements Comparable<DumpOfferBeanExternalizableBeanMethods> {
 
    private static final long   RANDOM_SEED = 123456;
    private static final Random RANDOM      = new Random(RANDOM_SEED);
 
 
-   public static DumpOfferBeanExternalizerFields createRandomBean() {
-      DumpOfferBeanExternalizerFields d = new DumpOfferBeanExternalizerFields();
+   public static DumpOfferBeanExternalizableBeanMethods createRandomBean() {
+      DumpOfferBeanExternalizableBeanMethods d = new DumpOfferBeanExternalizableBeanMethods();
       d.code = randomString();
       d.codeType = RANDOM.nextInt();
       d.contentId = RANDOM.nextLong();
@@ -57,83 +57,54 @@ public class DumpOfferBeanExternalizerFields extends Externalizer implements Com
       return sb.toString();
    }
 
-   @externalize(1)
-   private long    contentId;
-   @externalize(2)
-   private long    ownerId;
-   @externalize(3)
-   private String  sourceId;
-   @externalize(4)
-   private String  sourceGroup;
+   public long    contentId;
+   public long    ownerId;
+   public String  sourceId;
+   public String  sourceGroup;
 
-   @externalize(5)
-   private boolean isActive;
+   public boolean isActive;
 
-   @externalize(6)
-   private long    created;
-   @externalize(7)
-   private long    updated;
+   public long    created;
+   public long    updated;
 
-   @externalize(8)
-   private long    hid;
-   @externalize(9)
-   private long    parentHid;
-   @externalize(10)
-   private long    variant;
+   public long    hid;
+   public long    parentHid;
+   public long    variant;
 
-   @externalize(11)
-   private long    matchOwner;
-   @externalize(12)
-   private long    matchProgram;
-   @externalize(13)
-   private long    matchType;
-   @externalize(14)
-   private long    matchStamp;
+   public long    matchOwner;
+   public long    matchProgram;
+   public long    matchType;
+   public long    matchStamp;
 
-   @externalize(15)
-   private String  name;
-   @externalize(16)
-   private String  description;
-   @externalize(17)
-   private String  manufacturer;
-   @externalize(18)
-   private String  manufacturerPrdId;
-   @externalize(19)
-   private String  promoText;
+   public String  name;
+   public String  description;
+   public String  manufacturer;
+   public String  manufacturerPrdId;
+   public String  promoText;
 
-   @externalize(20)
-   private double  price;
-   @externalize(21)
-   private Double  oldPrice;
+   public double  price;
+   public Double  oldPrice;
 
-   @externalize(22)
-   private String  code;
-   @externalize(23)
-   private int     codeType;
+   public String  code;
+   public int     codeType;
 
-   @externalize(24)
-   private String  deeplink;
+   public String  deeplink;
 
-   @externalize(25)
-   private String  deliveryTime;
-   @externalize(26)
-   private int     deliveryTimeColor;
-   @externalize(27)
-   private String  deliveryCost;
-   @externalize(28)
-   private Double  deliveryCostValue;
+   public String  deliveryTime;
+   public int     deliveryTimeColor;
+   public String  deliveryCost;
+   public Double  deliveryCostValue;
 
-   @externalize(29)
-   private String  imageView;
-   @externalize(30)
-   private String  imageSmall;
+   public String  imageView;
+   public String  imageSmall;
+
+   public DumpOfferBeanExternalizableBeanMethods() {}
 
 
-   public DumpOfferBeanExternalizerFields() {}
-
-   public int compareTo( DumpOfferBeanExternalizerFields o ) {
+   public int compareTo( DumpOfferBeanExternalizableBeanMethods o ) {
       return this.contentId < o.contentId ? -1 : (this.contentId == o.contentId ? 0 : 1);
    }
+
 
    @Override
    public boolean equals( Object obj ) {
@@ -146,7 +117,7 @@ public class DumpOfferBeanExternalizerFields extends Externalizer implements Com
       if ( getClass() != obj.getClass() ) {
          return false;
       }
-      DumpOfferBeanExternalizerFields other = (DumpOfferBeanExternalizerFields)obj;
+      DumpOfferBeanExternalizableBeanMethods other = (DumpOfferBeanExternalizableBeanMethods)obj;
       if ( code == null ) {
          if ( other.code != null ) {
             return false;
@@ -315,6 +286,181 @@ public class DumpOfferBeanExternalizerFields extends Externalizer implements Com
       return true;
    }
 
+
+   @externalize(1)
+   public String getCode() {
+      return code;
+   }
+
+
+   @externalize(2)
+   public int getCodeType() {
+      return codeType;
+   }
+
+
+   @externalize(3)
+   public long getContentId() {
+      return contentId;
+   }
+
+
+   @externalize(4)
+   public long getCreated() {
+      return created;
+   }
+
+
+   @externalize(5)
+   public String getDeeplink() {
+      return deeplink;
+   }
+
+
+   @externalize(6)
+   public String getDeliveryCost() {
+      return deliveryCost;
+   }
+
+
+   @externalize(7)
+   public Double getDeliveryCostValue() {
+      return deliveryCostValue;
+   }
+
+
+   @externalize(8)
+   public String getDeliveryTime() {
+      return deliveryTime;
+   }
+
+
+   @externalize(9)
+   public int getDeliveryTimeColor() {
+      return deliveryTimeColor;
+   }
+
+
+   @externalize(10)
+   public String getDescription() {
+      return description;
+   }
+
+
+   @externalize(11)
+   public long getHid() {
+      return hid;
+   }
+
+
+   @externalize(12)
+   public String getImageSmall() {
+      return imageSmall;
+   }
+
+
+   @externalize(13)
+   public String getImageView() {
+      return imageView;
+   }
+
+
+   @externalize(14)
+   public String getManufacturer() {
+      return manufacturer;
+   }
+
+
+   @externalize(15)
+   public String getManufacturerPrdId() {
+      return manufacturerPrdId;
+   }
+
+
+   @externalize(16)
+   public long getMatchOwner() {
+      return matchOwner;
+   }
+
+
+   @externalize(17)
+   public long getMatchProgram() {
+      return matchProgram;
+   }
+
+
+   @externalize(18)
+   public long getMatchStamp() {
+      return matchStamp;
+   }
+
+
+   @externalize(19)
+   public long getMatchType() {
+      return matchType;
+   }
+
+
+   @externalize(20)
+   public String getName() {
+      return name;
+   }
+
+
+   @externalize(21)
+   public Double getOldPrice() {
+      return oldPrice;
+   }
+
+
+   @externalize(22)
+   public long getOwnerId() {
+      return ownerId;
+   }
+
+
+   @externalize(23)
+   public long getParentHid() {
+      return parentHid;
+   }
+
+
+   @externalize(24)
+   public double getPrice() {
+      return price;
+   }
+
+
+   @externalize(25)
+   public String getPromoText() {
+      return promoText;
+   }
+
+
+   @externalize(26)
+   public String getSourceGroup() {
+      return sourceGroup;
+   }
+
+
+   @externalize(27)
+   public String getSourceId() {
+      return sourceId;
+   }
+
+
+   @externalize(28)
+   public long getUpdated() {
+      return updated;
+   }
+
+
+   @externalize(29)
+   public long getVariant() {
+      return variant;
+   }
+
+
    @Override
    public int hashCode() {
       final int prime = 31;
@@ -352,5 +498,156 @@ public class DumpOfferBeanExternalizerFields extends Externalizer implements Com
       result = prime * result + (int)(updated ^ (updated >>> 32));
       result = prime * result + (int)(variant ^ (variant >>> 32));
       return result;
+   }
+
+   @externalize(30)
+   public boolean isActive() {
+      return isActive;
+   }
+
+
+   public void setActive( boolean isActive ) {
+      this.isActive = isActive;
+   }
+
+
+   public void setCode( String code ) {
+      this.code = code;
+   }
+
+
+   public void setCodeType( int codeType ) {
+      this.codeType = codeType;
+   }
+
+
+   public void setContentId( long contentId ) {
+      this.contentId = contentId;
+   }
+
+
+   public void setCreated( long created ) {
+      this.created = created;
+   }
+
+
+   public void setDeeplink( String deeplink ) {
+      this.deeplink = deeplink;
+   }
+
+
+   public void setDeliveryCost( String deliveryCost ) {
+      this.deliveryCost = deliveryCost;
+   }
+
+
+   public void setDeliveryCostValue( Double deliveryCostValue ) {
+      this.deliveryCostValue = deliveryCostValue;
+   }
+
+
+   public void setDeliveryTime( String deliveryTime ) {
+      this.deliveryTime = deliveryTime;
+   }
+
+
+   public void setDeliveryTimeColor( int deliveryTimeColor ) {
+      this.deliveryTimeColor = deliveryTimeColor;
+   }
+
+
+   public void setDescription( String description ) {
+      this.description = description;
+   }
+
+
+   public void setHid( long hid ) {
+      this.hid = hid;
+   }
+
+
+   public void setImageSmall( String imageSmall ) {
+      this.imageSmall = imageSmall;
+   }
+
+
+   public void setImageView( String imageView ) {
+      this.imageView = imageView;
+   }
+
+
+   public void setManufacturer( String manufacturer ) {
+      this.manufacturer = manufacturer;
+   }
+
+
+   public void setManufacturerPrdId( String manufacturerPrdId ) {
+      this.manufacturerPrdId = manufacturerPrdId;
+   }
+
+
+   public void setMatchOwner( long matchOwner ) {
+      this.matchOwner = matchOwner;
+   }
+
+
+   public void setMatchProgram( long matchProgram ) {
+      this.matchProgram = matchProgram;
+   }
+
+
+   public void setMatchStamp( long matchStamp ) {
+      this.matchStamp = matchStamp;
+   }
+
+
+   public void setMatchType( long matchType ) {
+      this.matchType = matchType;
+   }
+
+
+   public void setName( String name ) {
+      this.name = name;
+   }
+
+
+   public void setOldPrice( Double oldPrice ) {
+      this.oldPrice = oldPrice;
+   }
+
+
+   public void setOwnerId( long ownerId ) {
+      this.ownerId = ownerId;
+   }
+
+
+   public void setParentHid( long parentHid ) {
+      this.parentHid = parentHid;
+   }
+
+
+   public void setPrice( double price ) {
+      this.price = price;
+   }
+
+
+   public void setPromoText( String promoText ) {
+      this.promoText = promoText;
+   }
+
+   public void setSourceGroup( String sourceGroup ) {
+      this.sourceGroup = sourceGroup;
+   }
+
+   public void setSourceId( String sourceId ) {
+      this.sourceId = sourceId;
+   }
+
+   public void setUpdated( long updated ) {
+      this.updated = updated;
+   }
+
+   public void setVariant( long variant ) {
+      this.variant = variant;
    }
 }

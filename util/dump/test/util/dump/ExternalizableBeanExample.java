@@ -15,9 +15,9 @@ import static org.fest.assertions.Assertions.assertThat;
 /**
  * An example beside the "real" Test-Case to demonstrate the usage and benefits.
  */
-public class ExternalizerExample {
+public class ExternalizableBeanExample {
 
-   public static class BeanV1 extends Externalizer {
+   public static class BeanV1 extends ExternalizableBean {
       @externalize(1)
       public String name;
       
@@ -28,7 +28,7 @@ public class ExternalizerExample {
       public int oldValue;
    }
 
-   public static class BeanV2 extends Externalizer {
+   public static class BeanV2 extends ExternalizableBean {
       @externalize(1)
       public String name;
       

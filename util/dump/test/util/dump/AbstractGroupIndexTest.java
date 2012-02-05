@@ -350,7 +350,7 @@ abstract public class AbstractGroupIndexTest {
    }
 
 
-   public static class Bean extends Externalizer {
+   public static class Bean extends ExternalizableBean {
 
       @externalize(1)
       long             _groupLong;
@@ -432,7 +432,7 @@ abstract public class AbstractGroupIndexTest {
       }
    }
 
-   public static class ExternalizableId extends Externalizer {
+   public static class ExternalizableId extends ExternalizableBean {
 
       @externalize(1)
       long _id;

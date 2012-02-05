@@ -5,12 +5,12 @@ import java.io.IOException;
 
 import util.dump.DumpReader;
 import util.dump.DumpWriter;
-import util.dump.Externalizer;
+import util.dump.ExternalizableBean;
 import util.dump.stream.SingleTypeObjectStreamProvider;
 import util.io.IOUtils;
 
 
-public class ScaleData extends Externalizer {
+public class ScaleData extends ExternalizableBean {
 
    public static ScaleData load( File file ) throws IOException {
       DumpReader<ScaleData> reader = null;
