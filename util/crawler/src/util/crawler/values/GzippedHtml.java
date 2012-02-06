@@ -11,10 +11,10 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.log4j.Logger;
 
-import util.dump.Externalizer;
+import util.dump.ExternalizableBean;
 
 
-public class GzippedHtml extends Externalizer {
+public class GzippedHtml extends ExternalizableBean {
 
    private static Logger _log = Logger.getLogger(GzippedHtml.class);
 
