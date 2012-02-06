@@ -106,6 +106,7 @@ public class ExternalizableBean implements Externalizable {
 
    private static boolean                  USE_UNSAFE_FIELD_ACCESSORS = true;
    private static Map<Class, ClassConfig>  CLASS_CONFIGS              = new HashMap<Class, ClassConfig>();
+   private static Map<Class, Boolean>      CLASS_CHANGED_INCOMPATIBLY = new HashMap<Class, Boolean>();
    private static ThreadLocal<StreamCache> STREAM_CACHE               = new ThreadLocal<StreamCache>() {
 
                                                                          @Override
@@ -158,6 +159,16 @@ public class ExternalizableBean implements Externalizable {
                f = fieldAccessors[j];
                ft = fieldTypes[j];
                defaultType = defaultTypes[j];
+               if ( fieldTypeId != ft._id ) {
+                  if ( CLASS_CHANGED_INCOMPATIBLY.get(getClass()) == null ) {
+                     _log.error("The field type of index " + fieldIndex + " in " + getClass().getSimpleName() + //
+                        " appears to have changed from " + FieldType.forId(fieldTypeId) + //
+                        " (version in dump) to " + ft + " (current class version)." + //
+                        " This change breaks downward compatibility, see JavaDoc for details." + //
+                        " This warning will appear only once.");
+                     CLASS_CHANGED_INCOMPATIBLY.put(getClass(), Boolean.TRUE);
+                  }
+               }
             } else { // unknown field
                ft = FieldType.forId(fieldTypeId);
             }
