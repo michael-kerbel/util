@@ -102,8 +102,6 @@ public class ExternalizableBean implements Externalizable {
 
    protected static final long             serialVersionUID           = -1816997029156670474L;
 
-   private static Logger                   _log                       = Logger.getLogger(ExternalizableBean.class);
-
    private static boolean                  USE_UNSAFE_FIELD_ACCESSORS = true;
    private static Map<Class, ClassConfig>  CLASS_CONFIGS              = new HashMap<Class, ClassConfig>();
    private static Map<Class, Boolean>      CLASS_CHANGED_INCOMPATIBLY = new HashMap<Class, Boolean>();
@@ -161,7 +159,8 @@ public class ExternalizableBean implements Externalizable {
                defaultType = defaultTypes[j];
                if ( fieldTypeId != ft._id ) {
                   if ( CLASS_CHANGED_INCOMPATIBLY.get(getClass()) == null ) {
-                     _log.error("The field type of index " + fieldIndex + " in " + getClass().getSimpleName() + //
+                     Logger.getLogger(getClass()).error("The field type of index " + fieldIndex + // 
+                        " in " + getClass().getSimpleName() + //
                         " appears to have changed from " + FieldType.forId(fieldTypeId) + //
                         " (version in dump) to " + ft + " (current class version)." + //
                         " This change breaks downward compatibility, see JavaDoc for details." + //
@@ -1663,9 +1662,10 @@ public class ExternalizableBean implements Externalizable {
          }
          if ( ft == null ) {
             ft = FieldType.Object;
-            _log.warn("The field type of index "
-               + fi._fieldIndex
-               + " is not of a supported type, thus falling back to Object serialization. This might be very slow of even fail, dependant on your ObjectStreamProvider. Please check, whether this is really what you wanted!");
+            Logger.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
+               " is not of a supported type, thus falling back to Object serialization." + //
+               " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
+               " Please check, whether this is really what you wanted!");
          }
          if ( ft == FieldType.ListOfExternalizables
             && (fi._fieldAccessor.getGenericTypes().length != 1 || !Externalizable.class.isAssignableFrom(fi._fieldAccessor.getGenericTypes()[0])) ) {
@@ -1673,9 +1673,10 @@ public class ExternalizableBean implements Externalizable {
                ft = FieldType.ListOfStrings;
             } else {
                ft = FieldType.Object;
-               _log.warn("The field type of index "
-                  + fi._fieldIndex
-                  + " has a List with an unsupported type as generic parameter, thus falling back to Object serialization. This might be very slow of even fail, dependant on your ObjectStreamProvider. Please check, whether this is really what you wanted!");
+               Logger.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
+                  " has a List with an unsupported type as generic parameter, thus falling back to Object serialization." + //
+                  " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
+                  " Please check, whether this is really what you wanted!");
             }
          }
 
