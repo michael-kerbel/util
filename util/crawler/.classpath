@@ -1,45 +1,25 @@
 <classpath>
   <classpathentry kind="src" path="src"/>
   <classpathentry kind="output" path="target/classes"/>
-  <classpathentry kind="var" path="M2_REPO/commons-codec/commons-codec/1.4/commons-codec-1.4.jar" sourcepath="M2_REPO/commons-codec/commons-codec/1.4/commons-codec-1.4-sources.jar">
-    <attributes>
-      <attribute value="jar:file:/D:/dev/maven-repository/commons-codec/commons-codec/1.4/commons-codec-1.4-javadoc.jar!/" name="javadoc_location"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry kind="var" path="M2_REPO/commons-io/commons-io/1.4/commons-io-1.4.jar" sourcepath="M2_REPO/commons-io/commons-io/1.4/commons-io-1.4-sources.jar">
-    <attributes>
-      <attribute value="jar:file:/D:/dev/maven-repository/commons-io/commons-io/1.4/commons-io-1.4-javadoc.jar!/" name="javadoc_location"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6.jar" sourcepath="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6-sources.jar">
-    <attributes>
-      <attribute value="jar:file:/D:/dev/maven-repository/commons-lang/commons-lang/2.6/commons-lang-2.6-javadoc.jar!/" name="javadoc_location"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar" sourcepath="M2_REPO/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1-sources.jar">
-    <attributes>
-      <attribute value="jar:file:/D:/dev/maven-repository/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1-javadoc.jar!/" name="javadoc_location"/>
-    </attributes>
-  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/commons-codec/commons-codec/1.4/commons-codec-1.4.jar" sourcepath="M2_REPO/commons-codec/commons-codec/1.4/commons-codec-1.4-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-io/commons-io/1.4/commons-io-1.4.jar" sourcepath="M2_REPO/commons-io/commons-io/1.4/commons-io-1.4-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6.jar" sourcepath="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar" sourcepath="M2_REPO/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/easytesting/fest-assert/1.1/fest-assert-1.1.jar" sourcepath="M2_REPO/org/easytesting/fest-assert/1.1/fest-assert-1.1-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/easytesting/fest-util/1.1/fest-util-1.1.jar" sourcepath="M2_REPO/org/easytesting/fest-util/1.1/fest-util-1.1-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/htmlcleaner/htmlcleaner/2.1/htmlcleaner-2.1.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/apache/httpcomponents/httpclient/4.1.2/httpclient-4.1.2.jar" sourcepath="M2_REPO/org/apache/httpcomponents/httpclient/4.1.2/httpclient-4.1.2-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/apache/httpcomponents/httpcore/4.1.2/httpcore-4.1.2.jar" sourcepath="M2_REPO/org/apache/httpcomponents/httpcore/4.1.2/httpcore-4.1.2-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/junit/junit/4.5/junit-4.5.jar" sourcepath="M2_REPO/junit/junit/4.5/junit-4.5-sources.jar"/>
-  <classpathentry kind="var" path="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16.jar" sourcepath="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16-sources.jar">
-    <attributes>
-      <attribute value="jar:file:/D:/dev/maven-repository/log4j/log4j/1.2.16/log4j-1.2.16-javadoc.jar!/" name="javadoc_location"/>
-    </attributes>
-  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16.jar" sourcepath="M2_REPO/log4j/log4j/1.2.16/log4j-1.2.16-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/net/sf/saxon/saxon/9.0/saxon-9.0.jar"/>
   <classpathentry kind="var" path="M2_REPO/net/sf/saxon/saxon-dom/9.0/saxon-dom-9.0.jar"/>
   <classpathentry kind="var" path="M2_REPO/net/sf/saxon/saxon-s9api/9.0/saxon-s9api-9.0.jar"/>
   <classpathentry kind="var" path="M2_REPO/org/springframework/spring/2.5.6/spring-2.5.6.jar" sourcepath="M2_REPO/org/springframework/spring/2.5.6/spring-2.5.6-sources.jar"/>
   <classpathentry kind="var" path="M2_REPO/trove/trove/3.0.0rc1/trove-3.0.0rc1.jar" sourcepath="M2_REPO/trove/trove/3.0.0rc1/trove-3.0.0rc1-sources.jar"/>
-  <classpathentry kind="var" path="M2_REPO/mkr/util-base/1.0-SNAPSHOT/util-base-1.0-SNAPSHOT.jar" sourcepath="M2_REPO/mkr/util-base/1.0-SNAPSHOT/util-base-1.0-SNAPSHOT-sources.jar"/>
-  <classpathentry kind="var" path="M2_REPO/mkr/util-dump/1.0-SNAPSHOT/util-dump-1.0-SNAPSHOT.jar"/>
-  <classpathentry kind="var" path="M2_REPO/mkr/util-http/1.0-SNAPSHOT/util-http-1.0-SNAPSHOT.jar" sourcepath="M2_REPO/mkr/util-http/1.0-SNAPSHOT/util-http-1.0-SNAPSHOT-sources.jar"/>
-  <classpathentry kind="var" path="M2_REPO/mkr/util-xslt/1.0-SNAPSHOT/util-xslt-1.0-SNAPSHOT.jar" sourcepath="M2_REPO/mkr/util-xslt/1.0-SNAPSHOT/util-xslt-1.0-SNAPSHOT-sources.jar"/>
+  <classpathentry kind="src" path="/util-base"/>
+  <classpathentry kind="src" path="/util-dump"/>
+  <classpathentry kind="src" path="/util-http"/>
+  <classpathentry kind="src" path="/util-xslt"/>
   <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 </classpath>
