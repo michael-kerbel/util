@@ -14,9 +14,9 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>trove</groupId>
-			<artifactId>trove</artifactId>
-			<version>3.0.0rc1</version>
+			<groupId>net.sf.trove4j</groupId>
+			<artifactId>trove4j</artifactId>
+			<version>3.0.2</version>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
