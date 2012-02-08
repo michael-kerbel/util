@@ -1019,6 +1019,29 @@ public class ExternalizableBean implements Externalizable {
       return d;
    }
 
+   private Externalizable readExternalizable( ObjectInput in, Class<? extends Externalizable> defaultType, Class[] lastNonDefaultClass ) throws Exception {
+      Externalizable instance = null;
+      boolean isNotNull = in.readBoolean();
+      if ( isNotNull ) {
+         boolean isDefaultType = in.readBoolean();
+         if ( isDefaultType ) {
+            instance = defaultType.newInstance();
+         } else {
+            boolean isSameAsLastNonDefault = in.readBoolean();
+            Class c;
+            if ( isSameAsLastNonDefault ) {
+               c = lastNonDefaultClass[0];
+            } else {
+               c = forName(in.readUTF());
+               lastNonDefaultClass[0] = c;
+            }
+            instance = (Externalizable)c.newInstance();
+         }
+         instance.readExternal(in);
+      }
+      return instance;
+   }
+
    private Externalizable[] readExternalizableArray( ObjectInput in, Class componentType, Class defaultType ) throws Exception {
       Externalizable[] d = null;
       boolean isNotNull = in.readBoolean();
@@ -1026,28 +1049,9 @@ public class ExternalizableBean implements Externalizable {
          int size = in.readInt();
          Class<? extends Externalizable> externalizableClass = componentType;
          d = (Externalizable[])Array.newInstance(externalizableClass, size);
-         Class lastNonDefaultClass = null;
+         Class[] lastNonDefaultClass = new Class[1];
          for ( int k = 0; k < size; k++ ) {
-            Externalizable instance = null;
-            isNotNull = in.readBoolean();
-            if ( isNotNull ) {
-               boolean isDefaultType = in.readBoolean();
-               if ( isDefaultType ) {
-                  instance = externalizableClass.newInstance();
-               } else {
-                  boolean isSameAsLastNonDefault = in.readBoolean();
-                  Class c;
-                  if ( isSameAsLastNonDefault ) {
-                     c = lastNonDefaultClass;
-                  } else {
-                     c = forName(in.readUTF());
-                     lastNonDefaultClass = c;
-                  }
-                  instance = (Externalizable)c.newInstance();
-               }
-               instance.readExternal(in);
-            }
-            d[k] = instance;
+            d[k] = readExternalizable(in, externalizableClass, lastNonDefaultClass);
          }
       }
       return d;
@@ -1095,28 +1099,9 @@ public class ExternalizableBean implements Externalizable {
             d = (List)c.newInstance();
          }
 
-         Class lastNonDefaultClass = null;
+         Class[] lastNonDefaultClass = new Class[1];
          for ( int k = 0; k < size; k++ ) {
-            Externalizable instance = null;
-            isNotNull = in.readBoolean();
-            if ( isNotNull ) {
-               boolean isDefaultGenericType = in.readBoolean();
-               if ( isDefaultGenericType ) {
-                  instance = (Externalizable)defaultGenericType.newInstance();
-               } else {
-                  boolean isSameAsLastNonDefault = in.readBoolean();
-                  Class c;
-                  if ( isSameAsLastNonDefault ) {
-                     c = lastNonDefaultClass;
-                  } else {
-                     c = forName(in.readUTF());
-                     lastNonDefaultClass = c;
-                  }
-                  instance = (Externalizable)c.newInstance();
-               }
-               instance.readExternal(in);
-            }
-            d.add(instance);
+            d.add(readExternalizable(in, defaultGenericType, lastNonDefaultClass));
          }
       }
       if ( f != null ) {
@@ -1237,29 +1222,33 @@ public class ExternalizableBean implements Externalizable {
       }
    }
 
+   private void writeExternalizable( ObjectOutput out, Externalizable instance, Class defaultType, Class[] lastNonDefaultClass ) throws Exception {
+      out.writeBoolean(instance != null);
+      if ( instance != null ) {
+         Class c = instance.getClass();
+         boolean isDefaultGenericType = c.equals(defaultType);
+         out.writeBoolean(isDefaultGenericType);
+         if ( !isDefaultGenericType ) {
+            boolean isSameAsLastNonDefault = c.equals(lastNonDefaultClass);
+            out.writeBoolean(isSameAsLastNonDefault);
+            if ( !isSameAsLastNonDefault ) {
+               out.writeUTF(c.getName());
+               lastNonDefaultClass[0] = c;
+            }
+         }
+         instance.writeExternal(out);
+      }
+   }
+
    private void writeExternalizableArray( ObjectOutput out, Externalizable[] d, Class defaultType ) throws Exception, IOException {
       out.writeBoolean(d != null);
       if ( d != null ) {
          out.writeInt(d.length);
 
-         Class lastNonDefaultClass = null;
+         Class[] lastNonDefaultClass = new Class[0];
          for ( int j = 0, llength = d.length; j < llength; j++ ) {
             Externalizable instance = d[j];
-            out.writeBoolean(instance != null);
-            if ( instance != null ) {
-               Class c = instance.getClass();
-               boolean isDefaultType = c.equals(defaultType);
-               out.writeBoolean(isDefaultType);
-               if ( !isDefaultType ) {
-                  boolean isSameAsLastNonDefault = c.equals(lastNonDefaultClass);
-                  out.writeBoolean(isSameAsLastNonDefault);
-                  if ( !isSameAsLastNonDefault ) {
-                     out.writeUTF(c.getName());
-                     lastNonDefaultClass = c;
-                  }
-               }
-               instance.writeExternal(out);
-            }
+            writeExternalizable(out, instance, defaultType, lastNonDefaultClass);
          }
       }
 
@@ -1297,24 +1286,10 @@ public class ExternalizableBean implements Externalizable {
             out.writeUTF(listClass.getName());
          }
 
-         Class lastNonDefaultClass = null;
+         Class[] lastNonDefaultClass = new Class[1];
          for ( int j = 0, llength = d.size(); j < llength; j++ ) {
             Externalizable instance = (Externalizable)d.get(j);
-            out.writeBoolean(instance != null);
-            if ( instance != null ) {
-               Class c = instance.getClass();
-               boolean isDefaultGenericType = c.equals(defaultGenericType);
-               out.writeBoolean(isDefaultGenericType);
-               if ( !isDefaultGenericType ) {
-                  boolean isSameAsLastNonDefault = c.equals(lastNonDefaultClass);
-                  out.writeBoolean(isSameAsLastNonDefault);
-                  if ( !isSameAsLastNonDefault ) {
-                     out.writeUTF(c.getName());
-                     lastNonDefaultClass = c;
-                  }
-               }
-               instance.writeExternal(out);
-            }
+            writeExternalizable(out, instance, defaultGenericType, lastNonDefaultClass);
          }
       }
    }
