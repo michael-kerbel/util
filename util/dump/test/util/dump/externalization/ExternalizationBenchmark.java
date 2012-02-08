@@ -19,32 +19,32 @@ public class ExternalizationBenchmark {
 
    hand written externalization: 875 ms
    CachableObject serialization: 4.188 s
-   Externalizer using fields: 1.188 s
-   Externalizer using methods: 1.438 s
+   ExternalizableBean using fields: 1.188 s
+   ExternalizableBean using methods: 1.438 s
    Serialization with Google ProtoBuffer: 2.109 s
 
      results for a run on 9.10.2008 with jre 1.6.0_04 on WinXP and "-client" option:
 
    hand written externalization: 1.109 s
    CachableObject serialization: 6.922 s
-   Externalizer using fields: 2.547 s
-   Externalizer using methods: 2.297 s
+   ExternalizableBean using fields: 2.547 s
+   ExternalizableBean using methods: 2.297 s
    Serialization with Google ProtoBuffer: 2.562 s
 
      results for a run on 9.10.2008 with jre 1.5.0_13 on WinXP and "-server" option:
 
    hand written externalization: 1.5 s
    CachableObject serialization: 9.656 s
-   Externalizer using fields: 2.281 s
-   Externalizer using methods: 2.391 s
+   ExternalizableBean using fields: 2.281 s
+   ExternalizableBean using methods: 2.391 s
    Serialization with Google ProtoBuffer: 2.531 s
 
      results for a run on 9.10.2008 with jre 1.5.0_13 on WinXP and "-client" option:
 
    hand written externalization: 2.031 s
    CachableObject serialization: 10.844 s
-   Externalizer using fields: 4.469 s
-   Externalizer using methods: 4.063 s
+   ExternalizableBean using fields: 4.469 s
+   ExternalizableBean using methods: 4.063 s
    Serialization with Google ProtoBuffer: 3.812 s
 
    ----
@@ -52,32 +52,32 @@ public class ExternalizationBenchmark {
 
    hand written externalization: 1.211 s
    CachableObject serialization: 7.809 s
-   Externalizer using fields: 1.639 s
-   Externalizer using methods: 1.976 s
+   ExternalizableBean using fields: 1.639 s
+   ExternalizableBean using methods: 1.976 s
    Serialization with Google ProtoBuffer: 3.119 s
 
      results for a run on 9.10.2008 with jre 1.6.0_04 on Linux and "-client" option:
 
    hand written externalization: 1.632 s
    CachableObject serialization: 12.715 s
-   Externalizer using fields: 3.309 s
-   Externalizer using methods: 3.217 s
+   ExternalizableBean using fields: 3.309 s
+   ExternalizableBean using methods: 3.217 s
    Serialization with Google ProtoBuffer: 4.187 s
 
      results for a run on 9.10.2008 with jre 1.5.0_13 on Linux and "-server" option:
 
    hand written externalization: 2.534 s
    CachableObject serialization: 9.725 s
-   Externalizer using fields: 4.214 s
-   Externalizer using methods: 4.297 s
+   ExternalizableBean using fields: 4.214 s
+   ExternalizableBean using methods: 4.297 s
    Serialization with Google ProtoBuffer: 3.835 s
 
      results for a run on 9.10.2008 with jre 1.5.0_13 on Linux and "-client" option:
 
    hand written externalization: 3.138 s
    CachableObject serialization: 11.346 s
-   Externalizer using fields: 6.513 s
-   Externalizer using methods: 6.376 s
+   ExternalizableBean using fields: 6.513 s
+   ExternalizableBean using methods: 6.376 s
    Serialization with Google ProtoBuffer: 5.129 s
 
     */
@@ -167,7 +167,7 @@ public class ExternalizationBenchmark {
             }
             i.close();
 
-            System.err.println("Externalizer using fields: " + t);
+            System.err.println("ExternalizableBean using fields: " + t);
          }
 
          {
@@ -196,7 +196,7 @@ public class ExternalizationBenchmark {
             }
             i.close();
 
-            System.err.println("Externalizer using methods: " + t);
+            System.err.println("ExternalizableBean using methods: " + t);
 
          }
 

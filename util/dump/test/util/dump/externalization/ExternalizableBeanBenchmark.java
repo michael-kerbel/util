@@ -71,7 +71,7 @@ public class ExternalizableBeanBenchmark {
             }
             i.close();
 
-            System.err.println("Externalizer: " + t);
+            System.err.println("ExternalizableBean: " + t);
          }
       }
 
@@ -79,7 +79,7 @@ public class ExternalizableBeanBenchmark {
 
       {
          TestBeanSimple[][] beans = new TestBeanSimple[1000][1000];
-         //      beans[i][j] = (TestBeanExternalizer)ExternalizerTest.newRandomInstance(TestBeanExternalizer.class);
+         //      beans[i][j] = (TestBeanExternalizableBean)ExternalizableBeanTest.newRandomInstance(TestBeanExternalizableBean.class);
          //      beansSerializable[i][j] = new TestBeanSerializable(beans[i][j]);
          for ( int i = 0; i < 1000; i++ ) {
             for ( int j = 0; j < 1000; j++ ) {
@@ -90,13 +90,13 @@ public class ExternalizableBeanBenchmark {
          for ( int i = 0; i < 10; i++ ) {
             StopWatch t = new StopWatch();
             for ( int j = 0, length = beans.length; j < length; j++ ) {
-               ExternalizerBean externalizerBean = new ExternalizerBean();
-               externalizerBean._beans = beans[j];
-               byte[] b = externalize(externalizerBean);
-               externalizerBean = new ExternalizerBean();
-               readExternalized(b, externalizerBean);
+               ExternalizableBeanBean ExternalizableBeanBean = new ExternalizableBeanBean();
+               ExternalizableBeanBean._beans = beans[j];
+               byte[] b = externalize(ExternalizableBeanBean);
+               ExternalizableBeanBean = new ExternalizableBeanBean();
+               readExternalized(b, ExternalizableBeanBean);
             }
-            System.err.println("Externalizer 1-dim array: " + t);
+            System.err.println("ExternalizableBean 1-dim array: " + t);
 
             t = new StopWatch();
             for ( int j = 0, length = beans.length; j < length; j++ ) {
@@ -112,7 +112,7 @@ public class ExternalizableBeanBenchmark {
       System.err.println("---------- two-dim array");
       {
          TestBeanSimple[][] beans = new TestBeanSimple[1000][1000];
-         //      beans[i][j] = (TestBeanExternalizer)ExternalizerTest.newRandomInstance(TestBeanExternalizer.class);
+         //      beans[i][j] = (TestBeanExternalizableBean)ExternalizableBeanTest.newRandomInstance(TestBeanExternalizableBean.class);
          //      beansSerializable[i][j] = new TestBeanSerializable(beans[i][j]);
          for ( int i = 0; i < 1000; i++ ) {
             for ( int j = 0; j < 1000; j++ ) {
@@ -122,12 +122,12 @@ public class ExternalizableBeanBenchmark {
 
          for ( int i = 0; i < 10; i++ ) {
             StopWatch t = new StopWatch();
-            ExternalizerBean2dim externalizerBean = new ExternalizerBean2dim();
-            externalizerBean._beans = beans;
-            byte[] b = externalize(externalizerBean);
-            externalizerBean = new ExternalizerBean2dim();
-            readExternalized(b, new ExternalizerBean2dim());
-            System.err.println("Externalizer 2-dim array: " + t);
+            ExternalizableBeanBean2dim ExternalizableBeanBean = new ExternalizableBeanBean2dim();
+            ExternalizableBeanBean._beans = beans;
+            byte[] b = externalize(ExternalizableBeanBean);
+            ExternalizableBeanBean = new ExternalizableBeanBean2dim();
+            readExternalized(b, new ExternalizableBeanBean2dim());
+            System.err.println("ExternalizableBean 2-dim array: " + t);
 
             t = new StopWatch();
             SerializationBean2dim serializationBean = new SerializationBean2dim();
@@ -142,7 +142,7 @@ public class ExternalizableBeanBenchmark {
       {
          {
             List<TestBeanSimple>[] beans = new List[1000];
-            //      beans[i][j] = (TestBeanExternalizer)ExternalizerTest.newRandomInstance(TestBeanExternalizer.class);
+            //      beans[i][j] = (TestBeanExternalizableBean)ExternalizableBeanTest.newRandomInstance(TestBeanExternalizableBean.class);
             //      beansSerializable[i][j] = new TestBeanSerializable(beans[i][j]);
             for ( int i = 0; i < 1000; i++ ) {
                beans[i] = new ArrayList<TestBeanSimple>();
@@ -154,13 +154,13 @@ public class ExternalizableBeanBenchmark {
             for ( int i = 0; i < 10; i++ ) {
                StopWatch t = new StopWatch();
                for ( int j = 0, length = beans.length; j < length; j++ ) {
-                  ExternalizerBeanList externalizerBean = new ExternalizerBeanList();
-                  externalizerBean._beans = beans[j];
-                  byte[] b = externalize(externalizerBean);
-                  externalizerBean = new ExternalizerBeanList();
-                  readExternalized(b, externalizerBean);
+                  ExternalizableBeanBeanList ExternalizableBeanBean = new ExternalizableBeanBeanList();
+                  ExternalizableBeanBean._beans = beans[j];
+                  byte[] b = externalize(ExternalizableBeanBean);
+                  ExternalizableBeanBean = new ExternalizableBeanBeanList();
+                  readExternalized(b, ExternalizableBeanBean);
                }
-               System.err.println("Externalizer list: " + t);
+               System.err.println("ExternalizableBean list: " + t);
 
                t = new StopWatch();
                for ( int j = 0, length = beans.length; j < length; j++ ) {
@@ -209,19 +209,19 @@ public class ExternalizableBeanBenchmark {
    }
 
 
-   public static class ExternalizerBean extends ExternalizableBean {
+   public static class ExternalizableBeanBean extends ExternalizableBean {
 
       @externalize(1)
       public TestBeanSimple[] _beans;
    }
 
-   public static class ExternalizerBean2dim extends ExternalizableBean {
+   public static class ExternalizableBeanBean2dim extends ExternalizableBean {
 
       @externalize(1)
       public TestBeanSimple[][] _beans;
    }
 
-   public static class ExternalizerBeanList extends ExternalizableBean {
+   public static class ExternalizableBeanBeanList extends ExternalizableBean {
 
       @externalize(1)
       public List<TestBeanSimple> _beans;
@@ -245,7 +245,7 @@ public class ExternalizableBeanBenchmark {
       public List<TestBeanSimple> _beans;
    }
 
-   public static class TestBeanExternalizer extends ExternalizableBean {
+   public static class TestBeanExternalizableBean extends ExternalizableBean {
 
       // the member vars get initialized randomly only if the field is public - a limitation of this testcase
 
@@ -265,7 +265,7 @@ public class ExternalizableBeanBenchmark {
       public Byte               _bytePrimitive;
 
 
-      TestBeanSerializable( TestBeanExternalizer b ) {
+      TestBeanSerializable( TestBeanExternalizableBean b ) {
          _int = b._int;
          _booleanPrimitive = b._booleanPrimitive;
          _bytePrimitive = b._bytePrimitive;
