@@ -46,6 +46,11 @@ import util.reflection.UnsafeFieldFieldAccessor;
  *
  * <b>Limitations:</b>
  * <ul><li>
+ * Cyclic references in the object graph are not handled (yet)! E.g. a field containing an Externalizable, which references
+ * the root instance, will lead to an infinite loop. While this is a serious limitation, in real life it doesn't
+ * happen too often. In most cases, you can work around this issue, by not externalizing such fields multiple times
+ * and wiring them by hand, after externalization. Overwrite <code>readExternal()</code> to do so. 
+ * </li><li>
  * Downward and upward compatibility will not work, if you reuse indexes between different revisions of your bean.
  * I.e. you may never change the field type or any of the default*Types of a field annotated with a given index.
  * </li><li>
@@ -88,11 +93,6 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * </li><li>
  * Enums and {@link EnumSet}s are not really downward and upward compatible: you can only add enum values at the end. 
  * Reordering or deleting values breaks downward and upward compatibility! 
- * </li><li>
- * Cyclic references in the object graph are not handled! E.g. a field containing an Externalizable, which references
- * the root instance, will lead to an infinite loop. While this is a serious limitation, in real life it doesn't
- * happen too often. In most cases, you can work around this issue, by not externalizing such fields multiple times
- * and wiring them by hand, after externalization. Overwrite <code>readExternal()</code> to do so. 
  * </li>
  * </ul>
  * @see {@link util.dump.ExternalizableBeanTest}
