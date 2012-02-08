@@ -8,6 +8,7 @@ import java.beans.PropertyDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Externalizable;
+import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
@@ -344,6 +345,23 @@ public class ExternalizableBeanTest {
       testCompatibility(TestBean4.class, TestBean3.class);
    }
 
+   @Test(expected = StackOverflowError.class)
+   public void testCyclic() throws Exception {
+
+      TestBeanCyclic[] t = new TestBeanCyclic[NUMBER_OF_INSTANCES_TO_CREATE];
+      for ( int i = 0, length = t.length; i < length; i++ ) {
+         t[i] = new TestBeanCyclic();
+         t[i]._other = new TestBeanCyclic();
+         t[i]._other._other = t[i];
+      }
+
+      Externalizable[] tt = read(write(t), TestBeanCyclic.class);
+
+      for ( int j = 0, length = t.length; j < length; j++ ) {
+         assertThat(equals(TestBeanCyclic.class, t[j], tt[j])).isTrue();
+      }
+   }
+
    @Test
    public void testDownwardCompatibility() throws Exception {
       testCompatibility(TestBean2.class, TestBean.class);
@@ -359,29 +377,37 @@ public class ExternalizableBeanTest {
          t[i] = newRandomInstance(testClass);
       }
 
+      Externalizable[] tt = read(write(t), testClass);
+
+      for ( int j = 0, length = t.length; j < length; j++ ) {
+         assertThat(equals(testClass, t[j], tt[j])).isTrue();
+      }
+   }
+
+   @Test
+   public void testUpwardCompatibility() throws Exception {
+      testCompatibility(TestBean.class, TestBean2.class);
+   }
+
+   protected Externalizable[] read( byte[] bytes, Class testClass ) throws Exception {
+      ObjectInput i = new ObjectInputStream(new ByteArrayInputStream(bytes));
+      Externalizable[] tt = new Externalizable[NUMBER_OF_INSTANCES_TO_CREATE];
+      for ( int j = 0, length = tt.length; j < length; j++ ) {
+         tt[j] = (Externalizable)testClass.newInstance();
+         tt[j].readExternal(i);
+      }
+      i.close();
+      return tt;
+   }
+
+   protected byte[] write( Externalizable[] t ) throws IOException {
       ByteArrayOutputStream bo = new ByteArrayOutputStream();
       ObjectOutput o = new ObjectOutputStream(bo);
       for ( int i = 0, length = t.length; i < length; i++ ) {
          t[i].writeExternal(o);
       }
       o.close();
-
-      ObjectInput i = new ObjectInputStream(new ByteArrayInputStream(bo.toByteArray()));
-      Externalizable[] tt = new Externalizable[NUMBER_OF_INSTANCES_TO_CREATE];
-      for ( int j = 0, length = t.length; j < length; j++ ) {
-         tt[j] = (Externalizable)testClass.newInstance();
-      }
-
-      for ( int j = 0, length = t.length; j < length; j++ ) {
-         tt[j].readExternal(i);
-         assertThat(equals(testClass, t[j], tt[j])).isTrue();
-      }
-      i.close();
-   }
-
-   @Test
-   public void testUpwardCompatibility() throws Exception {
-      testCompatibility(TestBean.class, TestBean2.class);
+      return bo.toByteArray();
    }
 
    private boolean equals( Class testClass, Externalizable t, Externalizable tt ) throws Exception {
@@ -607,25 +633,11 @@ public class ExternalizableBeanTest {
          t[i] = newRandomInstance(testClass1);
       }
 
-      ByteArrayOutputStream bo = new ByteArrayOutputStream();
-      ObjectOutput o = new ObjectOutputStream(bo);
-      for ( int i = 0, length = t.length; i < length; i++ ) {
-         t[i].writeExternal(o);
-      }
-      o.close();
-
-      // deserialize with the other class
-      ObjectInput i = new ObjectInputStream(new ByteArrayInputStream(bo.toByteArray()));
-      Externalizable[] tt = new Externalizable[NUMBER_OF_INSTANCES_TO_CREATE];
-      for ( int j = 0, length = t.length; j < length; j++ ) {
-         tt[j] = (Externalizable)testClass2.newInstance();
-      }
+      Externalizable[] tt = read(write(t), testClass2);
 
       for ( int j = 0, length = t.length; j < length; j++ ) {
-         tt[j].readExternal(i);
          assertThat(equalsIgnoreMissingFields(t[j], tt[j])).isTrue();
       }
-      i.close();
    }
 
 
@@ -1115,6 +1127,12 @@ public class ExternalizableBeanTest {
       public void setString( String string ) {
          _string = string;
       }
+   }
+
+   public static class TestBeanCyclic extends ExternalizableBean {
+
+      @externalize(1)
+      TestBeanCyclic _other;
    }
 
    public static class TestBeanSimple extends ExternalizableBean {
