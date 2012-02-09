@@ -28,12 +28,11 @@ public class MessageDialog extends DialogShell {
    }
 
    public MessageDialog( Throwable exception, Image[] images ) {
-      this(
-         exception, // 
+      this(exception, // 
          (exception instanceof OutOfMemoryError) ? "Nicht genügend Speicher" : "Anwendungsfehler", //
          (exception instanceof OutOfMemoryError) ? // 
-         "Es ist nicht genügend Speicher vorhanden. Es wurde automatisch eine Email an den Entwickler verschickt. Bitte für Rückfragen die Umstände notieren, die dazu führten. Gegebenenfalls mehr Speicher zuweisen und neustarten." //
-               : "Ein Anwendungsfehler ist aufgetreten. Es wurde automatisch eine Email mit der Ursache verschickt. Bitte für Rückfragen die Umstände des Fehlers notieren. Um keinen Datenverlust zu riskieren, empfiehlt sich ein Neustart.", //
+         "Es ist nicht genügend Speicher vorhanden. Gegebenenfalls mehr Speicher zuweisen und neustarten." //
+               : "Ein Anwendungsfehler ist aufgetreten. Um keinen Datenverlust zu riskieren, empfiehlt sich ein Neustart.", //
          images);
    }
 
@@ -50,10 +49,13 @@ public class MessageDialog extends DialogShell {
 
    @Override
    public void createContent( Composite parent ) {
-      if ( _exception == null ) return;
+      if ( _exception == null ) {
+         return;
+      }
 
-      while ( _exception.getCause() != null && _exception.getCause() != _exception )
+      while ( _exception.getCause() != null && _exception.getCause() != _exception ) {
          _exception = _exception.getCause();
+      }
       StackTraceElement[] stackTrace = _exception.getStackTrace();
       String details = stackTrace[0].toString();
       if ( !stackTrace[0].toString().startsWith("util") ) {
