@@ -90,10 +90,10 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * </ul>
  * Currently unsupported (i.e. slow and not compatible with {@link util.dump.stream.SingleTypeObjectStreamProvider})
  * are multi-dimensional primitive arrays, any array of <code>Numbers</code>, multi-dim <code>String</code> or
- * <code>Date</code> arrays, and <code>Maps</code>.<p/>
+ * <code>Date</code> arrays, and <code>Maps</code>.
  * </li><li>
  * Any type to be externalized must have a public nullary constructor. This applies to all fields and their dependant instances,
- * i.e. for all <code>Collection</code>s and all <code>Externalizable</code>s. Beware that instances like the ones created with 
+ * i.e. for all <code>Collections</code> and all <code>Externalizables</code>. Beware that instances like the ones created with 
  * <code>Collections.synchronizedSet(.)</code> do not have a public constructor.
  * </li><li>
  * For all <code>Collections</code> only the type and the included data is externalized. Something like a custom comparator in 
@@ -1682,11 +1682,6 @@ public class ExternalizableBean implements Externalizable {
             }
          }
          if ( ft == null ) {
-            if ( EnumSet.class.isAssignableFrom(type) ) {
-               ft = FieldType.EnumSet;
-            }
-         }
-         if ( ft == null ) {
             ft = FieldType.Object;
             Logger.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
                " is not of a supported type, thus falling back to Object serialization." + //
@@ -1890,13 +1885,13 @@ public class ExternalizableBean implements Externalizable {
             }
 
             if ( ft == FieldType.ListOfExternalizables || ft == FieldType.ListOfStrings ) {
-               if ( List.class.isAssignableFrom(_defaultType) ) {
+               if ( !List.class.isAssignableFrom(_defaultType) ) {
                   throw new RuntimeException("defaultType for a List field must be a List! Field " + fieldAccessor.getName() + " with index " + _fieldIndex
                      + " has defaultType " + _defaultType);
                }
             }
             if ( ft == FieldType.SetOfExternalizables || ft == FieldType.SetOfStrings ) {
-               if ( Set.class.isAssignableFrom(_defaultType) ) {
+               if ( !Set.class.isAssignableFrom(_defaultType) ) {
                   throw new RuntimeException("defaultType for a Set field must be a Set! Field " + fieldAccessor.getName() + " with index " + _fieldIndex
                      + " has defaultType " + _defaultType);
                }
@@ -1916,7 +1911,7 @@ public class ExternalizableBean implements Externalizable {
                      + _defaultGenericType0 + " which has no public nullary constructor.");
                }
 
-               if ( Externalizable.class.isAssignableFrom(_defaultType) ) {
+               if ( !Externalizable.class.isAssignableFrom(_defaultType) ) {
                   throw new RuntimeException("defaultGenericType0 for a field with a collection of Externalizables must be an Externalizable! Field "
                      + fieldAccessor.getName() + " with index " + _fieldIndex + " has defaultGenericType0 " + _defaultGenericType0);
                }
