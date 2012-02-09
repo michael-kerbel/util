@@ -22,9 +22,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import org.junit.Test;
@@ -263,6 +266,24 @@ public class ExternalizableBeanTest {
             } else {
                f.set(t, null);
             }
+         } else if ( type == Set.class ) {
+            boolean isNotNull = r.nextBoolean();
+            if ( isNotNull ) {
+               Set l = r.nextBoolean() ? new HashSet() : new TreeSet();
+               Class genericType = (Class)((ParameterizedType)f.getGenericType()).getActualTypeArguments()[0];
+               if ( genericType == String.class ) {
+                  for ( int j = 0, length = r.nextInt(2); j < length; j++ ) {
+                     l.add(randomString(r));
+                  }
+               } else {
+                  for ( int j = 0, length = r.nextInt(2); j < length; j++ ) {
+                     l.add(newRandomInstance(testClass));
+                  }
+               }
+               f.set(t, l);
+            } else {
+               f.set(t, null);
+            }
          } else if ( Externalizable.class.isAssignableFrom(type) ) {
             boolean isNotNull = r.nextBoolean();
             if ( isNotNull ) {
@@ -467,7 +488,7 @@ public class ExternalizableBeanTest {
          for ( int i = 0, length = l1.size(); i < length; i++ ) {
             Object o1 = l1.get(i);
             Object o2 = l2.get(i);
-            if ( (o1 == null && o2 != null) || (o1 == null && o2 != null) ) {
+            if ( (o1 == null && o2 != null) || (o1 != null && o2 == null) ) {
                return false;
             }
             if ( o1 == null && o2 == null ) {
@@ -480,6 +501,43 @@ public class ExternalizableBeanTest {
                   return false;
                }
             } else if ( !equals(o1.getClass(), (Externalizable)o1, (Externalizable)o2) ) {
+               return false;
+            }
+         }
+         return true;
+      }
+      if ( Set.class.isAssignableFrom(c) && !EnumSet.class.isAssignableFrom(c) ) {
+         Set l1 = (Set)ft;
+         Set l2 = (Set)ftt;
+
+         if ( l1.size() != l2.size() ) {
+            return false;
+         }
+         for ( Object o1 : l1 ) {
+            boolean foundEqual = false;
+            for ( Object o2 : l2 ) {
+               // the ordering of the sets is arbitrary, the instances might not implement hashCode, so we need to check every instance
+               if ( o1 == null && o2 != null ) {
+                  continue;
+               }
+               if ( o1 == null && o2 == null ) {
+                  foundEqual = true;
+               }
+               assert o1 != null;
+
+               if ( o1 instanceof String ) {
+                  if ( o1.equals(o2) ) {
+                     foundEqual = true;
+                  }
+               } else if ( equals(o1.getClass(), (Externalizable)o1, (Externalizable)o2) ) {
+                  foundEqual = true;
+               }
+
+               if ( foundEqual ) {
+                  break;
+               }
+            }
+            if ( !foundEqual ) {
                return false;
             }
          }
@@ -711,6 +769,10 @@ public class ExternalizableBeanTest {
       public TestEnum             _enum;
       @externalize(35)
       public List<String>         _listOfStrings;
+      @externalize(36)
+      public Set<Externalizable>  _setOfExternalizable;
+      @externalize(37)
+      public Set<String>          _setOfStrings;
 
       public int                  _i;                       // this member var gets initialized randomly only if the field is public - a limitation of this testcase
 

@@ -17,12 +17,15 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -54,6 +57,9 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * Downward and upward compatibility will not work, if you reuse indexes between different revisions of your bean.
  * I.e. you may never change the field type or any of the default*Types of a field annotated with a given index.
  * </li><li>
+ * Enums and {@link EnumSet}s are not really downward and upward compatible: you can only add enum values at the end. 
+ * Reordering or deleting values breaks downward and upward compatibility! 
+ * </li><li>
  * While externalization with this method is about 3-6 times faster than serialization (depending on the amount
  * of non-primitive or array members), hand written externalization is still about 40% faster, because no reflection
  * is used and upwards/downwards compatibility is not taken care of. This method of serialization is a bit faster 
@@ -74,9 +80,10 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * </li><li>
  * single and two-dimensional arrays of any <code>Externalizable</code>
  * </li><li>
- * generic Lists of any <code>Externalizable</code> type, i.e. <code>List&lt;Externalizable&gt;</code>
+ * generic Lists or Sets of any <code>Externalizable</code> type, i.e. <code>List&lt;Externalizable&gt;</code> or 
+ * <code>Set&lt;Externalizable&gt;</code>
  * </li><li>
- * generic Lists of <code>String</code> type, i.e. <code>List&lt;String&gt;</code>
+ * generic Lists or Sets of <code>String</code> type, i.e. <code>List&lt;String&gt;</code> or <code>Set&lt;String&gt;</code>
  * </li><li>
  * Enums and {@link EnumSet}s, as long as the enum has less than 64 values. 
  * </li>
@@ -85,14 +92,18 @@ import util.reflection.UnsafeFieldFieldAccessor;
  * are multi-dimensional primitive arrays, any array of <code>Numbers</code>, multi-dim <code>String</code> or
  * <code>Date</code> arrays, and <code>Maps</code>.<p/>
  * </li><li>
+ * Any type to be externalized must have a public nullary constructor. This applies to all fields and their dependant instances,
+ * i.e. for all <code>Collection</code>s and all <code>Externalizable</code>s. Beware that instances like the ones created with 
+ * <code>Collections.synchronizedSet(.)</code> do not have a public constructor.
+ * </li><li>
+ * For all <code>Collections</code> only the type and the included data is externalized. Something like a custom comparator in 
+ * a <code>TreeSet</code> gets lost.  
+ * </li><li>
  * While annotated fields can be any of public, protected, package protected or private, annotated methods must be public.
  * </li><li>
  * Unless the system property <code>ExternalizableBean.USE_UNSAFE_FIELD_ACCESSORS</code> is set to <code>false</code>
  * an incredibly daring hack is used for making field access using reflection faster. That's why you should 
  * annotate fields rather than methods, unless you need some transformation before or after serialization. 
- * </li><li>
- * Enums and {@link EnumSet}s are not really downward and upward compatible: you can only add enum values at the end. 
- * Reordering or deleting values breaks downward and upward compatibility! 
  * </li>
  * </ul>
  * @see {@link util.dump.ExternalizableBeanTest}
@@ -512,11 +523,19 @@ public class ExternalizableBean implements Externalizable {
                break;
             }
             case ListOfExternalizables: {
-               readListOfExternalizables(in, f, defaultType, _config._defaultGenericTypes0[j]);
+               readCollectionOfExternalizables(in, f, defaultType, _config._defaultGenericTypes0[j]);
                break;
             }
             case ListOfStrings: {
-               readListOfStrings(in, f, defaultType);
+               readCollectionOfStrings(in, f, defaultType);
+               break;
+            }
+            case SetOfExternalizables: {
+               readCollectionOfExternalizables(in, f, defaultType, _config._defaultGenericTypes0[j]);
+               break;
+            }
+            case SetOfStrings: {
+               readCollectionOfStrings(in, f, defaultType);
                break;
             }
             case ExternalizableArray: {
@@ -885,6 +904,14 @@ public class ExternalizableBean implements Externalizable {
                writeListOfStrings(out, f, defaultType);
                break;
             }
+            case SetOfExternalizables: {
+               writeSetOfExternalizables(out, f, defaultType, _config._defaultGenericTypes0[i]);
+               break;
+            }
+            case SetOfStrings: {
+               writeSetOfStrings(out, f, defaultType);
+               break;
+            }
             case ExternalizableArray: {
                Externalizable[] d = (Externalizable[])f.get(this);
                writeExternalizableArray(out, d, defaultType);
@@ -986,6 +1013,64 @@ public class ExternalizableBean implements Externalizable {
       return d;
    }
 
+   private Collection readCollectionContainer( ObjectInput in, Class defaultType, boolean isDefaultType, int size ) throws Exception {
+      Collection d;
+      if ( isDefaultType ) {
+         if ( defaultType.equals(ArrayList.class) ) {
+            d = new ArrayList(size);
+         } else if ( defaultType.equals(HashSet.class) ) {
+            d = new HashSet(size);
+         } else {
+            d = (Collection)defaultType.newInstance();
+         }
+      } else {
+         String className = in.readUTF();
+         Class c = forName(className);
+         d = (Collection)c.newInstance();
+      }
+      return d;
+   }
+
+   private void readCollectionOfExternalizables( ObjectInput in, FieldAccessor f, Class defaultType, Class defaultGenericType ) throws Exception {
+      Collection d = null;
+      boolean isNotNull = in.readBoolean();
+      if ( isNotNull ) {
+         boolean isDefaultType = in.readBoolean();
+         int size = in.readInt();
+         d = readCollectionContainer(in, defaultType, isDefaultType, size);
+
+         Class[] lastNonDefaultClass = new Class[1];
+         for ( int k = 0; k < size; k++ ) {
+            d.add(readExternalizable(in, defaultGenericType, lastNonDefaultClass));
+         }
+      }
+      if ( f != null ) {
+         f.set(this, d);
+      }
+   }
+
+   private void readCollectionOfStrings( ObjectInput in, FieldAccessor f, Class defaultType ) throws Exception {
+      Collection d = null;
+      boolean isNotNull = in.readBoolean();
+      if ( isNotNull ) {
+         boolean isDefaultType = in.readBoolean();
+         int size = in.readInt();
+         d = readCollectionContainer(in, defaultType, isDefaultType, size);
+
+         for ( int k = 0; k < size; k++ ) {
+            String s = null;
+            isNotNull = in.readBoolean();
+            if ( isNotNull ) {
+               s = in.readUTF();
+            }
+            d.add(s);
+         }
+      }
+      if ( f != null ) {
+         f.set(this, d);
+      }
+   }
+
    private Date readDate( ObjectInput in ) throws IOException {
       Date d = null;
       boolean isNotNull = in.readBoolean();
@@ -1081,66 +1166,6 @@ public class ExternalizableBean implements Externalizable {
       return d;
    }
 
-   private void readListOfExternalizables( ObjectInput in, FieldAccessor f, Class defaultType, Class defaultGenericType ) throws Exception {
-      List d = null;
-      boolean isNotNull = in.readBoolean();
-      if ( isNotNull ) {
-         boolean isDefaultType = in.readBoolean();
-         int size = in.readInt();
-         if ( isDefaultType ) {
-            if ( defaultType.equals(ArrayList.class) ) {
-               d = new ArrayList(size);
-            } else {
-               d = (List)defaultType.newInstance();
-            }
-         } else {
-            String className = in.readUTF();
-            Class c = forName(className);
-            d = (List)c.newInstance();
-         }
-
-         Class[] lastNonDefaultClass = new Class[1];
-         for ( int k = 0; k < size; k++ ) {
-            d.add(readExternalizable(in, defaultGenericType, lastNonDefaultClass));
-         }
-      }
-      if ( f != null ) {
-         f.set(this, d);
-      }
-   }
-
-   private void readListOfStrings( ObjectInput in, FieldAccessor f, Class defaultType ) throws Exception {
-      List d = null;
-      boolean isNotNull = in.readBoolean();
-      if ( isNotNull ) {
-         boolean isDefaultType = in.readBoolean();
-         int size = in.readInt();
-         if ( isDefaultType ) {
-            if ( defaultType.equals(ArrayList.class) ) {
-               d = new ArrayList(size);
-            } else {
-               d = (List)defaultType.newInstance();
-            }
-         } else {
-            String className = in.readUTF();
-            Class c = forName(className);
-            d = (List)c.newInstance();
-         }
-
-         for ( int k = 0; k < size; k++ ) {
-            String s = null;
-            isNotNull = in.readBoolean();
-            if ( isNotNull ) {
-               s = in.readUTF();
-            }
-            d.add(s);
-         }
-      }
-      if ( f != null ) {
-         f.set(this, d);
-      }
-   }
-
    private long[] readLongArray( DataInput in ) throws IOException {
       long[] d = null;
       boolean isNotNull = in.readBoolean();
@@ -1192,6 +1217,16 @@ public class ExternalizableBean implements Externalizable {
          for ( int j = 0, llength = d.length; j < llength; j++ ) {
             out.writeByte(d[j]);
          }
+      }
+   }
+
+   private void writeCollectionContainer( ObjectOutput out, Class defaultType, Collection d ) throws IOException {
+      Class listClass = d.getClass();
+      boolean isDefaultType = listClass.equals(defaultType);
+      out.writeBoolean(isDefaultType);
+      out.writeInt(d.size());
+      if ( !isDefaultType ) {
+         out.writeUTF(listClass.getName());
       }
    }
 
@@ -1278,13 +1313,7 @@ public class ExternalizableBean implements Externalizable {
       List d = (List)f.get(this);
       out.writeBoolean(d != null);
       if ( d != null ) {
-         Class listClass = d.getClass();
-         boolean isDefaultType = listClass.equals(defaultType);
-         out.writeBoolean(isDefaultType);
-         out.writeInt(d.size());
-         if ( !isDefaultType ) {
-            out.writeUTF(listClass.getName());
-         }
+         writeCollectionContainer(out, defaultType, d);
 
          Class[] lastNonDefaultClass = new Class[1];
          for ( int j = 0, llength = d.size(); j < llength; j++ ) {
@@ -1298,13 +1327,7 @@ public class ExternalizableBean implements Externalizable {
       List d = (List)f.get(this);
       out.writeBoolean(d != null);
       if ( d != null ) {
-         Class listClass = d.getClass();
-         boolean isDefaultType = listClass.equals(defaultType);
-         out.writeBoolean(isDefaultType);
-         out.writeInt(d.size());
-         if ( !isDefaultType ) {
-            out.writeUTF(listClass.getName());
-         }
+         writeCollectionContainer(out, defaultType, d);
          for ( int j = 0, llength = d.size(); j < llength; j++ ) {
             String s = (String)d.get(j);
             out.writeBoolean(s != null);
@@ -1321,6 +1344,34 @@ public class ExternalizableBean implements Externalizable {
          out.writeInt(d.length);
          for ( int j = 0, llength = d.length; j < llength; j++ ) {
             out.writeLong(d[j]);
+         }
+      }
+   }
+
+   private void writeSetOfExternalizables( ObjectOutput out, FieldAccessor f, Class defaultType, Class defaultGenericType ) throws Exception {
+      Set<Externalizable> d = (Set)f.get(this);
+      out.writeBoolean(d != null);
+      if ( d != null ) {
+         writeCollectionContainer(out, defaultType, d);
+
+         Class[] lastNonDefaultClass = new Class[1];
+         for ( Externalizable instance : d ) {
+            writeExternalizable(out, instance, defaultGenericType, lastNonDefaultClass);
+         }
+      }
+   }
+
+   private void writeSetOfStrings( ObjectOutput out, FieldAccessor f, Class defaultType ) throws Exception {
+      Set<String> d = (Set)f.get(this);
+      out.writeBoolean(d != null);
+      if ( d != null ) {
+         writeCollectionContainer(out, defaultType, d);
+
+         for ( String s : d ) {
+            out.writeBoolean(s != null);
+            if ( s != null ) {
+               out.writeUTF(s);
+            }
          }
       }
    }
@@ -1424,9 +1475,9 @@ public class ExternalizableBean implements Externalizable {
       Enum(Enum.class, 38), // 
       EnumSet(EnumSet.class, 39), //
       ListOfStrings(System.class, 40, true), // System is just a placeholder - this FieldType is handled specially 
-      // TODO add Set, Map (beware of Collections.*sets or Treemaps & -sets using custom Comparators!)
-      //SetOfExternalizables(Set.class, 41, true), // 
-      //SetOfStrings(Runtime.class, 42, true), // Runtime is just a placeholder - this FieldType is handled specially 
+      SetOfExternalizables(Set.class, 41, true), // 
+      SetOfStrings(Runtime.class, 42, true), // Runtime is just a placeholder - this FieldType is handled specially 
+      // TODO add Map (beware of Collections.*Map or Treemaps using custom Comparators!)
       ;
 
       private static final Map<Class, FieldType> _classLookup = new HashMap<Class, FieldType>(FieldType.values().length);
@@ -1642,14 +1693,14 @@ public class ExternalizableBean implements Externalizable {
                " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
                " Please check, whether this is really what you wanted!");
          }
-         if ( ft == FieldType.ListOfExternalizables
+         if ( (ft == FieldType.ListOfExternalizables || ft == FieldType.SetOfExternalizables) //
             && (fi._fieldAccessor.getGenericTypes().length != 1 || !Externalizable.class.isAssignableFrom(fi._fieldAccessor.getGenericTypes()[0])) ) {
             if ( fi._fieldAccessor.getGenericTypes().length == 1 && String.class == fi._fieldAccessor.getGenericTypes()[0] ) {
-               ft = FieldType.ListOfStrings;
+               ft = (ft == FieldType.ListOfExternalizables) ? FieldType.ListOfStrings : FieldType.SetOfStrings;
             } else {
                ft = FieldType.Object;
                Logger.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
-                  " has a List with an unsupported type as generic parameter, thus falling back to Object serialization." + //
+                  " has a Collection with an unsupported type as generic parameter, thus falling back to Object serialization." + //
                   " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
                   " Please check, whether this is really what you wanted!");
             }
@@ -1823,10 +1874,20 @@ public class ExternalizableBean implements Externalizable {
             _defaultType = type.getComponentType().getComponentType();
          } else if ( ft == FieldType.ListOfExternalizables || ft == FieldType.ListOfStrings ) {
             _defaultType = ArrayList.class;
+         } else if ( ft == FieldType.SetOfExternalizables || ft == FieldType.SetOfStrings ) {
+            _defaultType = HashSet.class;
          }
 
          if ( annotation.defaultType() != System.class ) {
             _defaultType = annotation.defaultType();
+
+            try {
+               _defaultType.newInstance();
+            }
+            catch ( Exception argh ) {
+               throw new RuntimeException("Field " + fieldAccessor.getName() + " with index " + _fieldIndex + " has defaultType " + _defaultType
+                  + " which has no public nullary constructor.");
+            }
 
             if ( ft == FieldType.ListOfExternalizables || ft == FieldType.ListOfStrings ) {
                if ( List.class.isAssignableFrom(_defaultType) ) {
@@ -1834,15 +1895,29 @@ public class ExternalizableBean implements Externalizable {
                      + " has defaultType " + _defaultType);
                }
             }
+            if ( ft == FieldType.SetOfExternalizables || ft == FieldType.SetOfStrings ) {
+               if ( Set.class.isAssignableFrom(_defaultType) ) {
+                  throw new RuntimeException("defaultType for a Set field must be a Set! Field " + fieldAccessor.getName() + " with index " + _fieldIndex
+                     + " has defaultType " + _defaultType);
+               }
+            }
          }
 
-         if ( ft == FieldType.ListOfExternalizables ) {
+         if ( ft == FieldType.ListOfExternalizables || ft == FieldType.SetOfExternalizables ) {
             _defaultGenericType0 = fieldAccessor.getGenericTypes()[0];
             if ( annotation.defaultGenericType0() != System.class ) {
                _defaultGenericType0 = annotation.defaultType();
 
+               try {
+                  _defaultGenericType0.newInstance();
+               }
+               catch ( Exception argh ) {
+                  throw new RuntimeException(" Field " + fieldAccessor.getName() + " with index " + _fieldIndex + " has defaultGenericType0 "
+                     + _defaultGenericType0 + " which has no public nullary constructor.");
+               }
+
                if ( Externalizable.class.isAssignableFrom(_defaultType) ) {
-                  throw new RuntimeException("defaultGenericType0 for a ListOfExternalizables field must be an Externalizable! Field "
+                  throw new RuntimeException("defaultGenericType0 for a field with a collection of Externalizables must be an Externalizable! Field "
                      + fieldAccessor.getName() + " with index " + _fieldIndex + " has defaultGenericType0 " + _defaultGenericType0);
                }
             }
