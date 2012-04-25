@@ -46,6 +46,8 @@ import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.ClientConnectionManagerFactory;
+import org.apache.http.conn.params.ConnManagerPNames;
+import org.apache.http.conn.params.ConnPerRouteBean;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -258,6 +260,7 @@ public class HttpClientFactory {
    boolean     _trustAllSsl            = true;
    boolean     _neverRetryHttpRequests = false;
    boolean     _useCookies             = true;
+   int         _maxConnections         = 10;
 
 
    public HttpClient create() {
@@ -284,6 +287,7 @@ public class HttpClientFactory {
          HttpClientParams.setCookiePolicy(params, CookiePolicy.IGNORE_COOKIES);
       }
       params.setParameter(AllClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME, ThreadSafeConnManagerFactory.class.getName());
+      params.setParameter(ConnManagerPNames.MAX_CONNECTIONS_PER_ROUTE, new ConnPerRouteBean(_maxConnections));
 
       // http://hc.apache.org/httpcomponents-client/tutorial/html/ch02.html
       // The stale connection check is not 100% reliable and adds 10 to 30 ms overhead to each request execution
@@ -330,6 +334,10 @@ public class HttpClientFactory {
 
    public void setHttpVersion( HttpVersion httpVersion ) {
       _httpVersion = httpVersion;
+   }
+
+   public void setMaxConnections( int maxConnections ) {
+      _maxConnections = maxConnections;
    }
 
    public void setNeverRetryHttpRequests( boolean neverRetry ) {
