@@ -24,11 +24,11 @@ public class ProxyCrawler {
    private static CrawlParams SAMAIR_PARAMS    = new CrawlParamsWithXsltFromClasspath("proxies-samair.xsl");
    static {
       SAMAIR_PARAMS.setDontFollowRegexes(Collections.EMPTY_LIST);
-      SAMAIR_PARAMS.setFollowRegexes(Arrays.asList("/proxy/proxy-..\\.htm"));
+      SAMAIR_PARAMS.setFollowRegexes(Arrays.asList("/proxy/proxy-\\d+\\.htm"));
       SAMAIR_PARAMS.setHost("www.samair.ru");
       SAMAIR_PARAMS.setId("proxies");
       SAMAIR_PARAMS.setNumberOfThreads(1);
-      SAMAIR_PARAMS.setStartURLs(Arrays.asList("/proxy/proxy-100.htm", "/proxy/proxy-200.htm", "/proxy/proxy-300.htm", "/proxy/proxy-1.htm"));
+      SAMAIR_PARAMS.setStartURLs(Arrays.asList("/proxy/proxy-100.htm", "/proxy/proxy-200.htm", "/proxy/proxy-300.htm", "/proxy/proxy-01.htm"));
    }
 
    private static CrawlParams HIDEMYASS_PARAMS = new CrawlParamsWithXsltFromClasspath("proxies-hidemyass.xsl");

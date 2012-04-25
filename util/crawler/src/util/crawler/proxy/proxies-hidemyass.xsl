@@ -15,10 +15,14 @@
     <proxies>
       <xsl:variable name="t" select="//table[@id='listtable']"/>
       <xsl:if test="$t">
-        <xsl:for-each select="$t//tr[td[matches(., '\d+\.\d+\.\d+\.\d+', 'i')]]">
+        <xsl:for-each select="$t//tr
+                                    [td[matches(., '\d+\.\d+\.\d+\.\d+', 'i')]] 
+                                    [matches(.//div[@class='speedbar response_time']/@rel, '^[12345]\d\d\d$', 'i') ]
+                                    [matches(.//div[@class='speedbar connection_time']/@rel, '^[12345]\d\d\d$', 'i') or matches(.//div[@class='speedbar connection_time']/@rel, '^\d{1,3}$', 'i') ]
+                              ">
           <xsl:variable name="tr" select="."/>
           <xsl:analyze-string regex="(\d+\.\d+\.\d+\.\d+)"
-                              select="td[matches(., '\d+\.\d+\.\d+\.\d+', 'i')]">
+                              select="string-join(td[matches(., '\d+\.\d+\.\d+\.\d+', 'i')]//text()[not(../@style='display:none')], '')">
             <xsl:matching-substring>
               <proxy>
                 <ip>
@@ -27,6 +31,12 @@
                 <port>
                   <xsl:value-of select="$tr/td[matches(., '\d+\.\d+\.\d+\.\d+', 'i')]/following-sibling::td[1]/normalize-space()"/>
                 </port>
+                <responseTime>
+                  <xsl:value-of select="$tr//div[@class='speedbar response_time']/@rel"/>
+                </responseTime>
+                <connectionTime>
+                  <xsl:value-of select="$tr//div[@class='speedbar connection_time']/@rel"/>
+                </connectionTime>
               </proxy>
             </xsl:matching-substring>
           </xsl:analyze-string>
@@ -37,4 +47,3 @@
   
   
 </xsl:transform>
- 
