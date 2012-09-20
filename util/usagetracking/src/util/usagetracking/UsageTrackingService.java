@@ -28,52 +28,79 @@ import util.time.TimeUtils;
 
 public class UsageTrackingService {
 
-   private static Logger                                     _log      = Logger.getLogger(UsageTrackingService.class);
-   private static final DateFormat                           DAY       = new SimpleDateFormat("yyyy-MM-dd");
+   private static Logger                                        _log      = Logger.getLogger(UsageTrackingService.class);
+   private static final DateFormat                              DAY       = new SimpleDateFormat("yyyy-MM-dd");
 
-   private static UsageTrackingService                       INSTANCE;
+   private static UsageTrackingService                          INSTANCE;
 
-   private static boolean                                    TRACKDATA = false;
-   private static int                                        MAX_ID;
+   private static boolean                                       TRACKDATA = false;
+   private static int                                           MAX_ID;
 
    /* if multiple Actions are executed in a Request, all of them get the same request time - all Actions executed during a single Request are collected here */
-   private static ThreadLocal<EnumSet<? extends Enum>>       SAME_TIMEMEASUREMENT_GROUP;
-   private static ThreadLocal<EnumMap<? extends Enum, Long>> PENDING_TIME_MEASUREMENTS;
+   private static ThreadLocal<EnumSet<? extends Enum>>          SAME_TIMEMEASUREMENT_GROUP;
+   private static ThreadLocal<EnumMap<? extends Enum, Long>>    PENDING_TIME_MEASUREMENTS;
+   private static ThreadLocal<EnumMap<? extends Enum, Integer>> PENDING_MEASUREMENTS;
 
 
-   public static void addForTimeMeasurement( TrackingId id ) {
+   /** Registers a TrackingId for later measurement, finished by a call to <code>finishGroupTimeMeasurements(.)</code> */
+   public static void addForGroupTimeMeasurement( TrackingId id ) {
       UsageTrackingService instance = getInstance();
       if ( instance != null && id != null && id.getClass().equals(instance._exampleTrackingIdInstance.getClass()) ) {
          ((Set)SAME_TIMEMEASUREMENT_GROUP.get()).add(id);
       }
    }
 
+   /** Adds the value for the TrackingId immediately, unless it has a slave. In that case it is added
+    * only on the mandatory call to <code>finishSlaveTimeMeasurement(sameId)</code>, which also adds 
+    * the time measurement for the slave id. */
    public static void addMeasurement( TrackingId id, int value ) {
       UsageTrackingService instance = getInstance();
       if ( instance != null && id != null && id.getClass().equals(instance._exampleTrackingIdInstance.getClass()) ) {
-         instance.add(id, value);
          if ( id.getSlave() != null ) {
+            ((Map)PENDING_MEASUREMENTS.get()).put(id, value);
             ((Map)PENDING_TIME_MEASUREMENTS.get()).put(id.getSlave(), System.currentTimeMillis());
+         } else {
+            instance.add(id, value);
          }
       }
    }
 
-   public static void addTimeMeasurements( int t ) {
-      for ( TrackingId id : (Set<? extends TrackingId>)SAME_TIMEMEASUREMENT_GROUP.get() ) {
-         addMeasurement(id, Math.max(t, 0));
+   /**
+    * Adds +1 to all TrackingIds previously registered with addForGroupTimeMeasurement(.) if they have a
+    * slave, for which a measurement with <code>t</code> is added, too. If the registered TrackingId has
+    * no slave, the time is added directly to the id.  
+    * @param t the time to be added 
+    */
+   public static void finishGroupTimeMeasurements( int t ) {
+      UsageTrackingService instance = getInstance();
+      if ( instance != null ) {
+         for ( TrackingId id : (Set<? extends TrackingId>)SAME_TIMEMEASUREMENT_GROUP.get() ) {
+            if ( id.getSlave() != null ) {
+               instance.add(id, 1);
+               instance.add(id.getSlave(), Math.max(t, 0));
+            } else {
+               instance.add(id, Math.max(t, 0));
+            }
+         }
       }
       SAME_TIMEMEASUREMENT_GROUP.get().clear();
    }
 
-   public static void finishTimeMeasurement( TrackingId id ) {
+   /** A call to this method is mandatory, in order to finalize the addMeasurement for any TrackingId which 
+    * has a slave! */
+   public static void finishSlaveTimeMeasurement( TrackingId id ) {
       UsageTrackingService instance = getInstance();
       if ( instance != null && id != null && id.getClass().equals(instance._exampleTrackingIdInstance.getClass()) ) {
+         Integer v = PENDING_MEASUREMENTS.get().remove(id);
+         if ( v != null ) {
+            instance.add(id, v);
+         }
          if ( id.getSlave() != null ) {
             id = id.getSlave();
          }
          Long t = PENDING_TIME_MEASUREMENTS.get().remove(id);
          if ( t != null ) {
-            addMeasurement(id, Math.max((int)(System.currentTimeMillis() - t), 0));
+            instance.add(id, Math.max((int)(System.currentTimeMillis() - t), 0));
          }
       }
    }
@@ -199,6 +226,7 @@ public class UsageTrackingService {
    public List<String> getDumpFileNames() {
       File[] files = new File(_dumpFolder).listFiles(new FilenameFilter() {
 
+         @Override
          public boolean accept( File dir, String name ) {
             return name.startsWith("stats-") && name.endsWith(".dmp");
          }
@@ -285,6 +313,13 @@ public class UsageTrackingService {
 
          @Override
          protected EnumMap<? extends Enum, Long> initialValue() {
+            return new EnumMap(_exampleTrackingIdInstance.getClass());
+         }
+      };
+      PENDING_MEASUREMENTS = new ThreadLocal<EnumMap<? extends Enum, Integer>>() {
+
+         @Override
+         protected EnumMap<? extends Enum, Integer> initialValue() {
             return new EnumMap(_exampleTrackingIdInstance.getClass());
          }
       };
@@ -397,16 +432,21 @@ public class UsageTrackingService {
          _exampleTrackingIdInstance = exampleTrackingIdInstance;
       }
 
-      public void addAll( TLongList keys, List<int[]> data ) {
-         int i = 0;
-         for ( int myI = 0, length = Math.min(keys.size(), _keys.size()); myI < length; myI++ ) {
-            while ( i < length && keys.get(i) < _keys.get(myI) ) {
-               i++;
+      public void addAll( TLongList otherKeys, List<int[]> otherData ) {
+         int otherI = 0;
+         for ( int myI = 0, myLength = _keys.size(), otherLength = otherKeys.size(); myI < myLength; myI++ ) {
+            while ( otherI < otherLength && otherKeys.get(otherI) < _keys.get(myI) ) {
+               _keys.insert(myI, otherKeys.get(otherI));
+               _data.add(myI, otherData.get(otherI));
+               myI++;
+               myLength++;
+               otherI++;
             }
-            if ( keys.get(i) != _keys.get(myI) ) {
+            if ( otherI >= otherLength || otherKeys.get(otherI) != _keys.get(myI) ) {
                continue;
             }
-            addAll(_data.get(myI), data.get(i));
+            addAll(_data.get(myI), otherData.get(otherI));
+            otherI++;
          }
       }
 
