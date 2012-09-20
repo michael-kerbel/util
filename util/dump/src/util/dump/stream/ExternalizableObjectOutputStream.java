@@ -1,5 +1,6 @@
 package util.dump.stream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -10,9 +11,29 @@ import java.util.Date;
 import java.util.UUID;
 
 import util.dump.stream.ExternalizableObjectStreamProvider.InstanceType;
+import util.io.IOUtils;
 
 
 public class ExternalizableObjectOutputStream extends DataOutputStream implements ObjectOutput {
+
+   public static byte[] writeSingleInstance( Externalizable e ) {
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+
+      ExternalizableObjectOutputStream out = null;
+      try {
+         out = new ExternalizableObjectOutputStream(bytes);
+         out.writeObject(e);
+      }
+      catch ( IOException argh ) {
+         throw new RuntimeException(argh);
+      }
+      finally {
+         IOUtils.close(out);
+      }
+
+      return bytes.toByteArray();
+   }
+
 
    private ObjectOutputStream _objectOutputStream;
    private boolean            _resetPending = false;

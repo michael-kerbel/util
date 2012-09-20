@@ -1,5 +1,6 @@
 package util.dump.stream;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.Externalizable;
 import java.io.IOException;
@@ -13,9 +14,27 @@ import java.util.Map;
 import java.util.UUID;
 
 import util.dump.stream.ExternalizableObjectStreamProvider.InstanceType;
+import util.io.IOUtils;
 
 
 public class ExternalizableObjectInputStream extends DataInputStream implements ObjectInput {
+
+   public static <T extends Externalizable> T readSingleInstance( Class<T> instanceClass, byte[] bytes ) {
+      ByteArrayInputStream bytesInput = new ByteArrayInputStream(bytes);
+
+      ExternalizableObjectInputStream in = null;
+      try {
+         in = new ExternalizableObjectInputStream(bytesInput);
+         return (T)in.readObject();
+      }
+      catch ( Exception argh ) {
+         throw new RuntimeException(argh);
+      }
+      finally {
+         IOUtils.close(in);
+      }
+   }
+
 
    private Map<String, Class> _classes = new HashMap<String, Class>();
    private ObjectInputStream  _objectInputStream;
