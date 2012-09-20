@@ -23,6 +23,11 @@
 			<artifactId>log4j</artifactId>
 			<version>1.2.16</version>
 		</dependency>
+		<dependency>
+			<groupId>jsr305</groupId>
+			<artifactId>jsr305</artifactId>
+			<version>1.0</version>
+		</dependency>
 	</dependencies>
 </project>
 

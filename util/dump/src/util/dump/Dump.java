@@ -37,6 +37,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
+
 import org.apache.log4j.Logger;
 
 import util.collections.SoftLRUCache;
@@ -64,6 +67,7 @@ import util.time.StopWatch;
  *
  * <b>Beware</b>: Always close the dump properly after usage and before exiting the JVM.<p/>
  */
+@ParametersAreNonnullByDefault
 public class Dump<E> implements DumpInput<E> {
 
    private static final Logger          LOG                              = Logger.getLogger(Dump.class);
@@ -178,7 +182,7 @@ public class Dump<E> implements DumpInput<E> {
     * A {@link SoftLRUCache} is used for caching with <code>cacheSize</code> as size. <p/>
     * @param cacheSize may only be greater 0 if you use a {@link SingleTypeObjectStreamProvider} as <code>streamProvider</code>.
     */
-   public Dump( Class beanClass, ObjectStreamProvider streamProvider, File dumpFile, int cacheSize, DumpAccessFlag... mode ) {
+   public Dump( Class beanClass, ObjectStreamProvider streamProvider, File dumpFile, int cacheSize, @Nullable DumpAccessFlag... mode ) {
       _beanClass = beanClass;
       _streamProvider = streamProvider;
       _mode = EnumSet.copyOf(Arrays.asList(mode == null ? DEFAULT_MODE : mode));
@@ -224,7 +228,7 @@ public class Dump<E> implements DumpInput<E> {
             throw new IllegalArgumentException("cacheSize may not be greater 0 when not using SingleTypeObjectStreamProvider.");
          }
          _cache = new SoftLRUCache(cacheSize); // no synchronization needed, since get(.) is synchronized
-         _cacheByteInput = new ResetableBufferedInputStream(null, 0, false);
+         _cacheByteInput = new ResetableBufferedInputStream((FileChannel)null, 0, false);
          _cacheObjectInput = new SingleTypeObjectInputStream(_cacheByteInput, beanClass);
       }
    }
@@ -263,6 +267,7 @@ public class Dump<E> implements DumpInput<E> {
     * No operations are allowed on a closed Dump instance.<p/>
     * <b>Failing to close the dump may result in data loss!</b>
     */
+   @Override
    public void close() throws IOException {
       if ( _isClosed ) {
          return;
@@ -397,6 +402,7 @@ public class Dump<E> implements DumpInput<E> {
     * when invoking this method. This method needs an IO operation, unless you specified a cache size greater 0 in the
     * constructor and the element at pos was retrieved recently.
     */
+   @Nullable
    public E get( long pos ) {
       if ( !_mode.contains(DumpAccessFlag.read) ) {
          throw new AccessControlException("Get operation not allowed with current modes.");
@@ -496,6 +502,7 @@ public class Dump<E> implements DumpInput<E> {
    /**
     * Yields a DumpIterator with all (undeleted) elements in this dump.
     */
+   @Override
    public DumpIterator<E> iterator() {
       assertOpen();
       try {
@@ -510,7 +517,7 @@ public class Dump<E> implements DumpInput<E> {
    /**
     * Setter for the cache to use. If you are unhappy with the default SoftLRUCache (why should you!?), you can specify your own here.
     */
-   public void setCache( Map<Long, byte[]> cache ) {
+   public void setCache( @Nullable Map<Long, byte[]> cache ) {
       _cache = cache;
    }
 
@@ -537,7 +544,7 @@ public class Dump<E> implements DumpInput<E> {
     * @param comparator If null, E must be Comparable and its natural order will be used
     * @param maxItemsInMemory The maximal number of items held in memory
     */
-   public InfiniteSorter<E> sort( Comparator<E> comparator, int maxItemsInMemory ) throws Exception {
+   public InfiniteSorter<E> sort( @Nullable Comparator<E> comparator, int maxItemsInMemory ) throws Exception {
       assertOpen();
       InfiniteSorter<E> sorter = new InfiniteSorter<E>(maxItemsInMemory, _dumpFile.getParentFile());
       if ( comparator != null ) {
@@ -949,7 +956,8 @@ public class Dump<E> implements DumpInput<E> {
          _position = position;
       }
 
-      public int compareTo( ElementAndPosition<D> o ) {
+      @Override
+      public int compareTo( @Nullable ElementAndPosition<D> o ) {
          return _position < o._position ? -1 : (_position == o._position ? 0 : 1);
       }
 
@@ -972,6 +980,7 @@ public class Dump<E> implements DumpInput<E> {
       ResetableBufferedInputStream _positionAwareInputStream;
       long                         _lastPos;
       long                         _maxPos;
+      FileInputStream              _in;
 
 
       public DeletionAwareDumpReader( File dumpFile, ObjectStreamProvider streamProvider ) throws IOException {
@@ -979,7 +988,7 @@ public class Dump<E> implements DumpInput<E> {
       }
 
       private DeletionAwareDumpReader( File dumpFile, ObjectStreamProvider streamProvider, long maxPos ) throws IOException {
-         super(new ResetableBufferedInputStream(new FileInputStream(_dumpFile).getChannel(), 0, false), 0, streamProvider);
+         super(new ResetableBufferedInputStream(new FileInputStream(_dumpFile), 0, false), 0, streamProvider);
          if ( !_mode.contains(DumpAccessFlag.read) ) {
             throw new AccessControlException("Read operation not allowed with current modes.");
          }
@@ -988,6 +997,7 @@ public class Dump<E> implements DumpInput<E> {
          _maxPos = maxPos;
       }
 
+      @Override
       public long getPosition() {
          return _lastPos;
       }
@@ -1059,13 +1069,13 @@ public class Dump<E> implements DumpInput<E> {
       }
 
       @Override
-      public void write( byte[] b ) throws IOException {
+      public void write( @Nullable byte[] b ) throws IOException {
          _out.write(b);
          _n += b.length;
       }
 
       @Override
-      public void write( byte[] b, int off, int len ) throws IOException {
+      public void write( @Nullable byte[] b, int off, int len ) throws IOException {
          _out.write(b, off, len);
          _n += len;
       }
@@ -1126,6 +1136,8 @@ public class Dump<E> implements DumpInput<E> {
       ByteBuffer              _bb;
       FileChannel             _ch;
 
+      FileInputStream         _fileInputStream;
+
 
       /**
        * Creates a <code>BufferedInputStream</code>
@@ -1139,16 +1151,8 @@ public class Dump<E> implements DumpInput<E> {
        * @param   size   the buffer size.
        * @exception IllegalArgumentException if size <= 0.
        */
-      public ResetableBufferedInputStream( FileChannel ch, int size, long rafPos, boolean suppressClose ) {
-         _ch = ch;
-
-         if ( size <= 0 ) {
-            throw new IllegalArgumentException("Buffer size <= 0");
-         }
-         buf = new byte[size];
-         _bb = ByteBuffer.wrap(buf);
-         _rafPos = rafPos;
-         _suppressClose = suppressClose;
+      public ResetableBufferedInputStream( @Nullable FileChannel ch, int size, long rafPos, boolean suppressClose ) {
+         init(ch, size, rafPos, suppressClose);
       }
 
       /**
@@ -1159,8 +1163,13 @@ public class Dump<E> implements DumpInput<E> {
        *
        * @param   in   the underlying input stream.
        */
-      public ResetableBufferedInputStream( FileChannel ch, long rafPos, boolean suppressClose ) {
+      public ResetableBufferedInputStream( @Nullable FileChannel ch, long rafPos, boolean suppressClose ) {
          this(ch, defaultBufferSize, rafPos, suppressClose);
+      }
+
+      public ResetableBufferedInputStream( FileInputStream fileInputStream, long rafPos, boolean suppressClose ) {
+         _fileInputStream = fileInputStream;
+         init(_fileInputStream.getChannel(), defaultBufferSize, rafPos, suppressClose);
       }
 
       /**
@@ -1185,6 +1194,10 @@ public class Dump<E> implements DumpInput<E> {
          _ch = null;
          if ( input != null ) {
             input.close();
+         }
+
+         if ( _fileInputStream != null ) {
+            _fileInputStream.close();
          }
       }
 
@@ -1275,7 +1288,7 @@ public class Dump<E> implements DumpInput<E> {
        *              or an I/O error occurs.
        */
       @Override
-      public/*synchronized*/int read( byte b[], int off, int len ) throws IOException {
+      public/*synchronized*/int read( @Nullable byte b[], int off, int len ) throws IOException {
          // we don't share instances of this class or synchronize access on a different level, so this method is not synchronized
          getBufIfOpen(); // Check for closed stream
          if ( (off | len | (off + len) | (b.length - (off + len))) < 0 ) {
@@ -1361,6 +1374,15 @@ public class Dump<E> implements DumpInput<E> {
          return buffer;
       }
 
+      private void growLastElementBytes( int minGrowSize ) {
+         // grow at least minGrowsize, at least a kilobyte and at least 10% of old size
+         int newSize = Math.max(_lastElementBytes.length + 1024, _lastElementBytesLength + minGrowSize + 1);
+         newSize = Math.max(newSize, _lastElementBytes.length + (int)(_lastElementBytes.length * 0.1f));
+         byte[] nb = new byte[newSize];
+         System.arraycopy(_lastElementBytes, 0, nb, 0, _lastElementBytes.length);
+         _lastElementBytes = nb;
+      }
+
       //      /**
       //       * Check to make sure that underlying input stream has not been
       //       * nulled out due to close; if not return it;
@@ -1373,13 +1395,16 @@ public class Dump<E> implements DumpInput<E> {
       //         return input;
       //      }
 
-      private void growLastElementBytes( int minGrowSize ) {
-         // grow at least minGrowsize, at least a kilobyte and at least 10% of old size
-         int newSize = Math.max(_lastElementBytes.length + 1024, _lastElementBytesLength + minGrowSize + 1);
-         newSize = Math.max(newSize, _lastElementBytes.length + (int)(_lastElementBytes.length * 0.1f));
-         byte[] nb = new byte[newSize];
-         System.arraycopy(_lastElementBytes, 0, nb, 0, _lastElementBytes.length);
-         _lastElementBytes = nb;
+      private void init( @Nullable FileChannel ch, int size, long rafPos, boolean suppressClose ) {
+         _ch = ch;
+
+         if ( size <= 0 ) {
+            throw new IllegalArgumentException("Buffer size <= 0");
+         }
+         buf = new byte[size];
+         _bb = ByteBuffer.wrap(buf);
+         _rafPos = rafPos;
+         _suppressClose = suppressClose;
       }
 
       /**
