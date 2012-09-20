@@ -1,5 +1,9 @@
 package util.spring;
 
+import org.junit.Ignore;
+
+
+@Ignore
 public class TestBean {
 
    String _password;
