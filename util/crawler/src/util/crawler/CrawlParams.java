@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.client.methods.HttpRequestBase;
 
 import util.http.HttpClientFactory;
 
@@ -45,9 +46,23 @@ public class CrawlParams {
    boolean                  _useProxies         = false;
    boolean                  _useCookies         = false;
    boolean                  _LIFO               = false;
+   List<String>             _additionalHeaders;
 
    transient String         _xslContents;
 
+
+   public void applyAdditionalHeaders( HttpRequestBase req ) {
+      if ( _additionalHeaders == null ) {
+         return;
+      }
+      for ( int i = 0, length = _additionalHeaders.size(); i < length; i += 2 ) {
+         req.setHeader(_additionalHeaders.get(i), _additionalHeaders.get(i + 1));
+      }
+   }
+
+   public List<String> getAdditionalHeaders() {
+      return _additionalHeaders;
+   }
 
    public String getAuthenticationPassword() {
       return _authenticationPassword;
@@ -176,6 +191,13 @@ public class CrawlParams {
 
    public boolean isUseProxies() {
       return _useProxies;
+   }
+
+   public void setAdditionalHeaders( List<String> additionalHeaders ) {
+      if ( additionalHeaders.size() % 2 != 0 ) {
+         throw new RuntimeException("Headers must be defined in tupels, first a string with the headername, then the value.");
+      }
+      _additionalHeaders = additionalHeaders;
    }
 
    public void setAuthenticationPassword( String authenticationPassword ) {

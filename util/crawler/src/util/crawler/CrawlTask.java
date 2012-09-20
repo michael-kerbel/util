@@ -175,6 +175,7 @@ public class CrawlTask implements Runnable {
             HttpClient httpClient = proxy.getHttpClient();
             HttpHost host = new HttpHost(_crawlItem._host != null ? _crawlItem._host : _params.getHost());
             HttpGet get = new HttpGet(_crawlItem._path);
+            _crawler._params.applyAdditionalHeaders(get);
             String page = requestPage(httpClient, host, get);
             page = applyPageReplacements(_params, page);
             sanityCheck(page);
@@ -264,13 +265,18 @@ public class CrawlTask implements Runnable {
    }
 
    protected String requestPage( HttpClient httpClient, HttpHost host, HttpGet get ) throws Exception {
-      HttpResponse response = executeRequest(httpClient, host, get);
-      if ( response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 404 ) {
-         get.abort(); // to return connection of httpClient back to the pool
-         throw new UnexceptedStatuscodeException(response.getStatusLine().getStatusCode());
+      try {
+         HttpResponse response = executeRequest(httpClient, host, get);
+         if ( response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 404 ) {
+            throw new UnexceptedStatuscodeException(response.getStatusLine().getStatusCode());
+         }
+         String page = readPage(response, _crawlItem._httpContext, _params.getForcedPageEncoding());
+         return page;
       }
-      String page = readPage(response, _crawlItem._httpContext, _params.getForcedPageEncoding());
-      return page;
+      catch ( Exception argh ) {
+         get.abort(); // to return connection of httpClient back to the pool
+         throw argh;
+      }
    }
 
    private String applyFollowXPaths( String page ) {
@@ -368,7 +374,7 @@ public class CrawlTask implements Runnable {
 
          @Override
          protected synchronized int addResult( Map<String, String>[] m ) {
-            if ( maps.length > 0 ) {
+            if ( m.length > 0 ) {
                maps[0] = m[0];
             }
             return 0;
