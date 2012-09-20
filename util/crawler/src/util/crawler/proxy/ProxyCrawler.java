@@ -38,6 +38,8 @@ public class ProxyCrawler {
       HIDEMYASS_PARAMS.setHost("hidemyass.com");
       HIDEMYASS_PARAMS.setId("proxies");
       HIDEMYASS_PARAMS.setNumberOfThreads(1);
+      HIDEMYASS_PARAMS.setUseCookies(true);
+      HIDEMYASS_PARAMS.setUserAgent("Mozilla/5.0 (Windows NT 5.1; rv:15.0) Gecko/20100101 Firefox/15.0");
       HIDEMYASS_PARAMS.setStartURLs(Arrays.asList("http://hidemyass.com/proxy-list/"));
    }
 
@@ -65,8 +67,8 @@ public class ProxyCrawler {
 
 
    public void crawl() {
-      new TheRealProxyCrawler(SAMAIR_PARAMS).crawl();
       new TheRealProxyCrawler(HIDEMYASS_PARAMS).crawl();
+      //new TheRealProxyCrawler(SAMAIR_PARAMS).crawl();
       int n = _proxyList.getProxies().size();
       if ( n == 0 ) {
          _log.warn("initializing from static file");

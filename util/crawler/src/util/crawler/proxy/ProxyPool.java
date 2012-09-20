@@ -40,13 +40,9 @@ public class ProxyPool {
    public Proxy checkoutProxy() {
       try {
          Proxy proxy;
-         synchronized ( this ) {
-            proxy = _proxies.poll(1, TimeUnit.HOURS);
-         }
+         proxy = _proxies.poll(1, TimeUnit.HOURS);
          while ( proxy != null && proxy.getStats().getLastByteLatency() < 0 ) {
-            synchronized ( this ) {
-               proxy = _proxies.poll(1, TimeUnit.HOURS);
-            }
+            proxy = _proxies.poll(1, TimeUnit.HOURS);
          }
          if ( proxy == null ) {
             return checkoutProxy();
@@ -59,7 +55,7 @@ public class ProxyPool {
          return proxy;
       }
       catch ( InterruptedException argh ) {
-         argh.printStackTrace();
+         _log.info("checkout from proxy pool interrupted", argh);
          return null;
       }
    }
@@ -100,10 +96,8 @@ public class ProxyPool {
       return fastProxies;
    }
 
-   public synchronized void returnProxy( Proxy p ) {
-      synchronized ( this ) {
-         _proxies.add(p);
-      }
+   public void returnProxy( Proxy p ) {
+      _proxies.add(p);
    }
 
    public int size() {
