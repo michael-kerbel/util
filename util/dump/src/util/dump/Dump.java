@@ -499,6 +499,10 @@ public class Dump<E> implements DumpInput<E> {
       return _streamProvider;
    }
 
+   public boolean isClosed() {
+      return _isClosed;
+   }
+
    /**
     * Yields a DumpIterator with all (undeleted) elements in this dump.
     */
