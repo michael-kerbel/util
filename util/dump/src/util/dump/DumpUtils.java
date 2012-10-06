@@ -337,9 +337,11 @@ public class DumpUtils {
          }
       }
 
+      int headerLength = utflen >= 65535 ? 6 : 2;
+
       byte[] bytearr = _writeUTFReusableByteArray.get();
-      if ( bytearr.length < (utflen + 2) ) {
-         bytearr = new byte[(utflen * 2) + 2];
+      if ( bytearr.length < (utflen + headerLength) ) {
+         bytearr = new byte[(utflen * 2) + headerLength];
       }
       _writeUTFReusableByteArray.set(bytearr);
 
@@ -376,7 +378,7 @@ public class DumpUtils {
             bytearr[count++] = (byte)(0x80 | ((c >> 0) & 0x3F));
          }
       }
-      out.write(bytearr, 0, utflen + 2);
-      return utflen + 2;
+      out.write(bytearr, 0, utflen + headerLength);
+      return utflen + headerLength;
    }
 }

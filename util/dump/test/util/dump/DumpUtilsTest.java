@@ -1,5 +1,12 @@
 package util.dump;
 
+import static org.fest.assertions.Assertions.assertThat;
+import static org.junit.Assert.fail;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
@@ -15,14 +22,10 @@ import org.junit.Test;
 import util.dump.DumpTest.Bean;
 
 
-import static org.fest.assertions.Assertions.assertThat;
-
-import static org.junit.Assert.fail;
-
-
 public class DumpUtilsTest {
 
    private static final int NUMBER_OF_INSTANCES = 10000;
+
 
    @Before
    @After
@@ -179,6 +182,25 @@ public class DumpUtilsTest {
       finally {
          Files.delete(tmpDir);
       }
+   }
+
+   @Test
+   public void testReadWriteUtf() throws Exception {
+      StringBuilder s = new StringBuilder();
+      for ( int i = 0; i < 10000; i++ ) {
+         s.append("0123456789");
+      }
+
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+      DataOutputStream out = new DataOutputStream(bos);
+      DumpUtils.writeUTF(s.toString(), out);
+      out.close();
+
+      DataInputStream in = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+      String ss = DumpUtils.readUTF(in);
+      in.close();
+
+      assertThat(s.toString()).isEqualTo(ss);
    }
 
    private Dump<Bean> createDestDump() {
