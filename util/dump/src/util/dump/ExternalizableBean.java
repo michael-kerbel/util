@@ -1061,7 +1061,7 @@ public class ExternalizableBean implements Externalizable {
             String s = null;
             isNotNull = in.readBoolean();
             if ( isNotNull ) {
-               s = in.readUTF();
+               s = DumpUtils.readUTF(in);
             }
             d.add(s);
          }
@@ -1182,7 +1182,7 @@ public class ExternalizableBean implements Externalizable {
       String s = null;
       boolean isNotNull = in.readBoolean();
       if ( isNotNull ) {
-         s = in.readUTF();
+         s = DumpUtils.readUTF(in);
       }
       return s;
    }
@@ -1332,7 +1332,7 @@ public class ExternalizableBean implements Externalizable {
             String s = (String)d.get(j);
             out.writeBoolean(s != null);
             if ( s != null ) {
-               out.writeUTF(s);
+               DumpUtils.writeUTF(s, out);
             }
          }
       }
@@ -1370,7 +1370,7 @@ public class ExternalizableBean implements Externalizable {
          for ( String s : d ) {
             out.writeBoolean(s != null);
             if ( s != null ) {
-               out.writeUTF(s);
+               DumpUtils.writeUTF(s, out);
             }
          }
       }
@@ -1379,7 +1379,7 @@ public class ExternalizableBean implements Externalizable {
    private void writeString( ObjectOutput out, String s ) throws IOException {
       out.writeBoolean(s != null);
       if ( s != null ) {
-         out.writeUTF(s);
+         DumpUtils.writeUTF(s, out);
       }
    }
 
