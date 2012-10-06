@@ -337,10 +337,6 @@ public class DumpUtils {
          }
       }
 
-      if ( utflen > 65535 ) {
-         throw new UTFDataFormatException("encoded string too long: " + utflen + " bytes");
-      }
-
       byte[] bytearr = _writeUTFReusableByteArray.get();
       if ( bytearr.length < (utflen + 2) ) {
          bytearr = new byte[(utflen * 2) + 2];
