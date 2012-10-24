@@ -52,19 +52,23 @@ public enum SimpleTrackingId implements TrackingId {
    private SimpleTrackingId( int id, TrackingId slave ) {
       _id = id;
       _slave = slave;
-      if ( _slave.getAggregation() != Aggregation.Sum )
+      if ( _slave.getAggregation() != Aggregation.Sum ) {
          throw new IllegalStateException(
             "A slave TrackingId must be of Aggregation.Sum, since it currently only makes sense for RequestTime TrackingId to be slaves!");
+      }
    }
 
+   @Override
    public void collectCyclicValues( int[] values ) {
       long usedMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-      values[UsedMemory.getId()] = (int)usedMemory / (1024 * 1024);
+      values[UsedMemory.getId()] = (int)(usedMemory / (1024L * 1024L));
 
       long gcTimeTotal = 0;
       for ( GarbageCollectorMXBean b : ManagementFactory.getGarbageCollectorMXBeans() ) {
          long collectionTime = b.getCollectionTime();
-         if ( collectionTime > 0 ) gcTimeTotal += collectionTime;
+         if ( collectionTime > 0 ) {
+            gcTimeTotal += collectionTime;
+         }
       }
       if ( values[GCTime.getId()] == 0 ) {
          if ( _lastGCTimeTotal != 0 ) {
@@ -74,32 +78,38 @@ public enum SimpleTrackingId implements TrackingId {
       }
    }
 
-   public TrackingId getForId( int id ) {
-      return id < LOOKUP.length && id >= 0 ? LOOKUP[id] : null;
-   }
-
-   public TrackingId getForName( String name ) {
-      return _nameLookup.get(name);
-   }
-
+   @Override
    public Aggregation getAggregation() {
       return _aggregation;
    }
 
+   @Override
+   public TrackingId getForId( int id ) {
+      return id < LOOKUP.length && id >= 0 ? LOOKUP[id] : null;
+   }
+
+   @Override
+   public TrackingId getForName( String name ) {
+      return _nameLookup.get(name);
+   }
+
+   @Override
    public int getId() {
       return _id;
    }
 
-   public TrackingId getSlave() {
-      return _slave;
-   }
-
+   @Override
    public int getMaxId() {
       int maxId = 0;
       for ( TrackingId id : values() ) {
          maxId = Math.max(id.getId(), maxId);
       }
       return maxId;
+   }
+
+   @Override
+   public TrackingId getSlave() {
+      return _slave;
    }
 
 }
