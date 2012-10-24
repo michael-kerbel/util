@@ -115,6 +115,7 @@ public class DumpUtils {
                final int[] mostFrequentSize = { 1 };
                _elementSizes.forEachEntry(new TIntIntProcedure() {
 
+                  @Override
                   public boolean execute( int size, int number ) {
                      if ( number > maxNumber[0] ) {
                         mostFrequentSize[0] = size;
@@ -231,11 +232,13 @@ public class DumpUtils {
       }
 
       byte[] bytearr = _readUTFReusableByteArray.get();
-      char[] chararr = _readUTFReusableCharArray.get();
       if ( bytearr.length < utflen ) {
          bytearr = new byte[utflen * 2];
-         chararr = new char[utflen * 2];
          _readUTFReusableByteArray.set(bytearr);
+      }
+      char[] chararr = _readUTFReusableCharArray.get();
+      if ( chararr.length < utflen ) {
+         chararr = new char[utflen * 2];
          _readUTFReusableCharArray.set(chararr);
       }
 
