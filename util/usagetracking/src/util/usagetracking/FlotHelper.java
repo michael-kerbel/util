@@ -18,7 +18,7 @@ public class FlotHelper {
       for ( int i = 0, length = keys.size(); i < length; i++ ) {
          long t = keys.get(i);
          int v = data.get(i)[id.getId()];
-         long value = v < 0 ? v & 0xFFFFFFFFL : v;
+         long value = v < 0 ? v & 0xFFFFFFFFL : v; // treat v as unsigned int
          s.append(s.length() > 1 ? "," : "").append("[").append(t + timeOffset).append(",").append(value).append("]");
       }
 
