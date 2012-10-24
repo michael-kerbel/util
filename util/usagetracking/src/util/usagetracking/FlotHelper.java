@@ -17,7 +17,9 @@ public class FlotHelper {
       final StringBuilder s = new StringBuilder("[");
       for ( int i = 0, length = keys.size(); i < length; i++ ) {
          long t = keys.get(i);
-         s.append(s.length() > 1 ? "," : "").append("[").append(t + timeOffset).append(",").append(data.get(i)[id.getId()]).append("]");
+         int v = data.get(i)[id.getId()];
+         long value = v < 0 ? v & 0xFFFFFFFFL : v;
+         s.append(s.length() > 1 ? "," : "").append("[").append(t + timeOffset).append(",").append(value).append("]");
       }
 
       return s.append("]").toString();
