@@ -16,6 +16,9 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
@@ -52,6 +55,7 @@ import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.ssl.SSLSocketFactory;
+import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.HttpEntityWrapper;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -382,11 +386,10 @@ public class HttpClientFactory {
       try {
          SSLContext ctx = SSLContext.getInstance("TLS");
          ctx.init(null, new TrustManager[] { new TrustAllSslTrustManager() }, null);
-         SSLSocketFactory ssf = new SSLSocketFactory(ctx);
-         ssf.setHostnameVerifier(SSLSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+         SSLSocketFactory ssf = new SSLSocketFactory(ctx, new TrustAllSslHostnameVerifier());
          ClientConnectionManager ccm = httpclient.getConnectionManager();
          SchemeRegistry sr = ccm.getSchemeRegistry();
-         sr.register(new Scheme("https", ssf, 443));
+         sr.register(new Scheme("https", 443, ssf));
          return new DefaultHttpClient(ccm, httpclient.getParams());
       }
       catch ( Exception ex ) {
@@ -482,6 +485,23 @@ public class HttpClientFactory {
 
    };
 
+   static class TrustAllSslHostnameVerifier implements X509HostnameVerifier {
+
+      @Override
+      public boolean verify( String string, SSLSession ssls ) {
+         return true;
+      }
+
+      @Override
+      public void verify( String string, SSLSocket ssls ) throws IOException {}
+
+      @Override
+      public void verify( String string, String[] strings, String[] strings1 ) throws SSLException {}
+
+      @Override
+      public void verify( String string, X509Certificate xc ) throws SSLException {}
+   };
+
    static class TrustAllSslTrustManager implements X509TrustManager {
 
       public void checkClientTrusted( X509Certificate[] xcs, String string ) throws CertificateException {}
@@ -491,6 +511,5 @@ public class HttpClientFactory {
       public X509Certificate[] getAcceptedIssuers() {
          return null;
       }
-   };
-
+   }
 }
