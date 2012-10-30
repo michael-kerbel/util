@@ -106,12 +106,12 @@ public class Crawler {
    protected Proxy checkoutProxy() {
       if ( _proxyPool != null ) {
          synchronized ( _proxyPool ) {
-         if ( _proxyPool.size() == 0 ) {
-            _log.warn("got no proxies left, re-initializing proxy pool!");
-            initProxyPool();
+            if ( _proxyPool.size() == 0 ) {
+               _log.warn("got no proxies left, re-initializing proxy pool!");
+               initProxyPool();
+            }
+            return _proxyPool.checkoutProxy();
          }
-         return _proxyPool.checkoutProxy();
-      }
       }
       return _proxy;
    }
