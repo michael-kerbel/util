@@ -77,20 +77,21 @@ public class CrawlTask implements Runnable {
    }
 
    /**
-    * @return String[2], with String[0] null or host and String[1] normalized path
+    * @return String[3], with String[0] null or host, String[1] normalized path and String[2] the scheme or null if none given
     */
    public static String[] makeAbsolute( CrawlItem parentCrawlItem, String pathDir, String path ) {
       String host = parentCrawlItem == null ? null : parentCrawlItem._host;
       if ( path.startsWith("/") ) {
-         return new String[] { host, path };
+         return new String[] { host, path, null };
       }
       if ( path.startsWith("http://") || path.startsWith("https://") ) {
+         String scheme = path.substring(0, path.indexOf("://"));
          int hostNameStartIndex = path.indexOf("//") + 2;
          int firstSlashIndex = path.indexOf('/', hostNameStartIndex);
          if ( firstSlashIndex < 0 ) {
-            return new String[] { path, "/" };
+            return new String[] { path, "/", scheme };
          }
-         return new String[] { path.substring(hostNameStartIndex, firstSlashIndex), path.substring(firstSlashIndex) };
+         return new String[] { path.substring(hostNameStartIndex, firstSlashIndex), path.substring(firstSlashIndex), scheme };
       }
       if ( path.startsWith("?") && parentCrawlItem != null ) {
          String name = parentCrawlItem._path.substring(pathDir.length() + 1);
@@ -115,7 +116,7 @@ public class CrawlTask implements Runnable {
       if ( path.endsWith("/") ) {
          sb.append('/');
       }
-      return new String[] { host, sb.toString() };
+      return new String[] { host, sb.toString(), null };
    }
 
    public static String normalize( String path ) {
@@ -173,7 +174,7 @@ public class CrawlTask implements Runnable {
          try {
             proxy = _crawler.checkoutProxy();
             HttpClient httpClient = proxy.getHttpClient();
-            HttpHost host = new HttpHost(_crawlItem._host != null ? _crawlItem._host : _params.getHost());
+            HttpHost host = new HttpHost(_crawlItem._host != null ? _crawlItem._host : _params.getHost(), -1, _crawlItem._scheme);
             HttpGet get = new HttpGet(_crawlItem._path);
             _crawler._params.applyAdditionalHeaders(get);
             String page = requestPage(httpClient, host, get);
@@ -351,7 +352,7 @@ public class CrawlTask implements Runnable {
          String[] normalizedPath = makeAbsolute(_crawlItem, _pathDir, normalize(path));
          for ( Pattern p : _params.getFollowPatterns() ) {
             if ( p.matcher(normalizedPath[1]).matches() && !isDontFollow(normalizedPath[1]) ) {
-               paths.add(new CrawlItem(_params, _crawlItem, normalizedPath[0], normalizedPath[1], linklabel, getHttpContext(_crawlItem)));
+               paths.add(new CrawlItem(_params, _crawlItem, normalizedPath[0], normalizedPath[1], linklabel, getHttpContext(_crawlItem), normalizedPath[2]));
             }
          }
       }
@@ -405,7 +406,7 @@ public class CrawlTask implements Runnable {
       String[] s = StringTool.split(value, '$');
       String url = s[s.length - 1].trim();
       String[] normalizedPath = makeAbsolute(_crawlItem, _pathDir, url);
-      CrawlItem ci = new CrawlItem(_params, _crawlItem, normalizedPath[0], normalizedPath[1], null, getHttpContext(_crawlItem));
+      CrawlItem ci = new CrawlItem(_params, _crawlItem, normalizedPath[0], normalizedPath[1], null, getHttpContext(_crawlItem), normalizedPath[2]);
 
       for ( int i = 0, length = s.length - 1; i < length; i++ ) {
          if ( s[i].isEmpty() || s[i].equals("followurl") ) {

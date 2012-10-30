@@ -274,7 +274,7 @@ public class Crawler {
    private CrawlItem createCrawlItem( String url ) {
       String[] normalizedPath = CrawlTask.makeAbsolute(null, null, url);
       CrawlItem crawlItem = new CrawlItem(_params, null, normalizedPath[0], normalizedPath[1], null,
-         HttpClientFactory.createHttpContext(_params.isUseCookies()));
+         HttpClientFactory.createHttpContext(_params.isUseCookies()), normalizedPath[2]);
       return crawlItem;
    }
 
@@ -303,9 +303,10 @@ public class Crawler {
       HashMap<String, String> _variablesForXSLT = new HashMap<String, String>();
       HttpContext             _httpContext;
       int                     _errorStatusCode  = 0;
+      String                  _scheme           = "http";
 
 
-      public CrawlItem( CrawlParams params, CrawlItem parent, String host, String path, String linklabel, HttpContext httpContext ) {
+      public CrawlItem( CrawlParams params, CrawlItem parent, String host, String path, String linklabel, HttpContext httpContext, String scheme ) {
          if ( host != null && !host.equalsIgnoreCase(params.getHost()) ) {
             _host = host;
          }
@@ -315,6 +316,7 @@ public class Crawler {
          _httpContext = httpContext;
          _variablesForXSLT.put("url", path);
          _variablesForXSLT.put("linklabel", linklabel);
+         _scheme = scheme == null ? _parent._scheme : scheme;
          if ( _parent != null ) {
             _depth = _parent._depth + 1;
          }
