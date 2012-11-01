@@ -180,6 +180,7 @@ public class CrawlTask implements Runnable {
             String page = requestPage(httpClient, host, get);
             page = applyPageReplacements(_params, page);
             sanityCheck(page);
+            proxy.addSuccessfulGet((int)(System.currentTimeMillis() - t));
             checkForHtmlBaseElement(page);
             int numberItemsAdded = transformAndAddResult(host, page);
             Set<CrawlItem> paths = extractCrawlItems(page);
@@ -190,7 +191,6 @@ public class CrawlTask implements Runnable {
                   numberCrawlItemsAdded++;
                }
             }
-            proxy.addSuccessfulGet((int)(System.currentTimeMillis() - t));
 
             String proxyString = numberCrawlItemsAdded == 0 && numberItemsAdded == 0 && _params.isUseProxies() ? ", " + proxy.getAddress().toString() : "";
             _log.debug("added " + numberCrawlItemsAdded + " URLs to queue, scraped " + numberItemsAdded + " items" + proxyString);
