@@ -1,14 +1,11 @@
 package util.dump.stream;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
-import java.util.zip.GZIPInputStream;
 
 
 /**
@@ -28,35 +25,28 @@ import java.util.zip.GZIPInputStream;
  */
 public class SingleTypeObjectStreamProvider<E extends Externalizable> implements ObjectStreamProvider {
 
+   private final Class     _class;
+   private Compression _compressionType = Compression.None;
 
-   private final Class _class;
-   private final int   _compression;
 
    public SingleTypeObjectStreamProvider( Class c ) {
       _class = c;
-      _compression = 0;
    }
 
    /**
     * @param compression if set to a value > 0 the input and output streams are wrapped with GZip compression
     * @see java.util.zip.Deflater
     */
-   public SingleTypeObjectStreamProvider( Class c, int compression ) {
+   public SingleTypeObjectStreamProvider( Class c, Compression compressionType ) {
       _class = c;
-      _compression = compression;
+      _compressionType = compressionType;
    }
 
    public ObjectInput createObjectInput( InputStream in ) throws IOException {
-      if ( _compression > 0 ) {
-         in = new BufferedInputStream(new GZIPInputStream(in));
-      }
-      return new SingleTypeObjectInputStream<E>(in, _class);
+      return new SingleTypeObjectInputStream<E>(in, _class, _compressionType);
    }
 
    public ObjectOutput createObjectOutput( OutputStream out ) throws IOException {
-      if ( _compression > 0 ) {
-         out = new BufferedOutputStream(new ConfigurableGZIPOutputStream(out, _compression));
-      }
-      return new SingleTypeObjectOutputStream<E>(out, _class);
+      return new SingleTypeObjectOutputStream<E>(out, _class, _compressionType);
    }
 }

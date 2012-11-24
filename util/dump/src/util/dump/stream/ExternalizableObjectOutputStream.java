@@ -35,19 +35,24 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
    }
 
 
-   private ObjectOutputStream _objectOutputStream;
-   private boolean            _resetPending = false;
+   private ObjectOutputStream    _objectOutputStream;
+
+   private boolean               _resetPending               = false;
+   private Compression       _compressionType            = Compression.None;
+   private ByteArrayOutputStream _compressionByteBuffer      = null;
+   private OutputStream          _originalOut                = null;
+   private ObjectOutputStream    _originalObjectOutputStream = null;
 
 
    public ExternalizableObjectOutputStream( OutputStream out ) throws IOException {
       super(out);
-      _objectOutputStream = new ObjectOutputStream(out) {
+      _objectOutputStream = new NoHeaderObjectOutputStream(out);
+   }
 
-         @Override
-         protected void writeStreamHeader() throws IOException {
-            // do nothing
-         }
-      };
+   public ExternalizableObjectOutputStream( OutputStream out, Compression compressionType ) throws IOException {
+      this(out);
+      _compressionType = compressionType;
+      _compressionByteBuffer = new ByteArrayOutputStream();
    }
 
    @Override
@@ -67,8 +72,19 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
    }
 
    public void writeObject( Object obj ) throws IOException {
+
       writeBoolean(obj != null);
       if ( obj != null ) {
+         boolean restore = false;
+         if ( _compressionType != Compression.None && _originalOut == null ) {
+            restore = true;
+            _originalOut = out;
+            _compressionByteBuffer.reset();
+            out = _compressionByteBuffer;
+            _originalObjectOutputStream = _objectOutputStream;
+            _objectOutputStream = new NoHeaderObjectOutputStream(out);
+         }
+
          if ( obj instanceof Externalizable ) {
             writeByte(InstanceType.Externalizable.getId());
             writeUTF(obj.getClass().getName());
@@ -103,6 +119,45 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
             }
             _objectOutputStream.writeObject(obj);
          }
+
+         if ( restore ) {
+            byte[] bytes = _compressionByteBuffer.toByteArray();
+            byte[] compressedBytes = _compressionType.compress(bytes);
+            out = _originalOut;
+
+            if ( compressedBytes.length + 6 < bytes.length ) {
+               out.write(1);
+               if ( compressedBytes.length >= 65535 ) {
+                  out.write(0xff);
+                  out.write(0xff);
+                  out.write((compressedBytes.length >>> 24) & 0xFF);
+                  out.write((compressedBytes.length >>> 16) & 0xFF);
+               }
+               out.write((compressedBytes.length >>> 8) & 0xFF);
+               out.write((compressedBytes.length >>> 0) & 0xFF);
+
+               out.write(compressedBytes);
+            } else {
+               out.write(0);
+               out.write(bytes);
+            }
+            _originalOut = null;
+            _objectOutputStream = _originalObjectOutputStream;
+            _originalObjectOutputStream = null;
+         }
+      }
+   }
+
+
+   private final class NoHeaderObjectOutputStream extends ObjectOutputStream {
+
+      private NoHeaderObjectOutputStream( OutputStream out ) throws IOException {
+         super(out);
+      }
+
+      @Override
+      protected void writeStreamHeader() throws IOException {
+         // do nothing
       }
    }
 }

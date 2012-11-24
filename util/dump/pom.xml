@@ -17,7 +17,11 @@
 			<groupId>mkr</groupId>
 			<artifactId>util-base</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.iq80.snappy</groupId>
+			<artifactId>snappy</artifactId>
+			<version>0.2</version>
+		</dependency>
 	</dependencies>
 
 
