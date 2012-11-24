@@ -44,6 +44,7 @@ import org.apache.log4j.Logger;
 
 import util.collections.SoftLRUCache;
 import util.dump.sort.InfiniteSorter;
+import util.dump.stream.Compression;
 import util.dump.stream.ObjectStreamProvider;
 import util.dump.stream.SingleTypeObjectStreamProvider;
 import util.io.IOUtils;
@@ -165,6 +166,14 @@ public class Dump<E> implements DumpInput<E> {
     */
    public Dump( Class beanClass, File dumpFile ) {
       this(beanClass, new SingleTypeObjectStreamProvider(beanClass), dumpFile, DEFAULT_CACHE_SIZE, DEFAULT_MODE);
+   }
+
+   /**
+    * same as {@link #Dump(Class, File)} but allows to set the compression algorithm to use.
+    * @param compression the compression to use for the SingleTypeObjectStreamProvider, i.e. each bean is stored compressed using this algorithm  
+    */
+   public Dump( Class beanClass, File dumpFile, Compression compression ) {
+      this(beanClass, new SingleTypeObjectStreamProvider(beanClass, compression), dumpFile, DEFAULT_CACHE_SIZE, DEFAULT_MODE);
    }
 
    /**

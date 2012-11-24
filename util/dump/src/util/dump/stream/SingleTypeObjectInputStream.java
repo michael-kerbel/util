@@ -29,9 +29,10 @@ public class SingleTypeObjectInputStream<E extends Externalizable> extends DataI
 
 
    private final Class          _class;
-   private Compression      _compressionType       = Compression.None;
-   private ByteArrayInputStream _compressionByteBuffer = null;
-   private InputStream          _originalIn            = null;
+   private Compression          _compressionType              = Compression.None;
+   private ByteArrayInputStream _compressionByteBuffer        = null;
+   private InputStream          _originalIn                   = null;
+   private byte[]               _reusableUncompressBytesArray = null;
 
 
    public SingleTypeObjectInputStream( InputStream in, Class c ) {
@@ -42,6 +43,7 @@ public class SingleTypeObjectInputStream<E extends Externalizable> extends DataI
    public SingleTypeObjectInputStream( InputStream in, Class c, Compression compressionType ) {
       this(in, c);
       _compressionType = compressionType;
+      _reusableUncompressBytesArray = new byte[8192];
    }
 
    public Object readObject() throws ClassNotFoundException, IOException {
@@ -52,17 +54,16 @@ public class SingleTypeObjectInputStream<E extends Externalizable> extends DataI
             restore = true;
             boolean compressed = readBoolean();
             if ( compressed ) {
-               int length = readShort();
+               int length = readShort() & 0xffff;
                if ( length == 0xffff ) {
                   length = readInt();
                }
 
                byte[] bytes = new byte[length];
                readFully(bytes);
-               byte[] uncompressedBytes = _compressionType.uncompress(bytes);
+               _reusableUncompressBytesArray = _compressionType.uncompress(bytes, _reusableUncompressBytesArray);
 
-               _originalIn = in;
-               _compressionByteBuffer = new ByteArrayInputStream(uncompressedBytes);
+               _compressionByteBuffer = new ByteArrayInputStream(_reusableUncompressBytesArray);
                in = _compressionByteBuffer;
             }
          }

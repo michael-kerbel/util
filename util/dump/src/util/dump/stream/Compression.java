@@ -5,8 +5,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
+
+import javax.annotation.Nullable;
 
 import util.io.IOUtils;
 
@@ -14,7 +15,7 @@ import util.io.IOUtils;
 public enum Compression {
    None, GZipLevel0, GZipLevel1, GZipLevel2, GZipLevel3, GZipLevel4, GZipLevel5, GZipLevel6, GZipLevel7, GZipLevel8, GZipLevel9, Snappy;
 
-   public byte[] compress( byte[] bytes ) throws IOException {
+   public byte[] compress( byte[] bytes, @Nullable byte[] target ) throws IOException {
       switch ( this ) {
       case None:
          return bytes;
@@ -39,12 +40,12 @@ public enum Compression {
       case GZipLevel9:
          return gzip(9, bytes);
       case Snappy:
-         return snappy(bytes);
+         return snappy(bytes, target);
       }
       return bytes;
    }
 
-   public byte[] uncompress( byte[] bytes ) throws IOException {
+   public byte[] uncompress( byte[] bytes, @Nullable byte[] target ) throws IOException {
       switch ( this ) {
       case None:
          return bytes;
@@ -60,7 +61,8 @@ public enum Compression {
       case GZipLevel9:
          return gunzip(bytes);
       case Snappy:
-         return org.iq80.snappy.Snappy.uncompress(bytes, 0, bytes.length);
+         return unsnappy(bytes, target);
+
       }
       return bytes;
    }
@@ -86,10 +88,25 @@ public enum Compression {
       return compressedBytes.toByteArray();
    }
 
-   private byte[] snappy( byte[] data ) {
-      byte[] compressedOut = new byte[org.iq80.snappy.Snappy.maxCompressedLength(data.length)];
-      int compressedSize = org.iq80.snappy.Snappy.compress(data, 0, data.length, compressedOut, 0);
-      byte[] trimmedBuffer = Arrays.copyOf(compressedOut, compressedSize);
-      return trimmedBuffer;
+   private byte[] snappy( byte[] data, byte[] target ) {
+      int length = org.iq80.snappy.Snappy.maxCompressedLength(data.length) + 4;
+      if ( target == null || target.length < length ) {
+         target = new byte[length];
+      }
+      int compressedSize = org.iq80.snappy.Snappy.compress(data, 0, data.length, target, 4);
+      target[0] = (byte)((compressedSize >>> 24) & 0xFF);
+      target[1] = (byte)((compressedSize >>> 16) & 0xFF);
+      target[2] = (byte)((compressedSize >>> 8) & 0xFF);
+      target[3] = (byte)((compressedSize >>> 0) & 0xFF);
+      return target;
+   }
+
+   private byte[] unsnappy( byte[] bytes, byte[] target ) {
+      int length = org.iq80.snappy.Snappy.getUncompressedLength(bytes, 0);
+      if ( target == null || target.length < length ) {
+         target = new byte[length];
+      }
+      org.iq80.snappy.Snappy.uncompress(bytes, 0, bytes.length, target, 0);
+      return target;
    }
 }

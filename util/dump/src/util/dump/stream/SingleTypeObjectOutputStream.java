@@ -31,9 +31,10 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
 
 
    private final Class<?>        _class;
-   private Compression       _compressionType       = Compression.None;
-   private ByteArrayOutputStream _compressionByteBuffer = null;
-   private OutputStream          _originalOut           = null;
+   private Compression           _compressionType            = Compression.None;
+   private ByteArrayOutputStream _compressionByteBuffer      = null;
+   private OutputStream          _originalOut                = null;
+   private byte[]                _reusableCompressBytesArray = null;
 
 
    public SingleTypeObjectOutputStream( OutputStream out, Class<?> c ) {
@@ -45,6 +46,7 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
       this(out, c);
       _compressionType = compressionType;
       _compressionByteBuffer = new ByteArrayOutputStream();
+      _reusableCompressBytesArray = new byte[8192];
    }
 
    public void writeObject( Object obj ) throws IOException {
@@ -73,22 +75,31 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
 
       if ( restore ) {
          byte[] bytes = _compressionByteBuffer.toByteArray();
-         byte[] compressedBytes = _compressionType.compress(bytes);
+         _reusableCompressBytesArray = _compressionType.compress(bytes, _reusableCompressBytesArray);
+         int compressedLength = _reusableCompressBytesArray.length;
+         if ( _compressionType == Compression.Snappy ) {
+            compressedLength = (((_reusableCompressBytesArray[0] & 0xff) << 24) + ((_reusableCompressBytesArray[1] & 0xff) << 16)
+               + ((_reusableCompressBytesArray[2] & 0xff) << 8) + ((_reusableCompressBytesArray[3] & 0xff) << 0));
+         }
          out = _originalOut;
 
-         if ( compressedBytes.length + 6 < bytes.length ) {
+         if ( compressedLength + 6 < bytes.length ) {
             out.write(1);
 
-            if ( compressedBytes.length >= 65535 ) {
+            if ( compressedLength >= 65535 ) {
                out.write(0xff);
                out.write(0xff);
-               out.write((compressedBytes.length >>> 24) & 0xFF);
-               out.write((compressedBytes.length >>> 16) & 0xFF);
+               out.write((compressedLength >>> 24) & 0xFF);
+               out.write((compressedLength >>> 16) & 0xFF);
             }
-            out.write((compressedBytes.length >>> 8) & 0xFF);
-            out.write((compressedBytes.length >>> 0) & 0xFF);
+            out.write((compressedLength >>> 8) & 0xFF);
+            out.write((compressedLength >>> 0) & 0xFF);
 
-            out.write(compressedBytes);
+            if ( _compressionType == Compression.Snappy ) {
+               out.write(_reusableCompressBytesArray, 4, compressedLength);
+            } else {
+               out.write(_reusableCompressBytesArray);
+            }
          } else {
             out.write(0);
             out.write(bytes);

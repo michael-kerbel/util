@@ -36,13 +36,14 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
    }
 
 
-   private Map<String, Class>   _classes               = new HashMap<String, Class>();
+   private Map<String, Class>   _classes                      = new HashMap<String, Class>();
 
    private ObjectInputStream    _objectInputStream;
-   private Compression      _compressionType       = Compression.None;
-   private ByteArrayInputStream _compressionByteBuffer = null;
-   private InputStream          _originalIn            = null;
+   private Compression          _compressionType              = Compression.None;
+   private ByteArrayInputStream _compressionByteBuffer        = null;
+   private InputStream          _originalIn                   = null;
    private ObjectInputStream    _originalObjectInputStream;
+   private byte[]               _reusableUncompressBytesArray = null;
 
 
    public ExternalizableObjectInputStream( InputStream in ) throws IOException {
@@ -71,16 +72,16 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
                restore = true;
                boolean compressed = readBoolean();
                if ( compressed ) {
-                  int length = readShort();
+                  int length = readShort() & 0xffff;
                   if ( length == 0xffff ) {
                      length = readInt();
                   }
 
                   byte[] bytes = new byte[length];
                   readFully(bytes);
-                  byte[] uncompressedBytes = _compressionType.uncompress(bytes);
+                  _reusableUncompressBytesArray = _compressionType.uncompress(bytes, _reusableUncompressBytesArray);
 
-                  _compressionByteBuffer = new ByteArrayInputStream(uncompressedBytes);
+                  _compressionByteBuffer = new ByteArrayInputStream(_reusableUncompressBytesArray);
                   in = _compressionByteBuffer;
                   _originalObjectInputStream = _objectInputStream;
                   _objectInputStream = new NoHeaderObjectInputStream(in);
