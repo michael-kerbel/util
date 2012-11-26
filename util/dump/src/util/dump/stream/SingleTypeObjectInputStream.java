@@ -28,7 +28,11 @@ public class SingleTypeObjectInputStream<E extends Externalizable> extends DataI
    }
 
 
-   private final Class _class;
+   private final Class          _class;
+   private Compression          _compressionType              = Compression.None;
+   private ByteArrayInputStream _compressionByteBuffer        = null;
+   private InputStream          _originalIn                   = null;
+   private byte[]               _reusableUncompressBytesArray = null;
 
 
    public SingleTypeObjectInputStream( InputStream in, Class c ) {
@@ -36,8 +40,34 @@ public class SingleTypeObjectInputStream<E extends Externalizable> extends DataI
       _class = c;
    }
 
+   public SingleTypeObjectInputStream( InputStream in, Class c, Compression compressionType ) {
+      this(in, c);
+      _compressionType = compressionType;
+      _reusableUncompressBytesArray = new byte[8192];
+   }
+
    public Object readObject() throws ClassNotFoundException, IOException {
+      boolean restore = false;
       try {
+         if ( _compressionType != Compression.None && _originalIn == null ) {
+            _originalIn = in;
+            restore = true;
+            boolean compressed = readBoolean();
+            if ( compressed ) {
+               int length = readShort() & 0xffff;
+               if ( length == 0xffff ) {
+                  length = readInt();
+               }
+
+               byte[] bytes = new byte[length];
+               readFully(bytes);
+               _reusableUncompressBytesArray = _compressionType.uncompress(bytes, _reusableUncompressBytesArray);
+
+               _compressionByteBuffer = new ByteArrayInputStream(_reusableUncompressBytesArray);
+               in = _compressionByteBuffer;
+            }
+         }
+
          Object obj = _class.newInstance();
          ((Externalizable)obj).readExternal(this);
          return obj;
@@ -47,6 +77,13 @@ public class SingleTypeObjectInputStream<E extends Externalizable> extends DataI
       }
       catch ( InstantiationException e ) {
          throw new RuntimeException("Failed to instantiate " + _class, e);
+      }
+      finally {
+         if ( restore ) {
+            in = _originalIn;
+            _originalIn = null;
+            _compressionByteBuffer = null;
+         }
       }
    }
 

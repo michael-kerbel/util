@@ -36,19 +36,24 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
    }
 
 
-   private Map<String, Class> _classes = new HashMap<String, Class>();
-   private ObjectInputStream  _objectInputStream;
+   private Map<String, Class>   _classes                      = new HashMap<String, Class>();
+
+   private ObjectInputStream    _objectInputStream;
+   private Compression          _compressionType              = Compression.None;
+   private ByteArrayInputStream _compressionByteBuffer        = null;
+   private InputStream          _originalIn                   = null;
+   private ObjectInputStream    _originalObjectInputStream;
+   private byte[]               _reusableUncompressBytesArray = null;
 
 
    public ExternalizableObjectInputStream( InputStream in ) throws IOException {
       super(in);
-      _objectInputStream = new ObjectInputStream(in) {
+      _objectInputStream = new NoHeaderObjectInputStream(in);
+   }
 
-         @Override
-         protected void readStreamHeader() throws IOException, StreamCorruptedException {
-            // do nothing
-         }
-      };
+   public ExternalizableObjectInputStream( InputStream in, Compression compressionType ) throws IOException {
+      this(in);
+      _compressionType = compressionType;
    }
 
    @Override
@@ -60,38 +65,71 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
    public Object readObject() throws ClassNotFoundException, IOException {
       boolean isNotNull = readBoolean();
       if ( isNotNull ) {
-         byte instanceTypeId = readByte();
-         InstanceType instanceType = InstanceType.forId(instanceTypeId);
-         switch ( instanceType ) {
-         case Externalizable:
-            String className = readUTF();
-            try {
-               Object obj = getClass(className).newInstance();
-               ((Externalizable)obj).readExternal(this);
-               return obj;
+         boolean restore = false;
+         try {
+            if ( _compressionType != Compression.None && _originalIn == null ) {
+               _originalIn = in;
+               restore = true;
+               boolean compressed = readBoolean();
+               if ( compressed ) {
+                  int length = readShort() & 0xffff;
+                  if ( length == 0xffff ) {
+                     length = readInt();
+                  }
+
+                  byte[] bytes = new byte[length];
+                  readFully(bytes);
+                  _reusableUncompressBytesArray = _compressionType.uncompress(bytes, _reusableUncompressBytesArray);
+
+                  _compressionByteBuffer = new ByteArrayInputStream(_reusableUncompressBytesArray);
+                  in = _compressionByteBuffer;
+                  _originalObjectInputStream = _objectInputStream;
+                  _objectInputStream = new NoHeaderObjectInputStream(in);
+               }
             }
-            catch ( IllegalAccessException e ) {
-               throw new RuntimeException("Failed to instantiate " + className, e);
+
+            byte instanceTypeId = readByte();
+            InstanceType instanceType = InstanceType.forId(instanceTypeId);
+            switch ( instanceType ) {
+            case Externalizable:
+               String className = readUTF();
+               try {
+                  Object obj = getClass(className).newInstance();
+                  ((Externalizable)obj).readExternal(this);
+                  return obj;
+               }
+               catch ( IllegalAccessException e ) {
+                  throw new RuntimeException("Failed to instantiate " + className, e);
+               }
+               catch ( InstantiationException e ) {
+                  throw new RuntimeException("Failed to instantiate " + className, e);
+               }
+            case String:
+               return readUTF();
+            case Date:
+               return new Date(readLong());
+            case UUID:
+               return new UUID(readLong(), readLong());
+            case Integer:
+               return Integer.valueOf(readInt());
+            case Double:
+               return Double.valueOf(readDouble());
+            case Float:
+               return Float.valueOf(readFloat());
+            case Long:
+               return Long.valueOf(readLong());
+            default:
+               return _objectInputStream.readObject();
             }
-            catch ( InstantiationException e ) {
-               throw new RuntimeException("Failed to instantiate " + className, e);
+         }
+         finally {
+            if ( restore ) {
+               in = _originalIn;
+               _originalIn = null;
+               _compressionByteBuffer = null;
+               _objectInputStream = _originalObjectInputStream;
+               _originalObjectInputStream = null;
             }
-         case String:
-            return readUTF();
-         case Date:
-            return new Date(readLong());
-         case UUID:
-            return new UUID(readLong(), readLong());
-         case Integer:
-            return Integer.valueOf(readInt());
-         case Double:
-            return Double.valueOf(readDouble());
-         case Float:
-            return Float.valueOf(readFloat());
-         case Long:
-            return Long.valueOf(readLong());
-         default:
-            return _objectInputStream.readObject();
          }
       } else {
          return null;
@@ -105,6 +143,19 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
          _classes.put(className, c);
       }
       return c;
+   }
+
+
+   private final class NoHeaderObjectInputStream extends ObjectInputStream {
+
+      private NoHeaderObjectInputStream( InputStream arg0 ) throws IOException {
+         super(arg0);
+      }
+
+      @Override
+      protected void readStreamHeader() throws IOException, StreamCorruptedException {
+         // do nothing
+      }
    }
 
 }

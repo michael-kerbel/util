@@ -1,12 +1,10 @@
 package util.dump.stream;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
-import java.util.zip.GZIPInputStream;
 
 
 /**
@@ -27,33 +25,25 @@ import java.util.zip.GZIPInputStream;
  */
 public class ExternalizableObjectStreamProvider implements ObjectStreamProvider {
 
-   private final int _compression;
+   private Compression _compressionType = Compression.None;
 
 
-   public ExternalizableObjectStreamProvider() {
-      _compression = 0;
-   }
+   public ExternalizableObjectStreamProvider() {}
 
    /**
     * @param compression if set to a value > 0 the input and output streams are wrapped with GZip compression
     * @see java.util.zip.Deflater
     */
-   public ExternalizableObjectStreamProvider( int compression ) {
-      _compression = compression;
+   public ExternalizableObjectStreamProvider( Compression compressionType ) {
+      _compressionType = compressionType;
    }
 
    public ObjectInput createObjectInput( InputStream in ) throws IOException {
-      if ( _compression > 0 ) {
-         in = new GZIPInputStream(in);
-      }
-      return new ExternalizableObjectInputStream(in);
+      return new ExternalizableObjectInputStream(in, _compressionType);
    }
 
    public ObjectOutput createObjectOutput( OutputStream out ) throws IOException {
-      if ( _compression > 0 ) {
-         out = new BufferedOutputStream(new ConfigurableGZIPOutputStream(out, _compression));
-      }
-      return new ExternalizableObjectOutputStream(out);
+      return new ExternalizableObjectOutputStream(out, _compressionType);
    }
 
 

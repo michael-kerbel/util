@@ -44,8 +44,8 @@ import org.apache.log4j.Logger;
 
 import util.collections.SoftLRUCache;
 import util.dump.sort.InfiniteSorter;
+import util.dump.stream.Compression;
 import util.dump.stream.ObjectStreamProvider;
-import util.dump.stream.SingleTypeObjectInputStream;
 import util.dump.stream.SingleTypeObjectStreamProvider;
 import util.io.IOUtils;
 import util.time.StopWatch;
@@ -169,6 +169,14 @@ public class Dump<E> implements DumpInput<E> {
    }
 
    /**
+    * same as {@link #Dump(Class, File)} but allows to set the compression algorithm to use.
+    * @param compression the compression to use for the SingleTypeObjectStreamProvider, i.e. each bean is stored compressed using this algorithm  
+    */
+   public Dump( Class beanClass, File dumpFile, Compression compression ) {
+      this(beanClass, new SingleTypeObjectStreamProvider(beanClass, compression), dumpFile, DEFAULT_CACHE_SIZE, DEFAULT_MODE);
+   }
+
+   /**
     * same as {@link #Dump(Class, File)} but allows to set the access modes.
     *
     * @see DumpAccessFlag
@@ -229,7 +237,12 @@ public class Dump<E> implements DumpInput<E> {
          }
          _cache = new SoftLRUCache(cacheSize); // no synchronization needed, since get(.) is synchronized
          _cacheByteInput = new ResetableBufferedInputStream((FileChannel)null, 0, false);
-         _cacheObjectInput = new SingleTypeObjectInputStream(_cacheByteInput, beanClass);
+         try {
+            _cacheObjectInput = streamProvider.createObjectInput(_cacheByteInput);
+         }
+         catch ( IOException argh ) {
+            // ignore, cannot happen
+         }
       }
    }
 

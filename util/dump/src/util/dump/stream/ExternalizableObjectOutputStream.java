@@ -35,19 +35,26 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
    }
 
 
-   private ObjectOutputStream _objectOutputStream;
-   private boolean            _resetPending = false;
+   private ObjectOutputStream    _objectOutputStream;
+
+   private boolean               _resetPending               = false;
+   private Compression           _compressionType            = Compression.None;
+   private ByteArrayOutputStream _compressionByteBuffer      = null;
+   private OutputStream          _originalOut                = null;
+   private ObjectOutputStream    _originalObjectOutputStream = null;
+   private byte[]                _reusableCompressBytesArray = null;
 
 
    public ExternalizableObjectOutputStream( OutputStream out ) throws IOException {
       super(out);
-      _objectOutputStream = new ObjectOutputStream(out) {
+      _objectOutputStream = new NoHeaderObjectOutputStream(out);
+   }
 
-         @Override
-         protected void writeStreamHeader() throws IOException {
-            // do nothing
-         }
-      };
+   public ExternalizableObjectOutputStream( OutputStream out, Compression compressionType ) throws IOException {
+      this(out);
+      _compressionType = compressionType;
+      _compressionByteBuffer = new ByteArrayOutputStream();
+      _reusableCompressBytesArray = new byte[8192];
    }
 
    @Override
@@ -67,8 +74,19 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
    }
 
    public void writeObject( Object obj ) throws IOException {
+
       writeBoolean(obj != null);
       if ( obj != null ) {
+         boolean restore = false;
+         if ( _compressionType != Compression.None && _originalOut == null ) {
+            restore = true;
+            _originalOut = out;
+            _compressionByteBuffer.reset();
+            out = _compressionByteBuffer;
+            _originalObjectOutputStream = _objectOutputStream;
+            _objectOutputStream = new NoHeaderObjectOutputStream(out);
+         }
+
          if ( obj instanceof Externalizable ) {
             writeByte(InstanceType.Externalizable.getId());
             writeUTF(obj.getClass().getName());
@@ -103,6 +121,55 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
             }
             _objectOutputStream.writeObject(obj);
          }
+
+         if ( restore ) {
+            byte[] bytes = _compressionByteBuffer.toByteArray();
+            _reusableCompressBytesArray = _compressionType.compress(bytes, _reusableCompressBytesArray);
+            int compressedLength = _reusableCompressBytesArray.length;
+            if ( _compressionType == Compression.Snappy ) {
+               compressedLength = (((_reusableCompressBytesArray[0] & 0xff) << 24) + ((_reusableCompressBytesArray[1] & 0xff) << 16)
+                  + ((_reusableCompressBytesArray[2] & 0xff) << 8) + ((_reusableCompressBytesArray[3] & 0xff) << 0));
+            }
+            out = _originalOut;
+
+            if ( compressedLength + 6 < bytes.length ) {
+               out.write(1);
+
+               if ( compressedLength >= 65535 ) {
+                  out.write(0xff);
+                  out.write(0xff);
+                  out.write((compressedLength >>> 24) & 0xFF);
+                  out.write((compressedLength >>> 16) & 0xFF);
+               }
+               out.write((compressedLength >>> 8) & 0xFF);
+               out.write((compressedLength >>> 0) & 0xFF);
+
+               if ( _compressionType == Compression.Snappy ) {
+                  out.write(_reusableCompressBytesArray, 4, compressedLength);
+               } else {
+                  out.write(_reusableCompressBytesArray);
+               }
+            } else {
+               out.write(0);
+               out.write(bytes);
+            }
+            _originalOut = null;
+            _objectOutputStream = _originalObjectOutputStream;
+            _originalObjectOutputStream = null;
+         }
+      }
+   }
+
+
+   private final class NoHeaderObjectOutputStream extends ObjectOutputStream {
+
+      private NoHeaderObjectOutputStream( OutputStream out ) throws IOException {
+         super(out);
+      }
+
+      @Override
+      protected void writeStreamHeader() throws IOException {
+         // do nothing
       }
    }
 }
