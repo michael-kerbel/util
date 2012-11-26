@@ -142,6 +142,7 @@ public class ExternalizableBean implements Externalizable {
       init();
    }
 
+   @Override
    public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
       try {
          int fieldNumberToRead = in.readByte();
@@ -177,6 +178,10 @@ public class ExternalizableBean implements Externalizable {
                         " This change breaks downward compatibility, see JavaDoc for details." + //
                         " This warning will appear only once.");
                      CLASS_CHANGED_INCOMPATIBLY.put(getClass(), Boolean.TRUE);
+
+                     // read it without exception, but ignore the data
+                     ft = FieldType.forId(fieldTypeId);
+                     f = null;
                   }
                }
             } else { // unknown field
@@ -623,6 +628,7 @@ public class ExternalizableBean implements Externalizable {
       }
    }
 
+   @Override
    public void writeExternal( ObjectOutput out ) throws IOException {
       try {
          ObjectOutput originalOut = out;
@@ -1857,6 +1863,7 @@ public class ExternalizableBean implements Externalizable {
       Class         _defaultGenericType1;
 
 
+      @Override
       public int compareTo( FieldInfo o ) {
          return (_fieldIndex < o._fieldIndex ? -1 : (_fieldIndex == o._fieldIndex ? 0 : 1));
       }
