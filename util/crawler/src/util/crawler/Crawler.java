@@ -318,7 +318,7 @@ public class Crawler {
          _httpContext = httpContext;
          _variablesForXSLT.put("url", path);
          _variablesForXSLT.put("linklabel", linklabel);
-         _scheme = scheme == null ? _parent._scheme : scheme;
+         _scheme = scheme == null ? (_parent != null ? _parent._scheme : _scheme) : scheme;
          if ( _parent != null ) {
             _depth = _parent._depth + 1;
          }
