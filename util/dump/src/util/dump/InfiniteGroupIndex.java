@@ -19,13 +19,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.Map.Entry;
 
 import org.apache.log4j.Logger;
 
 import util.collections.SoftLRUCache;
+import util.dump.GroupIndex.Positions;
 import util.dump.sort.InfiniteSorter;
 import util.dump.stream.SingleTypeObjectStreamProvider;
 import util.reflection.FieldAccessor;
@@ -303,16 +304,19 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
       return numKeys + _overflowIndex.getNumKeys();
    }
 
+   @Override
    public synchronized Iterable<E> lookup( int key ) {
       long[] pos = getPositions(key);
       return new GroupIterable(pos);
    }
 
+   @Override
    public synchronized Iterable<E> lookup( long key ) {
       long[] pos = getPositions(key);
       return new GroupIterable(pos);
    }
 
+   @Override
    public synchronized Iterable<E> lookup( Object key ) {
       long[] pos = getPositions(key);
       return new GroupIterable(pos);
@@ -544,7 +548,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
    @Override
    protected void initLookupOutputStream() {
-   // we don't need _lookupOutputStream
+      // we don't need _lookupOutputStream
    }
 
    @Override
@@ -581,11 +585,12 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
             // close early, because InfiniteSorter will want to delete this segment as soon as it is finished with merging it
             _intKeyDump.close(); // TODO synchronize 
 
-            _overflowIndex._lookupInt.forEachEntry(new TIntObjectProcedure<long[]>() {
+            _overflowIndex._lookupInt.forEachEntry(new TIntObjectProcedure<Positions>() {
 
-               public boolean execute( int key, long[] positions ) {
+               @Override
+               public boolean execute( int key, Positions positions ) {
                   try {
-                     for ( long pos : positions ) {
+                     for ( long pos : positions.toArray() ) {
                         sorter.add(new IntKeyPosition(key, pos));
                      }
                      return true;
@@ -610,11 +615,12 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
             // close early, because InfiniteSorter will want to delete this segment as soon as it is finished with merging it
             _longKeyDump.close(); // TODO synchronize
 
-            _overflowIndex._lookupLong.forEachEntry(new TLongObjectProcedure<long[]>() {
+            _overflowIndex._lookupLong.forEachEntry(new TLongObjectProcedure<Positions>() {
 
-               public boolean execute( long key, long[] positions ) {
+               @Override
+               public boolean execute( long key, Positions positions ) {
                   try {
-                     for ( long pos : positions ) {
+                     for ( long pos : positions.toArray() ) {
                         sorter.add(new LongKeyPosition(key, pos));
                      }
                      return true;
@@ -640,10 +646,10 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
             // close early, because InfiniteSorter will want to delete this segment as soon as it is finished with merging it
             _intKeyDump.close(); // TODO synchronize 
 
-            for ( Entry<Object, long[]> e : _overflowIndex._lookupObject.entrySet() ) {
+            for ( Entry<Object, Positions> e : _overflowIndex._lookupObject.entrySet() ) {
                Object objectKey = e.getKey();
-               long[] positions = e.getValue();
-               for ( long pos : positions ) {
+               Positions positions = e.getValue();
+               for ( long pos : positions.toArray() ) {
                   long keyPos = -1;
                   if ( _fieldIsExternalizable ) {
                      keyPos = _externalizableKeyDump._outputStream._n;
@@ -945,6 +951,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          _pos = pos;
       }
 
+      @Override
       public int compareTo( ExternalizableKeyPosition o ) {
          return _key.hashCode() < o._key.hashCode() ? -1 : (_key.hashCode() == o._key.hashCode() ? 0 : 1);
          // don't compare positions (it might become -1 which would lead into a broken sorting)
@@ -964,16 +971,19 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          _pos = pos;
       }
 
+      @Override
       public int compareTo( IntKeyPosition o ) {
          return _key < o._key ? -1 : (_key == o._key ? 0 : 1);
          // don't compare positions (it might become -1 which would lead into a broken sorting)
       }
 
+      @Override
       public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
          _key = in.readInt();
          _pos = in.readLong();
       }
 
+      @Override
       public void writeExternal( ObjectOutput out ) throws IOException {
          out.writeInt(_key);
          out.writeLong(_pos);
@@ -995,16 +1005,19 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          _pos = pos;
       }
 
+      @Override
       public int compareTo( LongKeyPosition o ) {
          return _key < o._key ? -1 : (_key == o._key ? 0 : 1);
          // don't compare positions (it might become -1 which would lead into a broken sorting)
       }
 
+      @Override
       public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
          _key = in.readLong();
          _pos = in.readLong();
       }
 
+      @Override
       public void writeExternal( ObjectOutput out ) throws IOException {
          out.writeLong(_key);
          out.writeLong(_pos);
@@ -1028,6 +1041,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          _pos = pos;
       }
 
+      @Override
       public int compareTo( StringKeyPosition o ) {
          int r = _key.hashCode() < o._key.hashCode() ? -1 : (_key.hashCode() == o._key.hashCode() ? 0 : 1);
          if ( r != 0 ) {
@@ -1049,7 +1063,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
       @Override
       public void add( E o, long pos ) {
-      // do nothing, since the work is being done in InfiniteGroupIndex.this.add(.)
+         // do nothing, since the work is being done in InfiniteGroupIndex.this.add(.)
       }
 
       public void superAdd( E o, long pos ) {
@@ -1068,7 +1082,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
       @Override
       void update( long pos, E oldItem, E newItem ) {
-      // do nothing, since the work is being done in InfiniteGroupIndex.this.update(.)
+         // do nothing, since the work is being done in InfiniteGroupIndex.this.update(.)
       }
    }
 
@@ -1081,6 +1095,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          _pos = pos;
       }
 
+      @Override
       public Iterator<E> iterator() {
          return new GroupIterator(_pos);
       }
@@ -1100,10 +1115,12 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          }
       }
 
+      @Override
       public boolean hasNext() {
          return _i < _pos.length;
       }
 
+      @Override
       public E next() {
          if ( _i >= _pos.length ) {
             throw new NoSuchElementException();
@@ -1116,6 +1133,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          return e;
       }
 
+      @Override
       public void remove() {
          throw new UnsupportedOperationException();
       }

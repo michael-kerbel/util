@@ -18,7 +18,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,25 +31,25 @@ import util.reflection.FieldAccessor;
 
 public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
 
-   protected static long[] removePosition( long[] positions, long pos ) {
+   protected static Positions removePosition( Positions positions, long pos ) {
 
       if ( positions == null ) {
-         return new long[0];
+         return new Positions();
       }
-      int length = positions.length;
+      int length = positions.size();
       if ( length == 0 ) {
          return positions;
       }
 
-      long[] newPositions = new long[length - 1];
-
-      if ( newPositions.length == 0 ) {
-         return pos == positions[0] ? newPositions : positions;
+      if ( length == 1 ) {
+         return pos == positions.get(0) ? new Positions() : positions;
       }
 
       int idx = length - 1;
       for ( ; idx >= 0; idx-- ) {
-         if ( positions[idx] == pos ) break;
+         if ( positions.getQuick(idx) == pos ) {
+            break;
+         }
       }
 
       if ( idx < 0 ) {
@@ -58,18 +57,15 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          return positions;
       }
 
-      System.arraycopy(positions, 0, newPositions, 0, idx);
-      if ( idx < length - 1 ) {
-         System.arraycopy(positions, idx + 1, newPositions, idx, length - idx - 1);
-      }
+      positions.remove(idx, 1);
 
-      return newPositions;
+      return positions;
    }
 
 
-   protected Map<Object, long[]>    _lookupObject;
-   protected TLongObjectMap<long[]> _lookupLong;
-   protected TIntObjectMap<long[]>  _lookupInt;
+   protected Map<Object, Positions>    _lookupObject;
+   protected TLongObjectMap<Positions> _lookupLong;
+   protected TIntObjectMap<Positions>  _lookupInt;
 
 
    public GroupIndex( Dump<E> dump, FieldAccessor fieldAccessor ) {
@@ -92,19 +88,19 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
       try {
          if ( _fieldIsInt ) {
             int key = getIntKey(o);
-            long[] positions = _lookupInt.get(key);
+            Positions positions = _lookupInt.get(key);
             positions = addPosition(positions, pos);
             _lookupInt.put(key, positions);
             _lookupOutputStream.writeInt(key);
          } else if ( _fieldIsLong ) {
             long key = getLongKey(o);
-            long[] positions = _lookupLong.get(key);
+            Positions positions = _lookupLong.get(key);
             positions = addPosition(positions, pos);
             _lookupLong.put(key, positions);
             _lookupOutputStream.writeLong(key);
          } else {
             Object key = getObjectKey(o);
-            long[] positions = _lookupObject.get(key);
+            Positions positions = _lookupObject.get(key);
             positions = addPosition(positions, pos);
             _lookupObject.put(key, positions);
             if ( _fieldIsString ) {
@@ -127,7 +123,8 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
             + ". Please use the appropriate contains(.) method.");
       }
-      long[] pos = _lookupInt.get(key);
+      Positions pos = _lookupInt.get(key);
+      ensureSorting(pos);
       return contains(pos);
    }
 
@@ -137,7 +134,8 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
             + ". Please use the appropriate contains(.) method.");
       }
-      long[] pos = _lookupLong.get(key);
+      Positions pos = _lookupLong.get(key);
+      ensureSorting(pos);
       return contains(pos);
    }
 
@@ -153,16 +151,19 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
             + ". Please use the appropriate contains(.) method.");
       }
-      long[] pos = _lookupObject.get(key);
+      Positions pos = _lookupObject.get(key);
+      ensureSorting(pos);
       return contains(pos);
    }
 
    @Override
    public TLongList getAllPositions() {
       TLongList pos = new TLongArrayList(100000);
-      Collection<long[]> c = _fieldIsInt ? _lookupInt.valueCollection() : (_fieldIsLong ? _lookupLong.valueCollection() : _lookupObject.values());
-      for ( long[] p : c ) {
-         for ( long pp : p ) {
+      Collection<Positions> c = _fieldIsInt ? _lookupInt.valueCollection() : (_fieldIsLong ? _lookupLong.valueCollection() : _lookupObject.values());
+      for ( Positions p : c ) {
+         ensureSorting(p);
+         for ( int i = 0, length = p.size(); i < length; i++ ) {
+            long pp = p.get(i);
             if ( !_dump._deletedPositions.contains(pp) ) {
                pos.add(pp);
             }
@@ -186,16 +187,19 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
       throw new IllegalStateException("weird, all lookup maps are null");
    }
 
+   @Override
    public synchronized Iterable<E> lookup( int key ) {
       long[] pos = getPositions(key);
       return new GroupIterable(pos);
    }
 
+   @Override
    public synchronized Iterable<E> lookup( long key ) {
       long[] pos = getPositions(key);
       return new GroupIterable(pos);
    }
 
+   @Override
    public synchronized Iterable<E> lookup( Object key ) {
       long[] pos = getPositions(key);
       return new GroupIterable(pos);
@@ -214,11 +218,12 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
             + ". Please use the appropriate lookup(.) method.");
       }
-      long[] pos = _lookupInt.get(key);
+      Positions pos = _lookupInt.get(key);
       if ( pos == null ) {
-         pos = new long[0];
+         return new long[0];
       }
-      return pos;
+      ensureSorting(pos);
+      return pos.toArray();
    }
 
    /**
@@ -229,11 +234,12 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
             + ". Please use the appropriate lookup(.) method.");
       }
-      long[] pos = _lookupLong.get(key);
+      Positions pos = _lookupLong.get(key);
       if ( pos == null ) {
-         pos = new long[0];
+         return new long[0];
       }
-      return pos;
+      ensureSorting(pos);
+      return pos.toArray();
    }
 
    /**
@@ -250,11 +256,12 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
             + ". Please use the appropriate lookup(.) method.");
       }
-      long[] pos = _lookupObject.get(key);
+      Positions pos = _lookupObject.get(key);
       if ( pos == null ) {
-         pos = new long[0];
+         return new long[0];
       }
-      return pos;
+      ensureSorting(pos);
+      return pos.toArray();
    }
 
    @Override
@@ -272,13 +279,13 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
    @Override
    protected void initLookupMap() {
       if ( _fieldIsInt ) {
-         _lookupInt = new TIntObjectHashMap<long[]>();
+         _lookupInt = new TIntObjectHashMap<Positions>();
       } else if ( _fieldIsLong ) {
-         _lookupLong = new TLongObjectHashMap<long[]>();
+         _lookupLong = new TLongObjectHashMap<Positions>();
       } else {
-         _lookupObject = new HashMap<Object, long[]>();
+         _lookupObject = new HashMap<Object, Positions>();
       }
-   };
+   }
 
    @Override
    protected void load() {
@@ -304,7 +311,7 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          boolean mayEOF = true;
          long nextPositionToIgnore = readNextPosition(updatesInput);
          if ( _fieldIsInt ) {
-            TIntObjectMap<TLongList> dynamicLookupInt = new TIntObjectHashMap<TLongList>(10000);
+            TIntObjectMap<Positions> dynamicLookupInt = new TIntObjectHashMap<Positions>(10000);
             DataInputStream in = null;
             try {
                in = new DataInputStream(new BufferedInputStream(new FileInputStream(getLookupFile())));
@@ -318,9 +325,9 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
                      continue;
                   }
                   if ( !_dump._deletedPositions.contains(pos) ) {
-                     TLongList positions = dynamicLookupInt.get(key);
+                     Positions positions = dynamicLookupInt.get(key);
                      if ( positions == null ) {
-                        positions = new TLongArrayList();
+                        positions = new Positions();
                         dynamicLookupInt.put(key, positions);
                      }
                      positions.add(pos);
@@ -346,21 +353,20 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
                }
             }
             // optimize memory consumption of lookup
-            final TIntObjectMap<long[]> lookupInt = new TIntObjectHashMap<long[]>(Math.max(1000, dynamicLookupInt.size()));
-            dynamicLookupInt.forEachEntry(new TIntObjectProcedure<TLongList>() {
+            final TIntObjectMap<Positions> lookupInt = new TIntObjectHashMap<Positions>(Math.max(1000, dynamicLookupInt.size()));
+            dynamicLookupInt.forEachEntry(new TIntObjectProcedure<Positions>() {
 
-               public boolean execute( int key, TLongList positions ) {
-                  long[] pos = positions.toArray();
-                  Arrays.sort(pos);
-                  lookupInt.put(key, pos);
-                  positions.clear(); // for gc
+               @Override
+               public boolean execute( int key, Positions positions ) {
+                  positions.sort();
+                  lookupInt.put(key, positions);
                   return true;
                }
             });
             _lookupInt = lookupInt;
 
          } else if ( _fieldIsLong ) {
-            TLongObjectMap<TLongList> dynamicLookupLong = new TLongObjectHashMap<TLongList>(10000);
+            TLongObjectMap<Positions> dynamicLookupLong = new TLongObjectHashMap<Positions>(10000);
             DataInputStream in = null;
             try {
                in = new DataInputStream(new BufferedInputStream(new FileInputStream(getLookupFile())));
@@ -374,9 +380,9 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
                      continue;
                   }
                   if ( !_dump._deletedPositions.contains(pos) ) {
-                     TLongList positions = dynamicLookupLong.get(key);
+                     Positions positions = dynamicLookupLong.get(key);
                      if ( positions == null ) {
-                        positions = new TLongArrayList();
+                        positions = new Positions();
                         dynamicLookupLong.put(key, positions);
                      }
                      positions.add(pos);
@@ -402,21 +408,20 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
                }
             }
             // optimize memory consumption of lookup
-            final TLongObjectMap<long[]> lookupLong = new TLongObjectHashMap<long[]>(Math.max(1000, dynamicLookupLong.size()));
-            dynamicLookupLong.forEachEntry(new TLongObjectProcedure<TLongList>() {
+            final TLongObjectMap<Positions> lookupLong = new TLongObjectHashMap<Positions>(Math.max(1000, dynamicLookupLong.size()));
+            dynamicLookupLong.forEachEntry(new TLongObjectProcedure<Positions>() {
 
-               public boolean execute( long key, TLongList positions ) {
-                  long[] pos = positions.toArray();
-                  Arrays.sort(pos);
-                  lookupLong.put(key, pos);
-                  positions.clear(); // for gc
+               @Override
+               public boolean execute( long key, Positions positions ) {
+                  positions.sort();
+                  lookupLong.put(key, positions);
                   return true;
                }
             });
             _lookupLong = lookupLong;
 
          } else if ( _fieldIsString ) {
-            HashMap<Object, TLongList> lookupObject = new HashMap<Object, TLongList>(10000);
+            HashMap<Object, Positions> lookupObject = new HashMap<Object, Positions>(10000);
             DataInputStream in = null;
             try {
                in = new DataInputStream(new BufferedInputStream(new FileInputStream(getLookupFile())));
@@ -430,9 +435,9 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
                      continue;
                   }
                   if ( !_dump._deletedPositions.contains(pos) ) {
-                     TLongList positions = lookupObject.get(key);
+                     Positions positions = lookupObject.get(key);
                      if ( positions == null ) {
-                        positions = new TLongArrayList();
+                        positions = new Positions();
                         lookupObject.put(key, positions);
                      }
                      positions.add(pos);
@@ -458,19 +463,18 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
                }
             }
             // optimize memory consumption of lookup
-            _lookupObject = new HashMap<Object, long[]>((int)(lookupObject.size() / 0.75f) + 10); // 0.75f is the default for HashMap
-            for ( Iterator<Map.Entry<Object, TLongList>> iterator = lookupObject.entrySet().iterator(); iterator.hasNext(); ) {
-               Map.Entry<Object, TLongList> e = iterator.next();
+            _lookupObject = new HashMap<Object, Positions>((int)(lookupObject.size() / 0.75f) + 10); // 0.75f is the default for HashMap
+            for ( Iterator<Map.Entry<Object, Positions>> iterator = lookupObject.entrySet().iterator(); iterator.hasNext(); ) {
+               Map.Entry<Object, Positions> e = iterator.next();
                Object key = e.getKey();
-               TLongList positions = e.getValue();
-               long[] pos = positions.toArray();
-               Arrays.sort(pos);
-               _lookupObject.put(key, pos);
+               Positions positions = e.getValue();
+               positions.sort();
+               _lookupObject.put(key, positions);
                iterator.remove(); // for gc
             }
 
          } else {
-            HashMap<Object, TLongList> lookupObject = new HashMap<Object, TLongList>(10000);
+            HashMap<Object, Positions> lookupObject = new HashMap<Object, Positions>(10000);
             ObjectInput in = null;
             try {
                if ( _fieldIsExternalizable ) {
@@ -493,9 +497,9 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
                      continue;
                   }
                   if ( !_dump._deletedPositions.contains(pos) ) {
-                     TLongList positions = lookupObject.get(key);
+                     Positions positions = lookupObject.get(key);
                      if ( positions == null ) {
-                        positions = new TLongArrayList();
+                        positions = new Positions();
                         lookupObject.put(key, positions);
                      }
                      positions.add(pos);
@@ -522,14 +526,13 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
                }
             }
             // optimize memory consumption of lookup
-            _lookupObject = new HashMap<Object, long[]>((int)(lookupObject.size() / 0.75f) + 10); // 0.75f is the default for HashMap
-            for ( Iterator<Map.Entry<Object, TLongList>> iterator = lookupObject.entrySet().iterator(); iterator.hasNext(); ) {
-               Map.Entry<Object, TLongList> e = iterator.next();
+            _lookupObject = new HashMap<Object, Positions>((int)(lookupObject.size() / 0.75f) + 10); // 0.75f is the default for HashMap
+            for ( Iterator<Map.Entry<Object, Positions>> iterator = lookupObject.entrySet().iterator(); iterator.hasNext(); ) {
+               Map.Entry<Object, Positions> e = iterator.next();
                Object key = e.getKey();
-               TLongList positions = e.getValue();
-               long[] pos = positions.toArray();
-               Arrays.sort(pos);
-               _lookupObject.put(key, pos);
+               Positions positions = e.getValue();
+               positions.sort();
+               _lookupObject.put(key, positions);
                iterator.remove(); // for gc
             }
          }
@@ -544,7 +547,7 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
             }
          }
       }
-   }
+   };
 
    protected long readNextPosition( DataInputStream updatesInput ) {
       if ( updatesInput == null ) {
@@ -565,30 +568,24 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
    void delete( E o, long pos ) {
       if ( _fieldIsInt ) {
          int key = getIntKey(o);
-         long[] positions = _lookupInt.get(key);
+         Positions positions = _lookupInt.get(key);
          positions = removePosition(positions, pos);
-         if ( positions.length == 0 ) {
+         if ( positions.size() == 0 ) {
             _lookupInt.remove(key);
-         } else {
-            _lookupInt.put(key, positions);
          }
       } else if ( _fieldIsLong ) {
          long key = getLongKey(o);
-         long[] positions = _lookupLong.get(key);
+         Positions positions = _lookupLong.get(key);
          positions = removePosition(positions, pos);
-         if ( positions.length == 0 ) {
+         if ( positions.size() == 0 ) {
             _lookupLong.remove(key);
-         } else {
-            _lookupLong.put(key, positions);
          }
       } else {
          Object key = getObjectKey(o);
-         long[] positions = _lookupObject.get(key);
+         Positions positions = _lookupObject.get(key);
          positions = removePosition(positions, pos);
-         if ( positions.length == 0 ) {
+         if ( positions.size() == 0 ) {
             _lookupObject.remove(key);
-         } else {
-            _lookupObject.put(key, positions);
          }
       }
    }
@@ -619,25 +616,18 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
        * This is handled during load() using getUpdatesFile() */
    }
 
-   private long[] addPosition( long[] positions, long pos ) {
+   private Positions addPosition( Positions positions, long pos ) {
       if ( positions == null ) {
-         positions = new long[] { pos };
-      } else {
-         long[] newPositions = new long[positions.length + 1];
-         System.arraycopy(positions, 0, newPositions, 0, positions.length);
-         newPositions[positions.length] = pos;
-         if ( pos < newPositions[positions.length - 1] ) {
-            Arrays.sort(newPositions);
-         }
-         positions = newPositions;
+         positions = new Positions();
       }
+      positions.add(pos);
       return positions;
    }
 
-   private boolean contains( long[] pos ) {
+   private boolean contains( Positions pos ) {
       if ( pos != null ) {
-         for ( int i = 0, length = pos.length; i < length; i++ ) {
-            if ( !_dump._deletedPositions.contains(pos[i]) ) {
+         for ( int i = 0, length = pos.size(); i < length; i++ ) {
+            if ( !_dump._deletedPositions.contains(pos.getQuick(i)) ) {
                return true;
             }
          }
@@ -645,6 +635,37 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
       return false;
    }
 
+   private void ensureSorting( Positions pos ) {
+      if ( pos == null || pos.size() <= 1 ) {
+         return;
+      }
+      if ( !pos.isSorted() ) {
+         pos.sort();
+      }
+   }
+
+
+   static class Positions extends TLongArrayList {
+
+      private boolean _sorted;
+
+
+      @Override
+      public boolean add( long val ) {
+         _sorted = false;
+         return super.add(val);
+      }
+
+      public boolean isSorted() {
+         return _sorted;
+      }
+
+      @Override
+      public void sort() {
+         _sorted = true;
+         super.sort();
+      }
+   }
 
    private final class GroupIterable implements Iterable<E> {
 
@@ -655,6 +676,7 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          _pos = pos;
       }
 
+      @Override
       public Iterator<E> iterator() {
          return new GroupIterator(_pos);
       }
@@ -674,10 +696,12 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          }
       }
 
+      @Override
       public boolean hasNext() {
          return _i < _pos.length;
       }
 
+      @Override
       public E next() {
          if ( _i >= _pos.length ) {
             throw new NoSuchElementException();
@@ -690,9 +714,9 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          return e;
       }
 
+      @Override
       public void remove() {
          throw new UnsupportedOperationException();
       }
    }
-
 }

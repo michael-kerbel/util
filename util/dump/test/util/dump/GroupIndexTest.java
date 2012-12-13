@@ -6,6 +6,7 @@ import gnu.trove.set.hash.TLongHashSet;
 
 import org.junit.Test;
 
+import util.dump.GroupIndex.Positions;
 import util.reflection.FieldAccessor;
 
 
@@ -81,8 +82,8 @@ public class GroupIndexTest extends AbstractGroupIndexTest {
          TLongSet before = new TLongHashSet();
 
          int size = _random.nextInt(10000);
-         long[] array = new long[size];
-         for ( int i = 0; i < array.length; i++ ) {
+         Positions array = new Positions();
+         for ( int i = 0; i < size; i++ ) {
             // we need a set of values (no duplicates!)
             long value;
             do {
@@ -91,13 +92,15 @@ public class GroupIndexTest extends AbstractGroupIndexTest {
             while ( before.contains(value) );
             before.add(value);
 
-            if ( _random.nextFloat() < 1 / 10000.0 ) valueToDelete = value;
-            array[i] = value;
+            if ( _random.nextFloat() < 1 / 10000.0 ) {
+               valueToDelete = value;
+            }
+            array.add(value);
          }
 
-         assertThat(before.size()).isEqualTo(array.length);
+         assertThat(before.size()).isEqualTo(array.size());
 
-         long[] newArray = GroupIndex.removePosition(array, valueToDelete);
+         Positions newArray = GroupIndex.removePosition(array, valueToDelete);
 
          TLongSet after = new TLongHashSet(newArray);
 

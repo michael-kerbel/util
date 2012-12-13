@@ -90,6 +90,7 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
       return _index.contains(key);
    }
 
+   @Override
    public synchronized Iterable<E> lookup( int key ) {
       if ( !_index._fieldIsInt ) {
          throw new IllegalArgumentException("The type of the used key class of this index is " + _index._fieldAccessor.getType()
@@ -101,6 +102,7 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
       return new GroupIterable(key, -1);
    }
 
+   @Override
    public synchronized Iterable<E> lookup( long key ) {
       if ( !_index._fieldIsLong ) {
          throw new IllegalArgumentException("The type of the used key class of this index is " + _index._fieldAccessor.getType()
@@ -112,6 +114,7 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
       return new GroupIterable(key, -1);
    }
 
+   @Override
    public synchronized Iterable<E> lookup( Object key ) {
       if ( (_index._fieldIsLong || _index._fieldIsLongObject) && key instanceof Long ) {
          return lookup(((Long)key).longValue());
@@ -141,6 +144,7 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
          _pos = pos;
       }
 
+      @Override
       public Iterator<E> iterator() {
          return new GroupIterator(_key, _pos);
       }
@@ -159,10 +163,12 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
          findNextUndeleted(); // sets _e if an undeleted instance exists
       }
 
+      @Override
       public boolean hasNext() {
          return _pos >= 0 && _e != null;
       }
 
+      @Override
       public E next() {
          if ( _e == null ) {
             throw new NoSuchElementException();
@@ -178,6 +184,7 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
          return e;
       }
 
+      @Override
       public void remove() {
          throw new UnsupportedOperationException();
       }
@@ -225,7 +232,7 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
 
       public void superAdd( E o, long pos ) {
          super.add(o, pos);
-      };
+      }
 
       @Override
       protected String getIndexType() {
@@ -234,8 +241,8 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
 
       @Override
       void delete( E o, long pos ) {
-      // don't delete the whole group!
-      };
+         // don't delete the whole group!
+      }
 
       @Override
       void update( long pos, E oldItem, E newItem ) {
