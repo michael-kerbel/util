@@ -33,6 +33,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.HttpVersion;
 import org.apache.http.NameValuePair;
+import org.apache.http.ProtocolException;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
@@ -59,6 +60,7 @@ import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.HttpEntityWrapper;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.impl.cookie.DateParseException;
 import org.apache.http.impl.cookie.DateUtils;
@@ -178,6 +180,7 @@ public class HttpClientFactory {
    private static void addGZipSupport( DefaultHttpClient httpclient ) {
       httpclient.addRequestInterceptor(new HttpRequestInterceptor() {
 
+         @Override
          public void process( final HttpRequest request, final HttpContext context ) throws HttpException, IOException {
             if ( !request.containsHeader("Accept-Encoding") ) {
                request.addHeader("Accept-Encoding", "gzip");
@@ -188,6 +191,7 @@ public class HttpClientFactory {
 
       httpclient.addResponseInterceptor(new HttpResponseInterceptor() {
 
+         @Override
          public void process( final HttpResponse response, final HttpContext context ) throws HttpException, IOException {
             HttpEntity entity = response.getEntity();
             if ( entity == null ) {
@@ -299,9 +303,13 @@ public class HttpClientFactory {
       HttpConnectionParams.setStaleCheckingEnabled(params, false);
 
       DefaultHttpClient httpclient = new DefaultHttpClient(params);
-
+      // BEWARE: the following block might replace the httpClient!
       if ( _trustAllSsl ) {
          httpclient = setTrustManager(httpclient);
+      }
+
+      if ( _executeRedirects ) {
+         httpclient.setRedirectStrategy(new Redirector());
       }
 
       if ( _user != null && _password != null ) {
@@ -402,6 +410,7 @@ public class HttpClientFactory {
 
    public static class ThreadSafeConnManagerFactory implements ClientConnectionManagerFactory {
 
+      @Override
       public ClientConnectionManager newInstance( HttpParams params, SchemeRegistry schemeRegistry ) {
          ClientConnectionManager connectionManager = new ThreadSafeClientConnManager(params, schemeRegistry);
          new IdleConnectionMonitorThread(connectionManager).start();
@@ -412,6 +421,7 @@ public class HttpClientFactory {
 
    static class DontRetryHandler implements HttpRequestRetryHandler {
 
+      @Override
       public boolean retryRequest( IOException exception, int executionCount, HttpContext context ) {
          return false;
       }
@@ -483,6 +493,22 @@ public class HttpClientFactory {
          }
       }
 
+   }
+
+   static class Redirector extends DefaultRedirectStrategy {
+
+      @Override
+      public boolean isRedirected( HttpRequest request, HttpResponse response, HttpContext context ) throws ProtocolException {
+         boolean isRedirect = false;
+         isRedirect = super.isRedirected(request, response, context);
+         if ( !isRedirect ) {
+            int responseCode = response.getStatusLine().getStatusCode();
+            if ( responseCode == 301 || responseCode == 302 ) {
+               return true;
+            }
+         }
+         return isRedirect;
+      }
    };
 
    static class TrustAllSslHostnameVerifier implements X509HostnameVerifier {
@@ -504,10 +530,13 @@ public class HttpClientFactory {
 
    static class TrustAllSslTrustManager implements X509TrustManager {
 
+      @Override
       public void checkClientTrusted( X509Certificate[] xcs, String string ) throws CertificateException {}
 
+      @Override
       public void checkServerTrusted( X509Certificate[] xcs, String string ) throws CertificateException {}
 
+      @Override
       public X509Certificate[] getAcceptedIssuers() {
          return null;
       }
