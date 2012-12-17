@@ -1,8 +1,10 @@
 package util.crawler;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.ConnectException;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +18,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.log4j.Logger;
@@ -165,7 +168,8 @@ public class CrawlTask implements Runnable {
 
    @Override
    public void run() {
-      MDC.put("path", _crawlItem._path);
+      String url = _crawlItem._path;
+      MDC.put("path", url);
 
       int maxRetries = getMaxRetries();
       while ( maxRetries-- > 0 ) {
@@ -175,9 +179,12 @@ public class CrawlTask implements Runnable {
             proxy = _crawler.checkoutProxy();
             HttpClient httpClient = proxy.getHttpClient();
             HttpHost host = new HttpHost(_crawlItem._host != null ? _crawlItem._host : _params.getHost(), -1, _crawlItem._scheme);
-            HttpGet get = new HttpGet(_crawlItem._path);
-            _crawler._params.applyAdditionalHeaders(get);
-            String page = requestPage(httpClient, host, get);
+            HttpRequestBase request = new HttpGet(url);
+            if ( url.endsWith(":POST") ) {
+               request = createPost(url);
+            }
+            _crawler._params.applyAdditionalHeaders(request);
+            String page = requestPage(httpClient, host, request);
             page = applyPageReplacements(_params, page);
             sanityCheck(page);
             proxy.addSuccessfulGet((int)(System.currentTimeMillis() - t));
@@ -214,7 +221,7 @@ public class CrawlTask implements Runnable {
       MDC.remove("path");
    }
 
-   protected HttpResponse executeRequest( HttpClient httpClient, HttpHost host, HttpGet get ) throws IOException {
+   protected HttpResponse executeRequest( HttpClient httpClient, HttpHost host, HttpRequestBase get ) throws IOException {
       return httpClient.execute(host, get, _crawlItem._httpContext);
    }
 
@@ -265,7 +272,7 @@ public class CrawlTask implements Runnable {
       return HttpClientFactory.readPage(response, pageEncoding);
    }
 
-   protected String requestPage( HttpClient httpClient, HttpHost host, HttpGet get ) throws Exception {
+   protected String requestPage( HttpClient httpClient, HttpHost host, HttpRequestBase get ) throws Exception {
       try {
          HttpResponse response = executeRequest(httpClient, host, get);
          if ( response.getStatusLine().getStatusCode() != 200 && response.getStatusLine().getStatusCode() != 404 ) {
@@ -336,6 +343,28 @@ public class CrawlTask implements Runnable {
             _pathDir = "";
          }
       }
+   }
+
+   private HttpRequestBase createPost( String url ) throws UnsupportedEncodingException {
+      if ( url.endsWith(":POST") ) {
+         url = url.substring(0, url.length() - 5);
+      }
+      List<String> params = new ArrayList<String>();
+      if ( url.indexOf('?') > 0 ) {
+         for ( String p : StringUtils.split(url.substring(url.indexOf('?') + 1), '&') ) {
+            String[] s = StringUtils.split(p, '=');
+            if ( s.length == 0 ) {
+               continue;
+            }
+            params.add(s[0]);
+            if ( s.length > 1 ) {
+               params.add(s[1]);
+            } else {
+               params.add("");
+            }
+         }
+      }
+      return HttpClientFactory.createPost(url, params.toArray(new String[params.size()]));
    }
 
    private Set<CrawlItem> extractCrawlItems( String page ) {

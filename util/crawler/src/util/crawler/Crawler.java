@@ -250,6 +250,8 @@ public class Crawler {
    }
 
    private void addStartURLs() {
+      HttpContext httpContext = HttpClientFactory.createHttpContext(_params.isUseCookies());
+
       List<String> startURLs = _params.getStartURLs();
       if ( _params.isLIFO() ) {
          /* We have to do some voodoo, to make LIFO work: 
@@ -260,7 +262,7 @@ public class Crawler {
          List<String> reversedStartURLs = new ArrayList<String>();
 
          for ( int i = 0, length = Math.min(_params.getNumberOfThreads(), startURLs.size()); i < length; i++ ) {
-            addCrawlItem(createCrawlItem(startURLs.get(i)));
+            addCrawlItem(createCrawlItem(httpContext, startURLs.get(i)));
          }
          for ( int i = startURLs.size() - 1; i >= 0; i-- ) {
             reversedStartURLs.add(startURLs.get(i));
@@ -269,14 +271,13 @@ public class Crawler {
       }
 
       for ( String startPath : startURLs ) {
-         addCrawlItem(createCrawlItem(startPath));
+         addCrawlItem(createCrawlItem(httpContext, startPath));
       }
    }
 
-   private CrawlItem createCrawlItem( String url ) {
+   private CrawlItem createCrawlItem( HttpContext httpContext, String url ) {
       String[] normalizedPath = CrawlTask.makeAbsolute(null, null, url);
-      CrawlItem crawlItem = new CrawlItem(_params, null, normalizedPath[0], normalizedPath[1], null,
-         HttpClientFactory.createHttpContext(_params.isUseCookies()), normalizedPath[2]);
+      CrawlItem crawlItem = new CrawlItem(_params, null, normalizedPath[0], normalizedPath[1], null, httpContext, normalizedPath[2]);
       return crawlItem;
    }
 
