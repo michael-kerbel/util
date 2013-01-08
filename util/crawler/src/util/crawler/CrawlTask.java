@@ -216,6 +216,7 @@ public class CrawlTask implements Runnable {
             if ( proxy != null ) {
                _crawler.returnProxy(proxy);
             }
+            _crawlItem.requestFinished();
          }
       }
       MDC.remove("path");
@@ -376,7 +377,7 @@ public class CrawlTask implements Runnable {
       page = LINEBREAKS.matcher(page).replaceAll("");
       Matcher matcher = HREF.matcher(page);
       while ( matcher.find() ) {
-         String path = convertXmlCharEntitiesToUrl(matcher.group(1));
+         String path = new String(convertXmlCharEntitiesToUrl(matcher.group(1))); // new String(.) to get rid of memory leak because of substring not copying!
          String linklabel = new String(StringUtils.trimToEmpty(matcher.group(2))); // new String(.) to get rid of memory leak because of substring not copying!
          String[] normalizedPath = makeAbsolute(_crawlItem, _pathDir, normalize(path));
          for ( Pattern p : _params.getFollowPatterns() ) {

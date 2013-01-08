@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.http.HttpHost;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.log4j.Logger;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
@@ -371,10 +373,54 @@ public class Crawler {
          return result;
       }
 
+      public void requestFinished() {
+         if ( _httpContext != null ) {
+            // we don't want to keep all historic httpContexts and their data structures in memory, 
+            // so we replace it with something lean 
+            _httpContext = new CookieOnlyHttpContext(_httpContext);
+         }
+      }
+
       @Override
       public String toString() {
          return (_host == null ? "" : _host) + _path;
       }
+   }
+
+   private static class CookieOnlyHttpContext implements HttpContext {
+
+      private CookieStore _cookieStore;
+
+
+      public CookieOnlyHttpContext( HttpContext httpContext ) {
+         _cookieStore = (CookieStore)httpContext.getAttribute(ClientContext.COOKIE_STORE);
+      }
+
+      @Override
+      public Object getAttribute( String id ) {
+         if ( ClientContext.COOKIE_STORE.equals(id) ) {
+            return _cookieStore;
+         }
+         return null;
+      }
+
+      @Override
+      public Object removeAttribute( String id ) {
+         if ( ClientContext.COOKIE_STORE.equals(id) ) {
+            Object cookieStore = _cookieStore;
+            _cookieStore = null;
+            return cookieStore;
+         }
+         return null;
+      }
+
+      @Override
+      public void setAttribute( String id, Object obj ) {
+         if ( ClientContext.COOKIE_STORE.equals(id) ) {
+            _cookieStore = (CookieStore)obj;
+         }
+      }
+
    }
 
 }
