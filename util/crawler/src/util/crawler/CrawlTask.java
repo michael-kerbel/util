@@ -216,9 +216,9 @@ public class CrawlTask implements Runnable {
             if ( proxy != null ) {
                _crawler.returnProxy(proxy);
             }
-            _crawlItem.requestFinished();
          }
       }
+      _crawlItem.requestFinished();
       MDC.remove("path");
    }
 

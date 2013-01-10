@@ -11,10 +11,14 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.log4j.Logger;
 
 import util.crawler.CrawlParams;
 import util.crawler.Crawler;
+import util.http.HttpClientFactory;
 
 
 public class ProxyCrawler {
@@ -69,6 +73,10 @@ public class ProxyCrawler {
    public void crawl() {
       new TheRealProxyCrawler(HIDEMYASS_PARAMS).crawl();
       //new TheRealProxyCrawler(SAMAIR_PARAMS).crawl();
+
+      addProxiesFromProxyNova("http://www.proxynova.com/proxy_list.txt");
+      addProxiesFromProxyNova("http://www.proxynova.com/proxy_list.txt?country=us,de,fr,es,ch,it,pl,uk,ca,no");
+
       int n = _proxyList.getProxies().size();
       if ( n == 0 ) {
          _log.warn("initializing from static file");
@@ -80,6 +88,26 @@ public class ProxyCrawler {
 
    public ProxyList getProxyList() {
       return _proxyList;
+   }
+
+   private void addProxiesFromProxyNova( String url ) {
+      try {
+         HttpClient httpClient = new HttpClientFactory().create();
+         HttpGet get = HttpClientFactory.createGet(url);
+         HttpResponse response = httpClient.execute(get);
+         String page = HttpClientFactory.readPage(response);
+         for ( String line : StringUtils.split(page, "\n") ) {
+            if ( line.trim().isEmpty() ) {
+               continue;
+            }
+            if ( Character.isDigit(line.charAt(0)) ) {
+               _proxyList.addProxy(line);
+            }
+         }
+      }
+      catch ( Exception argh ) {
+         _log.warn("Failed to get proxies from proxynova.", argh);
+      }
    }
 
 

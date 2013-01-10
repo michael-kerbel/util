@@ -9,6 +9,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import org.apache.http.HttpHost;
@@ -21,11 +22,12 @@ import util.string.StringTable.Alignment;
 
 public class ProxyPool {
 
-   private static Logger        _log = Logger.getLogger(ProxyPool.class);
+   private static Logger        _log  = Logger.getLogger(ProxyPool.class);
 
    private ProxyList            _proxyList;
    private List<Proxy>          _allProxies;
    private BlockingQueue<Proxy> _proxies;
+   private AtomicInteger        _size = new AtomicInteger();
 
 
    public ProxyPool( ProxyList proxyList ) {
@@ -43,10 +45,13 @@ public class ProxyPool {
          proxy = _proxies.poll(1, TimeUnit.HOURS);
          while ( proxy != null && proxy.getStats().getLastByteLatency() < 0 ) {
             proxy = _proxies.poll(1, TimeUnit.HOURS);
+            _size.decrementAndGet();
          }
          if ( proxy == null ) {
             return checkoutProxy();
          }
+
+         _size.decrementAndGet();
 
          if ( size() < 3 ) {
             _log.warn("only " + size() + " proxies in proxy pool left");
@@ -98,10 +103,11 @@ public class ProxyPool {
 
    public void returnProxy( Proxy p ) {
       _proxies.add(p);
+      _size.incrementAndGet();
    }
 
    public int size() {
-      return _proxies.size();
+      return _size.get();
    }
 
    @Override
@@ -154,5 +160,6 @@ public class ProxyPool {
          _proxies.add(proxy);
          _allProxies.add(proxy);
       }
+      _size.set(_proxies.size());
    }
 }
