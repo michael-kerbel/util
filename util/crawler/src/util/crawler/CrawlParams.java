@@ -46,6 +46,7 @@ public class CrawlParams {
    boolean                  _useProxies         = false;
    boolean                  _useCookies         = false;
    boolean                  _LIFO               = false;
+   boolean                  _reEncodeUrls       = false;
    List<String>             _additionalHeaders;
 
    transient String         _xslContents;
@@ -185,6 +186,10 @@ public class CrawlParams {
       return _LIFO;
    }
 
+   public boolean isReEncodeUrls() {
+      return _reEncodeUrls;
+   }
+
    public boolean isUseCookies() {
       return _useCookies;
    }
@@ -284,6 +289,10 @@ public class CrawlParams {
       if ( !new File(_parentFile, _xsl).exists() ) {
          throw new RuntimeException("xsl " + new File(_parentFile, _xsl) + " does not exist");
       }
+   }
+
+   public void setReEncodeUrls( boolean reEncodeUrls ) {
+      _reEncodeUrls = reEncodeUrls;
    }
 
    public void setRetryRegexes( List<String> retryRegexes ) {

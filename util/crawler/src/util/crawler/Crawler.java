@@ -1,6 +1,9 @@
 package util.crawler;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -15,6 +18,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.http.HttpHost;
 import org.apache.http.client.CookieStore;
@@ -33,11 +38,13 @@ import util.http.HttpClientFactory;
 
 public class Crawler {
 
-   public static final String RESULT_KEY_CRAWLITEM_DEPTH = "crawlItem.depth";
-   public static final String RESULT_KEY_DEEPLINK        = "deeplink";
-   public static final String RESULT_KEY_ORIGINAL_PAGE   = "originalPage";
+   public static final String   RESULT_KEY_CRAWLITEM_DEPTH = "crawlItem.depth";
+   public static final String   RESULT_KEY_DEEPLINK        = "deeplink";
+   public static final String   RESULT_KEY_ORIGINAL_PAGE   = "originalPage";
 
-   private static Logger      _log                       = Logger.getLogger(Crawler.class);
+   private static final Pattern PATTERN_RE_ENCODE_URL      = Pattern.compile("([/?&=]*)([^/?&=]+)");
+
+   private static Logger        _log                       = Logger.getLogger(Crawler.class);
 
 
    public static void main( String[] args ) {
@@ -71,6 +78,29 @@ public class Crawler {
       System.exit(0);
    }
 
+   public static String reEncodeUrlPath( String path ) {
+      try {
+         Matcher matcher = PATTERN_RE_ENCODE_URL.matcher(path);
+
+         boolean result = matcher.find();
+         if ( result ) {
+            StringBuffer sb = new StringBuffer();
+            do {
+               String reEncodedFragment = URLEncoder.encode(URLDecoder.decode(matcher.group(2), "UTF-8"), "UTF-8");
+               matcher.appendReplacement(sb, matcher.group(1) + reEncodedFragment);
+               result = matcher.find();
+            }
+            while ( result );
+            matcher.appendTail(sb);
+            return sb.toString();
+         }
+      }
+      catch ( UnsupportedEncodingException argh ) {
+         // ignored, as this cannot happen in any JVM
+      }
+      return path;
+   }
+
 
    protected CrawlParams        _params;
    protected ThreadPoolExecutor _executor;
@@ -79,6 +109,7 @@ public class Crawler {
    protected ProxyPool          _proxyPool;
    protected List<CrawlItem>    _errorPaths     = new ArrayList<CrawlItem>();
    protected int                _pathNumber     = 0;
+
    protected AtomicInteger      _crawlTaskIndex = new AtomicInteger(0);
 
 
@@ -316,6 +347,9 @@ public class Crawler {
             _host = host;
          }
          _path = path;
+         if ( params.isReEncodeUrls() ) {
+            _path = reEncodeUrlPath(_path);
+         }
          _linklabel = linklabel;
          _parent = parent;
          _httpContext = httpContext;
