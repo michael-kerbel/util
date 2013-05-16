@@ -863,6 +863,9 @@ public class Dump<E> implements DumpInput<E> {
          return (E)_cacheObjectInput.readObject();
       }
       catch ( Exception argh ) {
+         if ( _cache != null ) {
+            _cache.clear();
+         }
          throw new RuntimeException("Failed to read from internal cache", argh);
       }
    }
