@@ -1,7 +1,12 @@
 package util.usagetracking;
 
+import gnu.trove.list.TIntList;
 import gnu.trove.list.TLongList;
+import gnu.trove.list.array.TIntArrayList;
 import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.procedure.TIntObjectProcedure;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -10,6 +15,7 @@ import java.io.Serializable;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
@@ -152,36 +158,40 @@ public class UsageTrackingService {
    }
 
 
-   private TrackingId           _exampleTrackingIdInstance;
+   private TrackingId              _exampleTrackingIdInstance;
 
-   private long                 _timeResolution    = 1 * TimeUtils.MINUTE_IN_MILLIS;
+   private long                    _timeResolution    = 1 * TimeUtils.MINUTE_IN_MILLIS;
 
-   private String               _dumpFolder;
+   private String                  _dumpFolder;
 
-   private TLongList            _keys              = new TLongArrayList();
+   private TLongList               _keys              = new TLongArrayList();
 
-   private List<int[]>          _data              = new ArrayList<int[]>();
+   private List<int[]>             _data              = new ArrayList<int[]>();
 
-   private long[]               _startupTimestamps = new long[0];
+   private TIntObjectMap<TIntList> _percentileData    = new TIntObjectHashMap<TIntList>();
 
-   private DataCollectionThread _dataCollectionThread;
+   private long[]                  _startupTimestamps = new long[0];
 
-   private DumpWriteThread      _dumpWriteThread;
+   private DataCollectionThread    _dataCollectionThread;
 
-   private boolean              _destroyed;
+   private DumpWriteThread         _dumpWriteThread;
 
-   private Thread               _shutdownThread    = new Thread() {
+   private boolean                 _destroyed;
 
-                                                      @Override
-                                                      public void run() {
-                                                         try {
-                                                            _dumpWriteThread.writeNewStats(_keys.size());
+   private int                     _dayOfMonth        = -1;
+
+   private Thread                  _shutdownThread    = new Thread() {
+
+                                                         @Override
+                                                         public void run() {
+                                                            try {
+                                                               _dumpWriteThread.writeNewStats(_keys.size());
+                                                            }
+                                                            catch ( IOException argh ) {
+                                                               _log.error("Failed to write stats to dump", argh);
+                                                            }
                                                          }
-                                                         catch ( IOException argh ) {
-                                                            _log.error("Failed to write stats to dump", argh);
-                                                         }
-                                                      }
-                                                   };
+                                                      };
 
 
    public void add( TrackingId id, int value ) {
@@ -193,6 +203,15 @@ public class UsageTrackingService {
          break;
       case Sum:
          values[id.getId()] += value;
+         break;
+      case Percentile90:
+      case Percentile99:
+         TIntList percentileValues = _percentileData.get(id.getId());
+         if ( percentileValues == null ) {
+            percentileValues = new TIntArrayList();
+            _percentileData.put(id.getId(), percentileValues);
+         }
+         percentileValues.add(value);
          break;
       }
    }
@@ -269,6 +288,8 @@ public class UsageTrackingService {
       _dumpWriteThread.start();
       _dataCollectionThread = new DataCollectionThread();
       _dataCollectionThread.start();
+
+      _dayOfMonth = TimeUtils.getCalendarFieldValue(new Date(), Calendar.DAY_OF_MONTH);
 
       Runtime.getRuntime().addShutdownHook(_shutdownThread);
    }
@@ -351,13 +372,22 @@ public class UsageTrackingService {
          }
       }
 
-      // rare case:
+      // rare case, only once per minute: add element to key/data, aggregate percentiles, collect   
       synchronized ( _keys ) {
          int ssize = _keys.size();
          if ( ssize == size ) {
             int[] data = new int[MAX_ID + 1];
             _data.add(data);
             _keys.add(t);
+
+            calcPercentiles(_data.get(size - 1));
+
+            int dayOfMonth = TimeUtils.getCalendarFieldValue(new Date(), Calendar.DAY_OF_MONTH);
+            if ( dayOfMonth != _dayOfMonth ) {
+               _dayOfMonth = dayOfMonth;
+               clearOldData();
+            }
+
             synchronized ( _dataCollectionThread ) {
                _dataCollectionThread.notifyAll();
             }
@@ -392,6 +422,54 @@ public class UsageTrackingService {
       }
       finally {
          DumpUtils.closeSilently(dump);
+      }
+   }
+
+   private void calcPercentiles( final int[] data ) {
+      _percentileData.forEachEntry(new TIntObjectProcedure<TIntList>() {
+
+         @Override
+         public boolean execute( int id, TIntList percentileData ) {
+            if ( percentileData.size() == 0 ) {
+               return false;
+            }
+
+            TrackingId trackingId = _exampleTrackingIdInstance.getForId(id);
+            Aggregation aggregation = trackingId.getAggregation();
+
+            percentileData.sort();
+
+            int index = 0;
+            if ( aggregation == Aggregation.Percentile90 ) {
+               index = (int)(percentileData.size() * 0.9);
+            } else if ( aggregation == Aggregation.Percentile99 ) {
+               index = (int)(percentileData.size() * 0.99);
+            }
+            data[id] = percentileData.get(index);
+
+            percentileData.clear();
+
+            return true;
+         }
+      });
+   }
+
+   private void clearOldData() {
+      for ( int i = _keys.size() - 1; i >= 0; i-- ) {
+         long t = _keys.get(i);
+         int dayOfMonth = TimeUtils.getCalendarFieldValue(new Date(t), Calendar.DAY_OF_MONTH);
+         if ( dayOfMonth != _dayOfMonth ) {
+            TLongList keys = new TLongArrayList();
+            List<int[]> data = new ArrayList<int[]>();
+            for ( int j = i + 1, length = _keys.size(); j < length; j++ ) {
+               keys.add(_keys.get(j));
+               data.add(_data.get(j));
+            }
+            _keys = keys;
+            _data = data;
+
+            break;
+         }
       }
    }
 
@@ -467,6 +545,9 @@ public class UsageTrackingService {
             case Sum:
                target[i] += source[i];
                break;
+            case Percentile90:
+            case Percentile99:
+               target[i] = Math.round((target[i] + source[i]) / 2.0f);
             }
          }
       }

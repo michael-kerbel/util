@@ -10,18 +10,26 @@ import java.util.concurrent.TimeUnit;
 
 public class TimeUtils {
 
-   public static final long            SECOND_IN_MILLIS   = 1000L;
-   public static final long            MINUTE_IN_MILLIS   = 60 * SECOND_IN_MILLIS;
-   public static final long            HOUR_IN_MILLIS     = 60 * MINUTE_IN_MILLIS;
-   public static final long            DAY_IN_MILLIS      = 24 * HOUR_IN_MILLIS;
-   public static final long            WEEKS_IN_MILLIS    = 7 * DAY_IN_MILLIS;
-   public static final long            MONTHS_IN_MILLIS   = 30 * DAY_IN_MILLIS;
-   public static final long            QUARTERS_IN_MILLIS = 91 * DAY_IN_MILLIS;
-   public static final long            YEARS_IN_MILLIS    = 365 * DAY_IN_MILLIS;
+   public static final long             SECOND_IN_MILLIS   = 1000L;
+   public static final long             MINUTE_IN_MILLIS   = 60 * SECOND_IN_MILLIS;
+   public static final long             HOUR_IN_MILLIS     = 60 * MINUTE_IN_MILLIS;
+   public static final long             DAY_IN_MILLIS      = 24 * HOUR_IN_MILLIS;
+   public static final long             WEEKS_IN_MILLIS    = 7 * DAY_IN_MILLIS;
+   public static final long             MONTHS_IN_MILLIS   = 30 * DAY_IN_MILLIS;
+   public static final long             QUARTERS_IN_MILLIS = 91 * DAY_IN_MILLIS;
+   public static final long             YEARS_IN_MILLIS    = 365 * DAY_IN_MILLIS;
 
-   private static DecimalFormatSymbols symbols            = new DecimalFormatSymbols(Locale.ENGLISH);
-   private static DecimalFormat        dual               = new DecimalFormat("00", symbols);
-   private static DecimalFormat        sf                 = new DecimalFormat("00.0##", symbols);
+   private static DecimalFormatSymbols  symbols            = new DecimalFormatSymbols(Locale.ENGLISH);
+   private static DecimalFormat         dual               = new DecimalFormat("00", symbols);
+   private static DecimalFormat         sf                 = new DecimalFormat("00.0##", symbols);
+
+   private static ThreadLocal<Calendar> CALENDAR           = new ThreadLocal<Calendar>() {
+
+                                                              @Override
+                                                              protected Calendar initialValue() {
+                                                                 return Calendar.getInstance();
+                                                              }
+                                                           };
 
 
    /**
@@ -43,6 +51,12 @@ public class TimeUtils {
       }
    }
 
+   public static int getCalendarFieldValue( Date date, int calendarField ) {
+      Calendar calendar = CALENDAR.get();
+      calendar.setTime(date);
+      return calendar.get(calendarField);
+   }
+
    /**
     * <p>Returns the date that is rounded to a daily basis<p>
     *
@@ -50,7 +64,7 @@ public class TimeUtils {
     *   roundDateToFullDay for the Date "2009-04-22 17:43:13" would return "2009-04-22 00:00:00"
     */
    public static Date roundDateToFullDay( final Date originalDate ) {
-      Calendar calendar = Calendar.getInstance();
+      Calendar calendar = CALENDAR.get();
       calendar.setTime(roundDateToFullHour(originalDate));
       calendar.set(Calendar.HOUR_OF_DAY, 0);
       return calendar.getTime();
@@ -63,7 +77,7 @@ public class TimeUtils {
     *   roundDateToFullDay for the Date "2009-04-22 17:43:13" would return "2009-04-22 17:00:00"
     */
    public static Date roundDateToFullHour( final Date originalDate ) {
-      Calendar calendar = Calendar.getInstance();
+      Calendar calendar = CALENDAR.get();
       calendar.setTime(originalDate);
       calendar.set(Calendar.MINUTE, 0);
       calendar.set(Calendar.SECOND, 0);
@@ -78,7 +92,7 @@ public class TimeUtils {
     *   roundDateToFullMonth for the Date "2009-04-22 17:43:13" would return "2009-04-01 00:00:00"
     */
    public static Date roundDateToFullMonth( final Date originalDate ) {
-      Calendar calendar = Calendar.getInstance();
+      Calendar calendar = CALENDAR.get();
       calendar.setTime(roundDateToFullDay(originalDate));
       calendar.set(Calendar.DAY_OF_MONTH, 1);
       return calendar.getTime();
@@ -91,7 +105,7 @@ public class TimeUtils {
     *   roundDateToFullWeek for the Date "2009-04-22 17:43:13" would return "2009-04-20 00:00:00"
     */
    public static Date roundDateToFullWeek( final Date originalDate ) {
-      Calendar calendar = Calendar.getInstance();
+      Calendar calendar = CALENDAR.get();
       calendar.setTime(roundDateToFullDay(originalDate));
       calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
       return calendar.getTime();

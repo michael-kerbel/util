@@ -1,5 +1,5 @@
 package util.usagetracking;
 
 public enum Aggregation {
-   Sum, Max;
+   Sum, Max, Percentile90, Percentile99;
 }
