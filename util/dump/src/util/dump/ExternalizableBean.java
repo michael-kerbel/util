@@ -1743,7 +1743,7 @@ public class ExternalizableBean implements Externalizable {
             }
 
             Method getter = null, setter = null;
-            if ( m.getName().startsWith("get") || (m.getName().startsWith("is") && m.getReturnType() == boolean.class) ) {
+            if ( m.getName().startsWith("get") || (m.getName().startsWith("is") && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)) ) {
                getter = m;
             } else if ( m.getName().startsWith("set") ) {
                setter = m;
