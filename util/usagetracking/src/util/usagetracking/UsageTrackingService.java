@@ -380,7 +380,9 @@ public class UsageTrackingService {
             _data.add(data);
             _keys.add(t);
 
-            calcPercentiles(_data.get(size - 1));
+            if ( size > 0 ) {
+               calcPercentiles(_data.get(size - 1));
+            }
 
             int dayOfMonth = TimeUtils.getCalendarFieldValue(new Date(), Calendar.DAY_OF_MONTH);
             if ( dayOfMonth != _dayOfMonth ) {
