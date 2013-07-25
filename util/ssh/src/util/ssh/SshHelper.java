@@ -40,7 +40,7 @@ public class SshHelper {
       return s;
    }
 
-   public static void exec( Session session, StringListener lineListener, String[]... commands ) throws Exception {
+   public static void exec( Session session, StringListener lineListener, Pattern abortPattern, String[]... commands ) throws Exception {
       Channel channel = session.openChannel("shell");
       //((ChannelShell)channel).setPtyType("ansi");
 
@@ -49,18 +49,28 @@ public class SshHelper {
 
       connect(channel, lineListener);
 
-      for ( String[] commandAndWait : commands ) {
-         toServer.write(commandAndWait[0] + "\n");
-         toServer.flush();
-         if ( commandAndWait.length > 1 && commandAndWait[1] != null ) {
-            for ( String line = fromServer.readLine(); line != null; line = fromServer.readLine() ) {
-               if ( lineListener != null ) lineListener.add(cleanFromTerminalEmulationChars(line) + "\n");
-               if ( line.contains(commandAndWait[1]) ) break;
+      try {
+         for ( String[] commandAndWait : commands ) {
+            toServer.write(commandAndWait[0] + "\n");
+            toServer.flush();
+            if ( commandAndWait.length > 1 && commandAndWait[1] != null ) {
+               for ( String line = fromServer.readLine(); line != null; line = fromServer.readLine() ) {
+                  if ( lineListener != null ) {
+                     lineListener.add(cleanFromTerminalEmulationChars(line) + "\n");
+                  }
+                  if ( line.contains(commandAndWait[1]) ) {
+                     break;
+                  }
+                  if ( abortPattern != null && abortPattern.matcher(line).find() ) {
+                     throw new IllegalStateException("Server log matched abort reg-ex: " + line);
+                  }
+               }
             }
          }
       }
-
-      channel.disconnect();
+      finally {
+         channel.disconnect();
+      }
    }
 
    public static Session openSshSession( String host, String user, String password ) throws Exception {
@@ -127,8 +137,12 @@ public class SshHelper {
       //          1 for error,
       //          2 for fatal error,
       //          -1
-      if ( b == 0 ) return b;
-      if ( b == -1 ) return b;
+      if ( b == 0 ) {
+         return b;
+      }
+      if ( b == -1 ) {
+         return b;
+      }
 
       if ( b == 1 || b == 2 ) {
          StringBuffer sb = new StringBuffer();
@@ -154,7 +168,9 @@ public class SshHelper {
       while ( retries > 0 ) {
          try {
             channel.connect(timeoutInSeconds * 1000);
-            if ( lineListener != null ) lineListener.add("INFO   connected\n");
+            if ( lineListener != null ) {
+               lineListener.add("INFO   connected\n");
+            }
             break;
          }
          catch ( Exception argh ) {
@@ -162,11 +178,15 @@ public class SshHelper {
             timeoutInSeconds += 2;
             if ( retries > 0 ) {
                _log.warn("Failed to connect: " + argh.getMessage() + " - retrying");
-               if ( lineListener != null ) lineListener.add("WARN Failed to connect: " + argh.getMessage() + " - retrying\n");
+               if ( lineListener != null ) {
+                  lineListener.add("WARN Failed to connect: " + argh.getMessage() + " - retrying\n");
+               }
             }
          }
       }
-      if ( !channel.isConnected() ) throw new RuntimeException("Failed to connect.");
+      if ( !channel.isConnected() ) {
+         throw new RuntimeException("Failed to connect.");
+      }
    }
 
    private static long copy( InputStream input, OutputStream output, long totalLength, StringListener lineListener ) throws IOException {
@@ -186,15 +206,21 @@ public class SshHelper {
             int kbS = (int)(((float)count / t.getInterval()) / 1024 * 1000);
             long eta = (long)((t.getInterval() / (float)count * totalLength) - t.getInterval());
 
-            if ( lineListener != null ) lineListener.add(StringUtils.repeat("\b", lastMessage.length()));
+            if ( lineListener != null ) {
+               lineListener.add(StringUtils.repeat("\b", lastMessage.length()));
+            }
             lastMessage = "INFO   copied " + ((int)count / (1024 * 1024)) + " MB of " + ((int)totalLength / (1024 * 1024)) + " MB. " + kbS + " kb/s, ETA: "
                + TimeUtils.toHumanReadableFormat(eta);
-            if ( lineListener != null ) lineListener.add(lastMessage);
+            if ( lineListener != null ) {
+               lineListener.add(lastMessage);
+            }
 
             last1MBChunk = current1MBChunk;
          }
       }
-      if ( last1MBChunk > 0 && lineListener != null ) lineListener.add("\n");
+      if ( last1MBChunk > 0 && lineListener != null ) {
+         lineListener.add("\n");
+      }
       return count;
    }
 }
