@@ -1808,7 +1808,8 @@ public class ExternalizableBean implements Externalizable {
                Class type = setter.getParameterTypes()[0];
 
                try {
-                  getter = _class.getMethod("get" + setter.getName().substring(3));
+                  String prefix = (type == boolean.class || type == Boolean.class) ? "is" : "get";
+                  getter = _class.getMethod(prefix + setter.getName().substring(3));
                }
                catch ( NoSuchMethodException e ) {
                   externalize setterAnnotation = setter.getAnnotation(externalize.class);
