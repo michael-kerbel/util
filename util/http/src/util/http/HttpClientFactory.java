@@ -10,6 +10,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,15 +44,11 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.params.AllClientPNames;
 import org.apache.http.client.params.CookiePolicy;
 import org.apache.http.client.params.HttpClientParams;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.ClientConnectionManagerFactory;
-import org.apache.http.conn.params.ConnManagerPNames;
-import org.apache.http.conn.params.ConnPerRouteBean;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -61,7 +58,7 @@ import org.apache.http.entity.HttpEntityWrapper;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
 import org.apache.http.impl.cookie.DateParseException;
 import org.apache.http.impl.cookie.DateUtils;
 import org.apache.http.message.BasicNameValuePair;
@@ -76,20 +73,24 @@ import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
+import util.time.TimeUtils;
+
 
 public class HttpClientFactory {
 
-   public static final String   PARAM_KEY_SOCKET_TIMEOUT         = "HttpClientFactory.soTimeout";
-   public static final String   PARAM_KEY_CONNECTION_TIMEOUT     = "HttpClientFactory.connectionTimeout";
-   public static final String   PARAM_KEY_USER_AGENT             = "HttpClientFactory.userAgent";
+   public static final String                 PARAM_KEY_SOCKET_TIMEOUT         = "HttpClientFactory.soTimeout";
+   public static final String                 PARAM_KEY_CONNECTION_TIMEOUT     = "HttpClientFactory.connectionTimeout";
+   public static final String                 PARAM_KEY_USER_AGENT             = "HttpClientFactory.userAgent";
 
-   public static final int      DEFAULT_VALUE_SOCKET_TIMEOUT     = 31000;
-   public static final int      DEFAULT_VALUE_CONNECTION_TIMEOUT = 31000;
-   public static final String   DEFAULT_VALUE_USER_AGENT         = "Googlebot/2.1 (+http://www.google.com/bot.html)";
+   public static final int                    DEFAULT_VALUE_SOCKET_TIMEOUT     = 31000;
+   public static final int                    DEFAULT_VALUE_CONNECTION_TIMEOUT = 31000;
+   public static final String                 DEFAULT_VALUE_USER_AGENT         = "Googlebot/2.1 (+http://www.google.com/bot.html)";
 
-   private static Logger        _log                             = Logger.getLogger(HttpClientFactory.class);
+   private static Logger                      _log                             = Logger.getLogger(HttpClientFactory.class);
 
-   private static final Pattern HTML_CHARSET_DECLARATION         = Pattern.compile("(?i)(?:charset|encoding)=[\"']?(.*?)[\"'/>]");
+   private static final Pattern               HTML_CHARSET_DECLARATION         = Pattern.compile("(?i)(?:charset|encoding)=[\"']?(.*?)[\"'/>]");
+
+   private static IdleConnectionMonitorThread _idleConnectionMonitorThread;
 
 
    public static void close( HttpClient httpClient ) {
@@ -147,6 +148,7 @@ public class HttpClientFactory {
       HttpEntity entity = response.getEntity();
       InputStream content = entity.getContent();
       byte[] bytes = IOUtils.toByteArray(content);
+      content.close();
 
       if ( pageEncoding != null ) {
          return new String(bytes, pageEncoding);
@@ -294,15 +296,22 @@ public class HttpClientFactory {
       if ( !_useCookies ) {
          HttpClientParams.setCookiePolicy(params, CookiePolicy.IGNORE_COOKIES);
       }
-      params.setParameter(AllClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME, ThreadSafeConnManagerFactory.class.getName());
-      params.setParameter(ConnManagerPNames.MAX_CONNECTIONS_PER_ROUTE, new ConnPerRouteBean(_maxConnections));
+
+      PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager();
+      connectionManager.setDefaultMaxPerRoute(_maxConnections);
+      connectionManager.setMaxTotal(_maxConnections * 10);
 
       // http://hc.apache.org/httpcomponents-client/tutorial/html/ch02.html
       // The stale connection check is not 100% reliable and adds 10 to 30 ms overhead to each request execution
       // instead we start the IdleConnectionMonitor thread as supposed in the tutorial
       HttpConnectionParams.setStaleCheckingEnabled(params, false);
+      if ( _idleConnectionMonitorThread == null ) {
+         _idleConnectionMonitorThread = new IdleConnectionMonitorThread();
+         _idleConnectionMonitorThread.start();
+      }
+      _idleConnectionMonitorThread.add(connectionManager);
 
-      DefaultHttpClient httpclient = new DefaultHttpClient(params);
+      DefaultHttpClient httpclient = new DefaultHttpClient(connectionManager, params);
       // BEWARE: the following block might replace the httpClient!
       if ( _trustAllSsl ) {
          httpclient = setTrustManager(httpclient);
@@ -408,17 +417,6 @@ public class HttpClientFactory {
    }
 
 
-   public static class ThreadSafeConnManagerFactory implements ClientConnectionManagerFactory {
-
-      @Override
-      public ClientConnectionManager newInstance( HttpParams params, SchemeRegistry schemeRegistry ) {
-         ClientConnectionManager connectionManager = new ThreadSafeClientConnManager(params, schemeRegistry);
-         new IdleConnectionMonitorThread(connectionManager).start();
-         return connectionManager;
-      }
-
-   }
-
    static class DontRetryHandler implements HttpRequestRetryHandler {
 
       @Override
@@ -453,36 +451,40 @@ public class HttpClientFactory {
 
    static class IdleConnectionMonitorThread extends Thread {
 
-      Logger                                _log = Logger.getLogger(IdleConnectionMonitorThread.class);
+      Logger                                                _log     = Logger.getLogger(IdleConnectionMonitorThread.class);
 
-      private final ClientConnectionManager _conMan;
-      private volatile boolean              _shutdown;
+      private WeakHashMap<ClientConnectionManager, Boolean> _conMans = new WeakHashMap<ClientConnectionManager, Boolean>();
+      private volatile boolean                              _shutdown;
 
 
-      public IdleConnectionMonitorThread( ClientConnectionManager connMgr ) {
+      public IdleConnectionMonitorThread() {
          super(IdleConnectionMonitorThread.class.getSimpleName());
          setDaemon(true);
-         this._conMan = connMgr;
+      }
+
+      public void add( ClientConnectionManager ccm ) {
+         synchronized ( _conMans ) {
+            _conMans.put(ccm, Boolean.TRUE);
+         }
       }
 
       @Override
       public void run() {
-         try {
-            _log.debug(getName() + " started");
-            while ( !_shutdown ) {
-               synchronized ( this ) {
-                  TimeUnit.SECONDS.sleep(5);
+         _log.debug(getName() + " started");
+         while ( !_shutdown ) {
+            TimeUtils.sleepQuietlySeconds(5);
 
-                  // Close expired connections
-                  _conMan.closeExpiredConnections();
-                  // Optionally, close connections
-                  // that have been idle longer than 30 sec
-                  _conMan.closeIdleConnections(30, TimeUnit.SECONDS);
+            synchronized ( _conMans ) {
+               for ( ClientConnectionManager ccm : _conMans.keySet() ) {
+                  if ( ccm != null ) {
+                     // Close expired connections
+                     ccm.closeExpiredConnections();
+                     // Optionally, close connections
+                     // that have been idle longer than 30 sec
+                     ccm.closeIdleConnections(30, TimeUnit.SECONDS);
+                  }
                }
             }
-         }
-         catch ( InterruptedException ex ) {
-            _log.info(getName() + " interrupted. terminating");
          }
       }
 
