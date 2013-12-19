@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -28,6 +27,7 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.log4j.Logger;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
+import util.concurrent.ExecutorUtils;
 import util.crawler.proxy.Proxy;
 import util.crawler.proxy.ProxyCrawler;
 import util.crawler.proxy.ProxyList;
@@ -143,7 +143,13 @@ public class Crawler {
                _log.warn("got no proxies left, re-initializing proxy pool!");
                initProxyPool();
             }
-            return _proxyPool.checkoutProxy();
+            Proxy proxy = _proxyPool.checkoutProxy();
+            if ( proxy == null ) {
+               _log.warn("got no proxies left, re-initializing proxy pool!");
+               initProxyPool();
+               proxy = _proxyPool.checkoutProxy();
+            }
+            return proxy;
          }
       }
       return _proxy;
@@ -204,9 +210,10 @@ public class Crawler {
                return -(c1._index < c2._index ? -1 : (c1._index == c2._index ? 0 : 1));
             }
          });
-         return new ThreadPoolExecutor(numberOfThreads, numberOfThreads, 0L, TimeUnit.MILLISECONDS, queue);
+         return new ThreadPoolExecutor(numberOfThreads, numberOfThreads, 0L, TimeUnit.MILLISECONDS, queue, new ExecutorUtils.NamedThreadFactory(
+            "crawl task executor - " + _params.getId() + " "));
       } else {
-         return (ThreadPoolExecutor)Executors.newFixedThreadPool(numberOfThreads);
+         return (ThreadPoolExecutor)ExecutorUtils.newFixedThreadPool(numberOfThreads, "crawl task executor - " + _params.getId() + " ");
       }
    }
 

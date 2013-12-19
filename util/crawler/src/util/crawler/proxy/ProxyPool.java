@@ -43,15 +43,20 @@ public class ProxyPool {
       try {
          Proxy proxy;
          proxy = _proxies.poll(1, TimeUnit.HOURS);
+         int size = _size.decrementAndGet();
+         if ( size <= 0 ) {
+            _log.warn("proxy pool emptied during checkoutProxy, because all proxies failed latency check.");
+         }
          while ( proxy != null && proxy.getStats().getLastByteLatency() < 0 ) {
             proxy = _proxies.poll(1, TimeUnit.HOURS);
-            _size.decrementAndGet();
+            size = _size.decrementAndGet();
+            if ( size <= 0 ) {
+               _log.warn("proxy pool emptied during checkoutProxy, because all proxies failed latency check.");
+            }
          }
          if ( proxy == null ) {
             return checkoutProxy();
          }
-
-         _size.decrementAndGet();
 
          if ( size() < 3 ) {
             _log.warn("only " + size() + " proxies in proxy pool left");

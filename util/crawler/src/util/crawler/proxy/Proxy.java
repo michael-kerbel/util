@@ -223,7 +223,7 @@ public class Proxy implements Comparable<Proxy> {
          }
       }
       catch ( Exception argh ) {
-         //         _log.warn("Failed to measure latency of proxy " + _address + " - maybe it's offline?", argh);
+         _log.debug("Failed to measure latency of proxy " + _address + " - maybe it's offline?", argh);
       }
    }
 
