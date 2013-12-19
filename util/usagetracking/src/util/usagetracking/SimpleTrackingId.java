@@ -10,11 +10,12 @@ public enum SimpleTrackingId implements TrackingId {
 
    UsedMemory(0, Aggregation.Max), //
    GCTime(1), // 
-   Requests(2), //
-   RequestTimes(3, Aggregation.Sum), //
+   FullGCTime(2), // 
+   Requests(3), //
+   RequestTimes(4, Aggregation.Sum), //
    ;
 
-   private static final Map<String, TrackingId> _nameLookup      = new HashMap<String, TrackingId>();
+   private static final Map<String, TrackingId> _nameLookup          = new HashMap<String, TrackingId>();
    static {
       for ( SimpleTrackingId id : values() ) {
          _nameLookup.put(id.name(), id);
@@ -33,11 +34,12 @@ public enum SimpleTrackingId implements TrackingId {
 
    private final int                            _id;
 
-   private Aggregation                          _aggregation     = Aggregation.Sum;
+   private Aggregation                          _aggregation         = Aggregation.Sum;
 
    private TrackingId                           _slave;
 
-   private long                                 _lastGCTimeTotal = 0;
+   private long                                 _lastGCTimeTotal     = 0;
+   private long                                 _lastFullGCTimeTotal = 0;
 
 
    private SimpleTrackingId( int id ) {
@@ -64,10 +66,14 @@ public enum SimpleTrackingId implements TrackingId {
       values[UsedMemory.getId()] = (int)(usedMemory / (1024L * 1024L));
 
       long gcTimeTotal = 0;
+      long fullGcTimeTotal = 0;
       for ( GarbageCollectorMXBean b : ManagementFactory.getGarbageCollectorMXBeans() ) {
          long collectionTime = b.getCollectionTime();
          if ( collectionTime > 0 ) {
             gcTimeTotal += collectionTime;
+            if ( b.getName().equals("PS MarkSweep") || b.getName().equals("ConcurrentMarkSweep") ) {
+               fullGcTimeTotal += collectionTime;
+            }
          }
       }
       if ( values[GCTime.getId()] == 0 ) {
@@ -75,6 +81,12 @@ public enum SimpleTrackingId implements TrackingId {
             values[GCTime.getId()] = (int)(gcTimeTotal - _lastGCTimeTotal);
          }
          _lastGCTimeTotal = gcTimeTotal;
+      }
+      if ( values[FullGCTime.getId()] == 0 ) {
+         if ( _lastFullGCTimeTotal != 0 ) {
+            values[FullGCTime.getId()] = (int)(fullGcTimeTotal - _lastFullGCTimeTotal);
+         }
+         _lastFullGCTimeTotal = fullGcTimeTotal;
       }
    }
 
