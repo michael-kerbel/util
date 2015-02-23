@@ -24,7 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.dump.Dump;
 import util.dump.DumpUtils;
@@ -34,7 +35,7 @@ import util.time.TimeUtils;
 
 public class UsageTrackingService {
 
-   private static Logger                                        _log      = Logger.getLogger(UsageTrackingService.class);
+   private static Logger _log = LoggerFactory.getLogger(UsageTrackingService.class);
    private static final DateFormat                              DAY       = new SimpleDateFormat("yyyy-MM-dd");
 
    private static UsageTrackingService                          INSTANCE;
@@ -299,7 +300,7 @@ public class UsageTrackingService {
       File dumpFile = new File(_dumpFolder, filename);
       Dump<StatData> dump = null;
       try {
-         dump = new Dump<StatData>(StatData.class, dumpFile);
+         dump = new Dump<StatData>(StatData.class, dumpFile, Dump.SHARED_MODE);
          for ( StatData d : dump ) {
             data.add(d);
          }
@@ -634,7 +635,7 @@ public class UsageTrackingService {
          if ( dumpFile.exists() ) {
             Dump<StatData> dump = null;
             try {
-               dump = new Dump<StatData>(StatData.class, dumpFile);
+               dump = new Dump<StatData>(StatData.class, dumpFile, Dump.SHARED_MODE);
                for ( StatData data : dump ) {
                   lastWrittenT = data._t;
                }

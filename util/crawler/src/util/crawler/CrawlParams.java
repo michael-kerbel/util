@@ -36,7 +36,6 @@ public class CrawlParams {
    List<String>             _insaneRegexes;
    List<SearchReplaceParam> _pageReplacements;
    List<String>             _followXPaths       = Collections.emptyList();
-   List<String>             _followFormXPaths   = Collections.emptyList();
    List<Pattern>            _followPatterns     = Collections.emptyList();
    List<Pattern>            _dontFollowPatterns = Collections.emptyList();
    List<Pattern>            _sanePatterns       = Collections.emptyList();
@@ -83,10 +82,6 @@ public class CrawlParams {
 
    public List<String> getDontFollowRegexes() {
       return _dontFollowRegexes;
-   }
-
-   public List<String> getFollowFormXPaths() {
-      return _followFormXPaths;
    }
 
    public List<Pattern> getFollowPatterns() {
@@ -223,10 +218,6 @@ public class CrawlParams {
       for ( String r : dontFollowRegexes ) {
          _dontFollowPatterns.add(Pattern.compile(r));
       }
-   }
-
-   public void setFollowFormXPaths( List<String> followFormXPaths ) {
-      _followFormXPaths = followFormXPaths;
    }
 
    public void setFollowRegexes( List<String> followRegexes ) {

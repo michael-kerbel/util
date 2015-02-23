@@ -2,7 +2,8 @@ package util.swt.event;
 
 import java.lang.reflect.Method;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Widget;
@@ -20,7 +21,7 @@ import util.swt.SWTUtils.Preparation;
  */
 public class OnEvent implements Listener {
 
-   protected static Logger _log            = Logger.getLogger(OnEvent.class);
+   protected static Logger _log = LoggerFactory.getLogger(OnEvent.class);
 
    private static Object[] EMPTY_PARAMETER = new Object[0];
 

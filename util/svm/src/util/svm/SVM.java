@@ -17,7 +17,8 @@ import java.util.Map;
 import libsvm.svm;
 import libsvm.svm_model;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.dump.Dump;
 import util.dump.DumpUtils;
@@ -27,7 +28,7 @@ import util.string.StringTool;
 
 public class SVM {
 
-   private static Logger _log = Logger.getLogger(SVM.class);
+   private static Logger _log = LoggerFactory.getLogger(SVM.class);
 
 
    public static TrainingData createTrainingData( Collection<? extends Instance>... classInstances ) {

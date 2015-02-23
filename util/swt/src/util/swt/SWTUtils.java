@@ -17,7 +17,8 @@ import net.sf.cglib.proxy.Factory;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.operation.IRunnableContext;
 import org.eclipse.jface.operation.IRunnableWithProgress;
@@ -50,7 +51,7 @@ public class SWTUtils {
 
    protected static Image                                IMAGE_ERROR;
 
-   protected static Logger                               _log                             = Logger.getLogger(SWTUtils.class);
+   protected static Logger _log = LoggerFactory.getLogger(SWTUtils.class);
    private static final float                            RGB_VALUE_MULTIPLIER             = 0.6f;
 
    private static final ThreadLocal<Method>              LAST_PREPARED_METHOD             = new ThreadLocal<Method>();

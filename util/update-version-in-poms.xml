@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="project" default="default">
+	
+    <taskdef resource="net/sf/antcontrib/antcontrib.properties">
+    	<classpath>
+    	  <pathelement location="ant-contrib-1.0b3.jar"/>
+    	</classpath>
+    </taskdef>
+	
+    <target name="default">
+    	<loadfile property="pom" srcFile="pom.xml"/>
+      <propertyregex property="util.version"
+                  input="${pom}"
+                  regexp="&lt;version&gt;(1.0.20\d+-\d)&lt;/version&gt;&lt;!--util.version--&gt;"
+                  select="\1"/>
+    	<echo message="current version: ${util.version}"/>
+      <replaceregexp match="&lt;version&gt;1.0.20\d+-\d&lt;/version&gt;"
+                     replace="&lt;version&gt;${util.version}&lt;/version&gt;">
+        <fileset dir=".">
+          <include name="**/pom.xml"/>
+        </fileset>
+      </replaceregexp>              
+    </target>
+</project>

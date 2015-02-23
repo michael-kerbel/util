@@ -6,12 +6,13 @@ import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class TemplateManager {
 
-   private static Logger                             _log = Logger.getLogger(TemplateManager.class);
+   private static Logger _log = LoggerFactory.getLogger(TemplateManager.class);
 
    // cache of Template objects
    private static Map<String, Map<String, Template>> CACHE = new Hashtable<String, Map<String, Template>>();

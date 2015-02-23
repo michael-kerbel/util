@@ -13,7 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import org.apache.http.HttpHost;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.crawler.proxy.ProxyList.ProxyAddress;
 import util.string.StringTable;
@@ -22,7 +23,7 @@ import util.string.StringTable.Alignment;
 
 public class ProxyPool {
 
-   private static Logger        _log  = Logger.getLogger(ProxyPool.class);
+   private static Logger        _log  = LoggerFactory.getLogger(ProxyPool.class);
 
    private ProxyList            _proxyList;
    private List<Proxy>          _allProxies;
@@ -88,7 +89,7 @@ public class ProxyPool {
                if ( !p.isInsane() && lastByteLatency > 0 && lastByteLatency < maxResponseTimeInMillis ) {
                   fastProxies.addProxy(p.getAddress().toString());
                }
-               _log.debug(p);
+               _log.debug(p.toString());
             }
          });
       }

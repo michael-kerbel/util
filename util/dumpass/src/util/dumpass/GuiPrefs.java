@@ -14,7 +14,8 @@ import org.apache.commons.configuration.AbstractFileConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.MapConfiguration;
 import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Shell;
@@ -43,7 +44,7 @@ public class GuiPrefs {
    public static final String CLEANUP_CREATED_FILES = "cleanup.created.files";
 
    AbstractConfiguration      _preferences;
-   Logger                     _log                  = Logger.getLogger(getClass());
+   Logger _log = LoggerFactory.getLogger(getClass());
    GUI                        _gui;
    char                       _listDelimiter        = ',';
    Pattern                    _escaper              = Pattern.compile(Pattern.quote("" + _listDelimiter));

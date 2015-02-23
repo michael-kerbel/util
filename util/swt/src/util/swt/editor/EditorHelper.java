@@ -48,6 +48,7 @@ public class EditorHelper {
    String                 _lastExpandWord;
 
    AutoCompleteShell      _autoCompleteShell;
+   int                    _autoCompleteShellWidth = 300;
 
 
    /**
@@ -67,6 +68,7 @@ public class EditorHelper {
       // Store undo information
       _editor.addExtendedModifyListener(new ExtendedModifyListener() {
 
+         @Override
          public void modifyText( ExtendedModifyEvent event ) {
             if ( !_ignoreUndo ) {
                boolean lastChangeWasRecently = System.currentTimeMillis() - _lastChangeTime < 1000;
@@ -89,6 +91,7 @@ public class EditorHelper {
 
       _editor.addModifyListener(new ModifyListener() {
 
+         @Override
          public void modifyText( ModifyEvent event ) {
             // Update the comments
             if ( _lineStyleListener != null ) {
@@ -116,6 +119,10 @@ public class EditorHelper {
 
    public RegexHighlighter getRegexHighlighter() {
       return _lineStyleListener;
+   }
+
+   public void setAutoCompleteShellWidth( int autoCompleteShellWidth ) {
+      _autoCompleteShellWidth = autoCompleteShellWidth;
    }
 
    public void setErrorLines( int[] lines ) {
@@ -358,7 +365,7 @@ public class EditorHelper {
       List<Keyword> keywords = autoCompleteKeyword(w);
       List<String> words = autoCompleteWord(text, w);
       if ( words.size() + templates.size() + keywords.size() > 1 ) {
-         _autoCompleteShell = new AutoCompleteShell(this, pos, w, templates, words, keywords);
+         _autoCompleteShell = new AutoCompleteShell(this, pos, w, templates, words, keywords, _autoCompleteShellWidth);
          _autoCompleteShell.open();
       } else if ( autoExpand && words.size() == 1 ) {
          expandWord(text, pos, w);

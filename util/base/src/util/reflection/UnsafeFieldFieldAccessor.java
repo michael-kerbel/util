@@ -2,12 +2,13 @@ package util.reflection;
 
 import java.lang.reflect.Field;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class UnsafeFieldFieldAccessor extends FieldFieldAccessor {
 
-   private static Logger  _log = Logger.getLogger(UnsafeFieldFieldAccessor.class);
+   private static Logger _log = LoggerFactory.getLogger(UnsafeFieldFieldAccessor.class);
 
    static sun.misc.Unsafe UNSAFE;
 

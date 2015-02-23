@@ -30,11 +30,11 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
    }
 
 
-   private final Class<?>        _class;
-   private Compression           _compressionType            = Compression.None;
-   private ByteArrayOutputStream _compressionByteBuffer      = null;
-   private OutputStream          _originalOut                = null;
-   private byte[]                _reusableCompressBytesArray = null;
+   private final Class<?>            _class;
+   private Compression               _compressionType            = null;
+   private FastByteArrayOutputStream _compressionByteBuffer      = null;
+   private OutputStream              _originalOut                = null;
+   private byte[]                    _reusableCompressBytesArray = null;
 
 
    public SingleTypeObjectOutputStream( OutputStream out, Class<?> c ) {
@@ -45,10 +45,11 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
    public SingleTypeObjectOutputStream( OutputStream out, Class<?> c, Compression compressionType ) {
       this(out, c);
       _compressionType = compressionType;
-      _compressionByteBuffer = new ByteArrayOutputStream();
+      _compressionByteBuffer = new FastByteArrayOutputStream();
       _reusableCompressBytesArray = new byte[8192];
    }
 
+   @Override
    public void writeObject( Object obj ) throws IOException {
       if ( obj == null ) {
          throw new IOException("Object is null");
@@ -64,7 +65,7 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
       }
 
       boolean restore = false;
-      if ( _compressionType != Compression.None && _originalOut == null ) {
+      if ( _compressionType != null && _originalOut == null ) {
          restore = true;
          _originalOut = out;
          _compressionByteBuffer.reset();
@@ -74,16 +75,17 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
       ((Externalizable)obj).writeExternal(this);
 
       if ( restore ) {
-         byte[] bytes = _compressionByteBuffer.toByteArray();
-         _reusableCompressBytesArray = _compressionType.compress(bytes, _reusableCompressBytesArray);
+         byte[] bytes = _compressionByteBuffer.getBuf();
+         int bytesLength = _compressionByteBuffer.size();
+         _reusableCompressBytesArray = _compressionType.compress(bytes, bytesLength, _reusableCompressBytesArray);
          int compressedLength = _reusableCompressBytesArray.length;
-         if ( _compressionType == Compression.Snappy ) {
+         if ( _compressionType == Compression.Snappy || _compressionType == Compression.LZ4 ) {
             compressedLength = (((_reusableCompressBytesArray[0] & 0xff) << 24) + ((_reusableCompressBytesArray[1] & 0xff) << 16)
                + ((_reusableCompressBytesArray[2] & 0xff) << 8) + ((_reusableCompressBytesArray[3] & 0xff) << 0));
          }
          out = _originalOut;
 
-         if ( compressedLength + 6 < bytes.length ) {
+         if ( compressedLength + 6 < bytesLength ) {
             out.write(1);
 
             if ( compressedLength >= 65535 ) {
@@ -95,16 +97,24 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
             out.write((compressedLength >>> 8) & 0xFF);
             out.write((compressedLength >>> 0) & 0xFF);
 
-            if ( _compressionType == Compression.Snappy ) {
+            if ( _compressionType == Compression.Snappy || _compressionType == Compression.LZ4 ) {
                out.write(_reusableCompressBytesArray, 4, compressedLength);
             } else {
                out.write(_reusableCompressBytesArray);
             }
          } else {
             out.write(0);
-            out.write(bytes);
+            out.write(bytes, 0, bytesLength);
          }
          _originalOut = null;
+      }
+   }
+
+
+   static class FastByteArrayOutputStream extends ByteArrayOutputStream {
+
+      public byte[] getBuf() {
+         return buf;
       }
    }
 }

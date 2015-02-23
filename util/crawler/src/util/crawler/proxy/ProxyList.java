@@ -9,12 +9,13 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class ProxyList {
 
-   private static Logger _log = Logger.getLogger(ProxyList.class);
+   private static Logger _log = LoggerFactory.getLogger(ProxyList.class);
 
 
    public static ProxyList getCurrentProxyList() {

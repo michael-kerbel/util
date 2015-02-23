@@ -699,7 +699,7 @@ public class ExternalizableBeanTest {
    }
 
 
-   public static class TestBean extends ExternalizableBean {
+   public static class TestBean extends ExternalizableBean implements Comparable<TestBean> {
 
       @externalize(1)
       public int                  _int;
@@ -785,6 +785,11 @@ public class ExternalizableBeanTest {
       public void setInt( int i ) {
          _i = i;
       }
+
+      @Override
+      public int compareTo( TestBean o ) {
+         return 0;
+      }
    }
 
    public static class TestBean2 extends TestBean {
@@ -793,7 +798,7 @@ public class ExternalizableBeanTest {
       public int _int2;
    }
 
-   public static class TestBean3 extends ExternalizableBean {
+   public static class TestBean3 extends ExternalizableBean implements Comparable<TestBean3> {
 
       // the member vars get initialized randomly only if the field is public - a limitation of this testcase
 
@@ -999,6 +1004,11 @@ public class ExternalizableBeanTest {
 
       public void setString( String string ) {
          _string = string;
+      }
+
+      @Override
+      public int compareTo( TestBean3 o ) {
+         return 0;
       }
    }
 

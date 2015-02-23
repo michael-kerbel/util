@@ -16,7 +16,8 @@ import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.dump.Dump.DumpAccessFlag;
 import util.dump.stream.ExternalizableObjectOutputStream;
@@ -38,7 +39,7 @@ import util.reflection.Reflection;
  */
 public abstract class DumpIndex<E> implements Closeable {
 
-   private static final Logger LOG = Logger.getLogger(DumpIndex.class);
+   private static final Logger LOG = LoggerFactory.getLogger(DumpIndex.class);
 
 
    public static List<IndexMeta> discoverIndexes( final Dump dump ) {

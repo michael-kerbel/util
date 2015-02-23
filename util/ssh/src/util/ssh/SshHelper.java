@@ -3,6 +3,7 @@ package util.ssh;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -13,7 +14,8 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.string.StringListener;
 import util.time.StopWatch;
@@ -25,9 +27,12 @@ import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 
 
+/**
+ * These are basically the examples from http://www.jcraft.com/jsch/examples/ put into a util class
+ */
 public class SshHelper {
 
-   private static Logger        _log                             = Logger.getLogger(SshHelper.class);
+   private static Logger        _log                             = LoggerFactory.getLogger(SshHelper.class);
 
    private static final Pattern TERMINAL_EMULATION_CHARS_PATTERN = Pattern.compile("\u001b\\[[0-9;?]*[^0-9;]");
 
@@ -131,6 +136,84 @@ public class SshHelper {
       }
    }
 
+   public static void scp( Session session, String remoteFile, File localDir, StringListener lineListener ) throws Exception {
+      FileOutputStream fos = null;
+      try {
+         // exec 'scp -f remoteFile' remotely
+         String command = "scp -f " + remoteFile;
+         Channel channel = session.openChannel("exec");
+         ((ChannelExec)channel).setCommand(command);
+
+         // get I/O streams for remote scp
+         OutputStream out = channel.getOutputStream();
+         InputStream in = channel.getInputStream();
+
+         connect(channel, lineListener);
+
+         byte[] buf = new byte[1024];
+
+         // send '\0'
+         buf[0] = 0;
+         out.write(buf, 0, 1);
+         out.flush();
+
+         while ( true ) {
+            int c = checkAck(in);
+            if ( c != 'C' ) {
+               break;
+            }
+
+            // read '0644 '
+            in.read(buf, 0, 5);
+
+            long filesize = 0L;
+            while ( true ) {
+               if ( in.read(buf, 0, 1) < 0 ) {
+                  // error
+                  break;
+               }
+               if ( buf[0] == ' ' ) {
+                  break;
+               }
+               filesize = filesize * 10L + buf[0] - '0';
+            }
+
+            String file = null;
+            for ( int i = 0;; i++ ) {
+               in.read(buf, i, 1);
+               if ( buf[i] == (byte)0x0a ) {
+                  file = new String(buf, 0, i);
+                  break;
+               }
+            }
+
+            // send '\0'
+            buf[0] = 0;
+            out.write(buf, 0, 1);
+            out.flush();
+
+            // read a content of lfile
+            fos = new FileOutputStream(localDir.getAbsolutePath() + "/" + file);
+            copy(in, fos, filesize, lineListener);
+            fos.close();
+            fos = null;
+
+            if ( checkAck(in) != 0 ) {
+               return;
+            }
+
+            // send '\0'
+            buf[0] = 0;
+            out.write(buf, 0, 1);
+            out.flush();
+         }
+         channel.disconnect();
+      }
+      finally {
+         IOUtils.closeQuietly(fos);
+      }
+   }
+
    static int checkAck( InputStream in ) throws IOException {
       int b = in.read();
       // b may be 0 for success,
@@ -197,9 +280,12 @@ public class SshHelper {
       int n = 0;
       int last1MBChunk = 0;
       String lastMessage = "";
-      while ( -1 != (n = input.read(buffer)) ) {
+      while ( -1 != (n = input.read(buffer, 0, Math.min((int)(totalLength - count), buffer.length))) ) {
          output.write(buffer, 0, n);
          count += n;
+         if ( count >= totalLength ) {
+            break;
+         }
 
          int current1MBChunk = (int)(count / (1024 * 1024));
          if ( current1MBChunk > last1MBChunk ) {
@@ -209,7 +295,7 @@ public class SshHelper {
             if ( lineListener != null ) {
                lineListener.add(StringUtils.repeat("\b", lastMessage.length()));
             }
-            lastMessage = "INFO   copied " + ((int)count / (1024 * 1024)) + " MB of " + ((int)totalLength / (1024 * 1024)) + " MB. " + kbS + " kb/s, ETA: "
+            lastMessage = "INFO   copied " + (count / (1024 * 1024)) + " MB of " + (totalLength / (1024 * 1024)) + " MB. " + kbS + " kb/s, ETA: "
                + TimeUtils.toHumanReadableFormat(eta);
             if ( lineListener != null ) {
                lineListener.add(lastMessage);

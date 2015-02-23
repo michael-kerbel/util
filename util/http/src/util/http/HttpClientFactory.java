@@ -70,9 +70,11 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
-import org.apache.log4j.Logger;
-import org.apache.log4j.MDC;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
+import util.string.StringTool;
 import util.time.TimeUtils;
 
 
@@ -86,7 +88,7 @@ public class HttpClientFactory {
    public static final int                    DEFAULT_VALUE_CONNECTION_TIMEOUT = 31000;
    public static final String                 DEFAULT_VALUE_USER_AGENT         = "Googlebot/2.1 (+http://www.google.com/bot.html)";
 
-   private static Logger                      _log                             = Logger.getLogger(HttpClientFactory.class);
+   private static Logger                      _log                             = LoggerFactory.getLogger(HttpClientFactory.class);
 
    private static final Pattern               HTML_CHARSET_DECLARATION         = Pattern.compile("(?i)(?:charset|encoding)=[\"']?(.*?)[\"'/>]");
 
@@ -116,6 +118,21 @@ public class HttpClientFactory {
    }
 
    public static HttpPost createPost( String url, String... postParams ) throws UnsupportedEncodingException {
+      int questionMarkIndex = url.indexOf('?');
+      if ( questionMarkIndex > 0 && questionMarkIndex + 1 < url.length() ) {
+         String params = url.substring(questionMarkIndex + 1);
+         url = url.substring(0, questionMarkIndex);
+         String[] paramsTokenized = StringTool.tokenize(params, "&", false);
+         String[] newPostParams = new String[postParams.length + paramsTokenized.length * 2];
+         System.arraycopy(postParams, 0, newPostParams, 0, postParams.length);
+         for ( int i = postParams.length, length = newPostParams.length, j = 0; i < length; i += 2 ) {
+            String[] p = StringTool.split(paramsTokenized[j++], '=');
+            newPostParams[i] = p[0];
+            newPostParams[i + 1] = p.length > 1 ? p[1] : "";
+         }
+         postParams = newPostParams;
+      }
+
       HttpPost post = new HttpPost(url);
       List<NameValuePair> formparams = new ArrayList<NameValuePair>();
       for ( int i = 0, length = postParams.length; i < length; i += 2 ) {
@@ -451,7 +468,7 @@ public class HttpClientFactory {
 
    static class IdleConnectionMonitorThread extends Thread {
 
-      Logger                                                _log     = Logger.getLogger(IdleConnectionMonitorThread.class);
+      Logger                                                _log     = LoggerFactory.getLogger(IdleConnectionMonitorThread.class);
 
       private WeakHashMap<ClientConnectionManager, Boolean> _conMans = new WeakHashMap<ClientConnectionManager, Boolean>();
       private volatile boolean                              _shutdown;

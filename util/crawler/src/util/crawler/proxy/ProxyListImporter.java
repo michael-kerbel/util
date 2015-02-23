@@ -20,7 +20,8 @@ import javax.mail.internet.MimeMultipart;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.spring.Coder;
 
@@ -28,7 +29,7 @@ import util.spring.Coder;
 public class ProxyListImporter {
 
    private static final String LAST_MESSAGE_ID_FILENAME = "proxylist-last-message-id";
-   private static Logger       _log                     = Logger.getLogger(ProxyListImporter.class);
+   private static Logger _log = LoggerFactory.getLogger(ProxyListImporter.class);
 
 
    public static void main( String[] args ) {

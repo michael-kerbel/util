@@ -14,6 +14,8 @@ import java.util.UUID;
 
 import org.junit.Test;
 
+import util.dump.ExternalizableBean;
+
 
 public class ExternalizableObjectStreamProviderTest {
 
@@ -48,6 +50,52 @@ public class ExternalizableObjectStreamProviderTest {
       test(provider);
       provider = new ExternalizableObjectStreamProvider(Compression.Snappy);
       test(provider);
+      provider = new ExternalizableObjectStreamProvider(Compression.LZ4);
+      test(provider);
+
+      SingleTypeObjectStreamProvider<TestExternalizableBean> stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(
+         TestExternalizableBean.class, Compression.GZipLevel0);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel1);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel2);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel3);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel4);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel5);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel6);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel7);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel8);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.GZipLevel9);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.Snappy);
+      test(stProvider);
+      stProvider = new SingleTypeObjectStreamProvider<TestExternalizableBean>(TestExternalizableBean.class, Compression.LZ4);
+      test(stProvider);
+   }
+
+   protected void test( SingleTypeObjectStreamProvider<TestExternalizableBean> provider ) throws IOException, ClassNotFoundException {
+      TestExternalizableBean bean = new TestExternalizableBean();
+
+      testInstance(provider, bean);
+
+      bean._d = 1d;
+      bean._date = new Date();
+      bean._f = 1f;
+      bean._i = 1;
+
+      testInstance(provider, bean);
+
+      bean._l = 1L;
+      bean._s = "11376136";
+
+      testInstance(provider, bean);
    }
 
    protected void test( ExternalizableObjectStreamProvider provider ) throws IOException, ClassNotFoundException {
@@ -79,7 +127,7 @@ public class ExternalizableObjectStreamProviderTest {
       testInstance(provider, bean);
    }
 
-   protected void testInstance( ExternalizableObjectStreamProvider provider, TestBean bean ) throws IOException, ClassNotFoundException {
+   protected void testInstance( ObjectStreamProvider provider, Object bean ) throws IOException, ClassNotFoundException {
       ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
       ObjectOutput out = provider.createObjectOutput(bytesOut);
       out.writeObject(bean);
@@ -92,6 +140,67 @@ public class ExternalizableObjectStreamProviderTest {
       assertThat(deserialized).isEqualTo(bean);
    }
 
+
+   public static class TestExternalizableBean extends ExternalizableBean {
+
+      @externalize(1)
+      Date   _date;
+      @externalize(2)
+      float  _f;
+      @externalize(3)
+      double _d;
+      @externalize(4)
+      int    _i;
+      @externalize(5)
+      long   _l;
+      @externalize(6)
+      String _s;
+
+
+      public TestExternalizableBean() {}
+
+      @Override
+      public boolean equals( Object obj ) {
+         if ( this == obj ) {
+            return true;
+         }
+         if ( obj == null ) {
+            return false;
+         }
+         if ( getClass() != obj.getClass() ) {
+            return false;
+         }
+         TestExternalizableBean other = (TestExternalizableBean)obj;
+         if ( Double.doubleToLongBits(_d) != Double.doubleToLongBits(other._d) ) {
+            return false;
+         }
+         if ( _date == null ) {
+            if ( other._date != null ) {
+               return false;
+            }
+         } else if ( !_date.equals(other._date) ) {
+            return false;
+         }
+         if ( Float.floatToIntBits(_f) != Float.floatToIntBits(other._f) ) {
+            return false;
+         }
+         if ( _i != other._i ) {
+            return false;
+         }
+         if ( _l != other._l ) {
+            return false;
+         }
+         if ( _s == null ) {
+            if ( other._s != null ) {
+               return false;
+            }
+         } else if ( !_s.equals(other._s) ) {
+            return false;
+         }
+         return true;
+      }
+
+   }
 
    public static class TestBean implements Externalizable {
 
@@ -198,6 +307,7 @@ public class ExternalizableObjectStreamProviderTest {
          _o = in.readObject();
       }
 
+      @Override
       public void writeExternal( java.io.ObjectOutput out ) throws IOException {
          out.writeObject(_date);
          out.writeObject(_u);

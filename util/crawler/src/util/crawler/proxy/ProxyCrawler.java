@@ -14,7 +14,8 @@ import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.crawler.CrawlParams;
 import util.crawler.Crawler;
@@ -23,7 +24,7 @@ import util.http.HttpClientFactory;
 
 public class ProxyCrawler {
 
-   private static Logger      _log             = Logger.getLogger(ProxyCrawler.class);
+   private static Logger _log = LoggerFactory.getLogger(ProxyCrawler.class);
 
    private static CrawlParams SAMAIR_PARAMS    = new CrawlParamsWithXsltFromClasspath("proxies-samair.xsl");
    static {

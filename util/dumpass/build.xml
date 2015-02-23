@@ -5,7 +5,9 @@
         :${launch4j.dir}/lib/xstream.jar" />
 
 	<target name="launch4j">
-		<copy tofile="target/dumpass.jar" file="target/util-dumpass-1.0-SNAPSHOT.jar"/>
+		<copy tofile="target/dumpass.jar">
+			<fileset dir="target" includes="util-dumpass-1.0.*.jar" excludes="*sources*"/>
+	  </copy>
 		<launch4j configFile="launch4j.xml" />
 	</target>
 </project>

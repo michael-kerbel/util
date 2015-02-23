@@ -47,13 +47,15 @@ class AutoCompleteShell {
    private String         _word;
 
    Shell                  _shell;
+   private int            _shellWidth;
 
 
-   public AutoCompleteShell( EditorHelper editorHelper, int pos, String w, List<Template> templates, List<String> words, List<Keyword> keywords ) {
+   public AutoCompleteShell( EditorHelper editorHelper, int pos, String w, List<Template> templates, List<String> words, List<Keyword> keywords, int shellWidth ) {
       _editorHelper = editorHelper;
       _caretPos = pos;
       _word = w;
       _keywordPropositions = keywords;
+      _shellWidth = shellWidth;
       _editor = _editorHelper._editor;
       _display = _editor.getDisplay();
       _templatePropositions = templates;
@@ -108,11 +110,12 @@ class AutoCompleteShell {
       _shell.setLayout(new MigLayout("ins 0"));
       OnEvent.addListener(_shell, SWT.Dispose).on(getClass(), this).shellDisposed(null);
 
-      _tableViewer = new TableViewer(_shell, SWT.SINGLE | SWT.H_SCROLL | SWT.V_SCROLL);
+      _tableViewer = new TableViewer(_shell, SWT.SINGLE | SWT.H_SCROLL | SWT.V_SCROLL | SWT.VIRTUAL);
       _table = _tableViewer.getTable();
       _table.setHeaderVisible(false);
       _table.setLinesVisible(false);
       _table.setLayoutData("wmin 10, h 10:200:, grow, push");
+      _table.setRedraw(false);
       OnEvent.addListener(_table, SWT.MouseDoubleClick).on(getClass(), this).mouseDoubleClicked(null);
 
       _tableViewer.setContentProvider(new ArrayContentProvider());
@@ -123,10 +126,13 @@ class AutoCompleteShell {
       input.addAll(_keywordPropositions);
       Collections.sort(input, new Comparator() {
 
+         @Override
          public int compare( Object o1, Object o2 ) {
             int sortWeight1 = getSortWeight(o1);
             int sortWeight2 = getSortWeight(o2);
-            if ( sortWeight1 != sortWeight2 ) return (sortWeight1 < sortWeight2 ? 1 : (sortWeight1 == sortWeight2 ? 0 : -1));
+            if ( sortWeight1 != sortWeight2 ) {
+               return (sortWeight1 < sortWeight2 ? 1 : (sortWeight1 == sortWeight2 ? 0 : -1));
+            }
             return o1.toString().compareToIgnoreCase(o2.toString());
          }
       });
@@ -134,17 +140,22 @@ class AutoCompleteShell {
       _tableViewer.setSelection(new StructuredSelection(input.get(0)));
 
       _tableViewer.setLabelProvider(new AutoCompleteLabelProvider());
+      _table.setRedraw(true);
 
       _shell.layout();
       Point loc = _editor.getLocationAtOffset(_editor.getCaretOffset());
       loc.y += _editor.getLineHeight();
-      setBounds(_shell.computeSize(300, SWT.DEFAULT), _editor.toDisplay(loc));
+      setBounds(_shell.computeSize(_shellWidth, SWT.DEFAULT), _editor.toDisplay(loc));
       _shell.setVisible(true);
    }
 
    protected int getSortWeight( Object o ) {
-      if ( o instanceof Template ) return 2;
-      if ( o instanceof Keyword ) return 1;
+      if ( o instanceof Template ) {
+         return 2;
+      }
+      if ( o instanceof Keyword ) {
+         return 1;
+      }
       return 0;
    }
 

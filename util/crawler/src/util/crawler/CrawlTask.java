@@ -21,8 +21,9 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.protocol.HttpContext;
-import org.apache.log4j.Logger;
-import org.apache.log4j.MDC;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 import util.crawler.CrawlParams.SearchReplaceParam;
 import util.crawler.Crawler.CrawlItem;
@@ -60,7 +61,7 @@ public class CrawlTask implements Runnable {
                                                      "  \r\n" + //
                                                      "</xsl:transform>";
 
-   private static Logger        _log              = Logger.getLogger(CrawlTask.class);
+   private static Logger        _log              = LoggerFactory.getLogger(CrawlTask.class);
 
 
    public static String applyPageReplacements( CrawlParams params, String page ) {
@@ -364,6 +365,7 @@ public class CrawlTask implements Runnable {
                params.add("");
             }
          }
+         url = url.substring(0, url.indexOf('?'));
       }
       return HttpClientFactory.createPost(url, params.toArray(new String[params.size()]));
    }
@@ -448,7 +450,7 @@ public class CrawlTask implements Runnable {
          }
       }
 
-      String oldPath = (String)MDC.get("path");
+      String oldPath = MDC.get("path");
       crawlerDelegate.createCrawlTask(crawlerDelegate, ci).run();
       MDC.put("path", oldPath);
 

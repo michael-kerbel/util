@@ -5,7 +5,8 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.WeakHashMap;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.eclipse.swt.events.ArmEvent;
 import org.eclipse.swt.events.ControlEvent;
 import org.eclipse.swt.events.DisposeEvent;
@@ -31,7 +32,7 @@ import org.eclipse.swt.widgets.Widget;
 
 public class EventLogger implements Listener {
 
-   private Logger                      _log        = Logger.getLogger(getClass());
+   private Logger _log = LoggerFactory.getLogger(getClass());
 
    private EnumSet<SWTEvent>           _eventTypes = EnumSet.allOf(SWTEvent.class);
    private WeakHashMap<Widget, Object> _controls   = new WeakHashMap<Widget, Object>();

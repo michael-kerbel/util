@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.dump.stream.ExternalizableObjectOutputStream;
 import util.reflection.FieldAccessor;
@@ -171,7 +171,7 @@ public class ExternalizableBean implements Externalizable {
                defaultType = defaultTypes[j];
                if ( fieldTypeId != ft._id ) {
                   if ( CLASS_CHANGED_INCOMPATIBLY.get(getClass()) == null ) {
-                     Logger.getLogger(getClass()).error("The field type of index " + fieldIndex + // 
+                     LoggerFactory.getLogger(getClass()).error("The field type of index " + fieldIndex + // 
                         " in " + getClass().getSimpleName() + //
                         " appears to have changed from " + FieldType.forId(fieldTypeId) + //
                         " (version in dump) to " + ft + " (current class version)." + //
@@ -1689,7 +1689,7 @@ public class ExternalizableBean implements Externalizable {
          }
          if ( ft == null ) {
             ft = FieldType.Object;
-            Logger.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
+            LoggerFactory.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
                " is not of a supported type, thus falling back to Object serialization." + //
                " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
                " Please check, whether this is really what you wanted!");
@@ -1700,7 +1700,7 @@ public class ExternalizableBean implements Externalizable {
                ft = (ft == FieldType.ListOfExternalizables) ? FieldType.ListOfStrings : FieldType.SetOfStrings;
             } else {
                ft = FieldType.Object;
-               Logger.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
+               LoggerFactory.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
                   " has a Collection with an unsupported type as generic parameter, thus falling back to Object serialization." + //
                   " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
                   " Please check, whether this is really what you wanted!");

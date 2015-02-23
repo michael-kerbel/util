@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import util.dump.stream.ExternalizableObjectStreamProvider.InstanceType;
+import util.dump.stream.SingleTypeObjectOutputStream.FastByteArrayOutputStream;
 import util.io.IOUtils;
 
 
@@ -35,14 +36,14 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
    }
 
 
-   private ObjectOutputStream    _objectOutputStream;
+   private ObjectOutputStream        _objectOutputStream;
 
-   private boolean               _resetPending               = false;
-   private Compression           _compressionType            = Compression.None;
-   private ByteArrayOutputStream _compressionByteBuffer      = null;
-   private OutputStream          _originalOut                = null;
-   private ObjectOutputStream    _originalObjectOutputStream = null;
-   private byte[]                _reusableCompressBytesArray = null;
+   private boolean                   _resetPending               = false;
+   private Compression               _compressionType            = null;
+   private FastByteArrayOutputStream _compressionByteBuffer      = null;
+   private OutputStream              _originalOut                = null;
+   private ObjectOutputStream        _originalObjectOutputStream = null;
+   private byte[]                    _reusableCompressBytesArray = null;
 
 
    public ExternalizableObjectOutputStream( OutputStream out ) throws IOException {
@@ -53,7 +54,7 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
    public ExternalizableObjectOutputStream( OutputStream out, Compression compressionType ) throws IOException {
       this(out);
       _compressionType = compressionType;
-      _compressionByteBuffer = new ByteArrayOutputStream();
+      _compressionByteBuffer = new FastByteArrayOutputStream();
       _reusableCompressBytesArray = new byte[8192];
    }
 
@@ -73,13 +74,14 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
       _resetPending = true;
    }
 
+   @Override
    public void writeObject( Object obj ) throws IOException {
 
       writeBoolean(obj != null);
       if ( obj != null ) {
-         boolean restore = false;
-         if ( _compressionType != Compression.None && _originalOut == null ) {
-            restore = true;
+         boolean compress = false;
+         if ( _compressionType != null && _originalOut == null ) {
+            compress = true;
             _originalOut = out;
             _compressionByteBuffer.reset();
             out = _compressionByteBuffer;
@@ -122,11 +124,12 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
             _objectOutputStream.writeObject(obj);
          }
 
-         if ( restore ) {
-            byte[] bytes = _compressionByteBuffer.toByteArray();
-            _reusableCompressBytesArray = _compressionType.compress(bytes, _reusableCompressBytesArray);
+         if ( compress ) {
+            byte[] bytes = _compressionByteBuffer.getBuf();
+            int bytesLength = _compressionByteBuffer.size();
+            _reusableCompressBytesArray = _compressionType.compress(bytes, bytesLength, _reusableCompressBytesArray);
             int compressedLength = _reusableCompressBytesArray.length;
-            if ( _compressionType == Compression.Snappy ) {
+            if ( _compressionType == Compression.Snappy || _compressionType == Compression.LZ4 ) {
                compressedLength = (((_reusableCompressBytesArray[0] & 0xff) << 24) + ((_reusableCompressBytesArray[1] & 0xff) << 16)
                   + ((_reusableCompressBytesArray[2] & 0xff) << 8) + ((_reusableCompressBytesArray[3] & 0xff) << 0));
             }
@@ -144,7 +147,7 @@ public class ExternalizableObjectOutputStream extends DataOutputStream implement
                out.write((compressedLength >>> 8) & 0xFF);
                out.write((compressedLength >>> 0) & 0xFF);
 
-               if ( _compressionType == Compression.Snappy ) {
+               if ( _compressionType == Compression.Snappy || _compressionType == Compression.LZ4 ) {
                   out.write(_reusableCompressBytesArray, 4, compressedLength);
                } else {
                   out.write(_reusableCompressBytesArray);

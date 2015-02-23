@@ -12,14 +12,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.time.TimeUtils;
 
 
 public class ExecutorUtils {
 
-   private static Logger _log = Logger.getLogger(ExecutorUtils.class);
+   private static Logger _log = LoggerFactory.getLogger(ExecutorUtils.class);
 
 
    /**

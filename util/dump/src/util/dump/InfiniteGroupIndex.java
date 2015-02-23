@@ -23,7 +23,8 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.collections.SoftLRUCache;
 import util.dump.GroupIndex.Positions;
@@ -41,7 +42,7 @@ import util.reflection.FieldAccessor;
  */
 public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
 
-   private static final Logger   LOG                               = Logger.getLogger(InfiniteGroupIndex.class);
+   private static final Logger LOG = LoggerFactory.getLogger(InfiniteGroupIndex.class);
 
    private static final int      MAX_POSITIONS_LENGTH_IN_CACHE     = 1000;
    /* TODO [MKR 08.06.2009] add following two methods for efficient lookup of many keys at once:

@@ -11,7 +11,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -28,7 +29,7 @@ import org.apache.log4j.Logger;
  */
 public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
-   private static Logger                               log              = Logger.getLogger(ConcurrentLRUCache.class);
+   private static Logger log = LoggerFactory.getLogger(ConcurrentLRUCache.class);
 
    private final ConcurrentHashMap<Object, CacheEntry> map;
    private final int                                   upperWaterMark, lowerWaterMark;

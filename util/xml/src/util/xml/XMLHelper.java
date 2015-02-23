@@ -6,20 +6,21 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.pool.impl.GenericObjectPool;
-import org.apache.log4j.Logger;
-import org.apache.log4j.lf5.util.StreamUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 
 
 public class XMLHelper {
 
-   private static Logger                 _log            = Logger.getLogger(XMLHelper.class);
+   private static Logger                 _log            = LoggerFactory.getLogger(XMLHelper.class);
 
    private static DocumentBuilderFactory _builderFactory = DocumentBuilderFactory.newInstance();
 
@@ -33,6 +34,17 @@ public class XMLHelper {
       XMLHelper ret = new XMLHelper();
       ret.setPoolFactory(poolFactory);
       return ret;
+   }
+
+   private static long copy( InputStream input, OutputStream output ) throws IOException {
+      byte[] buffer = new byte[4096];
+      long count = 0L;
+      int n = 0;
+      while ( -1 != (n = input.read(buffer)) ) {
+         output.write(buffer, 0, n);
+         count += n;
+      }
+      return count;
    }
 
 
@@ -50,7 +62,9 @@ public class XMLHelper {
          return parseXML(in);
       }
       finally {
-         if ( in != null ) in.close();
+         if ( in != null ) {
+            in.close();
+         }
       }
 
    }
@@ -67,7 +81,7 @@ public class XMLHelper {
             ByteArrayInputStream inByte = (ByteArrayInputStream)in;
             inByte.reset();
             ByteArrayOutputStream out = new ByteArrayOutputStream();
-            StreamUtils.copy(inByte, out);
+            copy(inByte, out);
             _log.debug(new String(out.toByteArray()));
          }
          throw e;
@@ -76,7 +90,9 @@ public class XMLHelper {
          throw e;
       }
       finally {
-         if ( builder != null ) _builderPool.returnObject(builder);
+         if ( builder != null ) {
+            _builderPool.returnObject(builder);
+         }
 
       }
    }

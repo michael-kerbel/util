@@ -4,7 +4,8 @@ import java.util.Collections;
 
 import net.miginfocom.swt.MigLayout;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.Separator;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -49,7 +50,7 @@ public abstract class AbstractTable implements ViewerColumnSelectable {
 
    protected static final int     USE_GC_COLOR          = 1 << 22;
 
-   protected Logger               _log                  = Logger.getLogger(getClass());
+   protected Logger _log = LoggerFactory.getLogger(getClass());
 
    private final boolean          _addFilterbox;
    private final boolean          _customDrawSelection;

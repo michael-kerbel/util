@@ -29,7 +29,7 @@ public class SingleTypeObjectInputStream<E extends Externalizable> extends DataI
 
 
    private final Class          _class;
-   private Compression          _compressionType              = Compression.None;
+   private Compression          _compressionType              = null;
    private ByteArrayInputStream _compressionByteBuffer        = null;
    private InputStream          _originalIn                   = null;
    private byte[]               _reusableUncompressBytesArray = null;
@@ -46,10 +46,11 @@ public class SingleTypeObjectInputStream<E extends Externalizable> extends DataI
       _reusableUncompressBytesArray = new byte[8192];
    }
 
+   @Override
    public Object readObject() throws ClassNotFoundException, IOException {
       boolean restore = false;
       try {
-         if ( _compressionType != Compression.None && _originalIn == null ) {
+         if ( _compressionType != null && _originalIn == null ) {
             _originalIn = in;
             restore = true;
             boolean compressed = readBoolean();

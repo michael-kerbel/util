@@ -21,7 +21,9 @@ import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,9 +41,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nullable;
-import javax.annotation.ParametersAreNonnullByDefault;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.collections.SoftLRUCache;
 import util.dump.sort.InfiniteSorter;
@@ -67,10 +70,9 @@ import util.time.StopWatch;
  *
  * <b>Beware</b>: Always close the dump properly after usage and before exiting the JVM.<p/>
  */
-@ParametersAreNonnullByDefault
 public class Dump<E> implements DumpInput<E> {
 
-   private static final Logger          LOG                              = Logger.getLogger(Dump.class);
+   private static final Logger LOG = LoggerFactory.getLogger(Dump.class);
 
    // TODO add pack() and a threshold based repack mechanism which prunes deletions from dump and indexes
    // TODO add registry for Iterators and close all open iterators in close()
@@ -151,9 +153,11 @@ public class Dump<E> implements DumpInput<E> {
    final EnumSet<DumpAccessFlag>        _mode;
 
    RandomAccessFile                     _metaRaf;
-   private FileLock                     _dumpLock                        = null;
+   FileLock                             _dumpLock;
 
-   private boolean                      _willBeClosedDuringShutdown      = false;
+   boolean                              _willBeClosedDuringShutdown      = false;
+
+   String                               _instantiationDetails;
 
 
    /**
@@ -197,8 +201,16 @@ public class Dump<E> implements DumpInput<E> {
       _dumpFile = IOUtils.getCanonicalFileQuietly(dumpFile);
       _deletionsFile = new File(dumpFile.getPath() + ".deletions");
       _metaFile = new File(dumpFile.getPath() + ".meta");
+      initInstantiationData();
       if ( OPENED_DUMPPATHS.contains(_dumpFile.getPath()) ) {
-         throw new IllegalStateException("There is already an opened Dump instance for file " + _dumpFile + ". Having two instances is hazardous...");
+         String instantiationDetails = "";
+         for ( Dump d : OPENED_DUMPS ) {
+            if ( d.getDumpFile().equals(dumpFile) ) {
+               instantiationDetails = d._instantiationDetails;
+            }
+         }
+         throw new IllegalStateException("There is already an opened Dump instance for file " + _dumpFile
+            + ". Having two instances is hazardous. Instantiation details of the older Dump:\n" + instantiationDetails);
       }
       OPENED_DUMPPATHS.add(_dumpFile.getPath());
       OPENED_DUMPS.add(this);
@@ -905,6 +917,13 @@ public class Dump<E> implements DumpInput<E> {
          l |= (bytes[i] & 0xff) << (j << 3);
       }
       return l;
+   }
+
+   private void initInstantiationData() {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      new Exception().printStackTrace(pw);
+      _instantiationDetails = "instantiation time: " + new Date() + "\n" + "instantiation stack: " + sw;
    }
 
    private boolean isReadonly() {

@@ -34,7 +34,8 @@ import net.sf.saxon.s9api.XsltExecutable;
 import net.sf.saxon.s9api.XsltTransformer;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.htmlcleaner.CleanerProperties;
 import org.htmlcleaner.DomSerializer;
 import org.htmlcleaner.HtmlCleaner;
@@ -48,7 +49,7 @@ import org.xml.sax.SAXParseException;
 
 public class Transformer {
 
-   private static Logger                          _log               = Logger.getLogger(Transformer.class);
+   private static Logger _log = LoggerFactory.getLogger(Transformer.class);
 
    private static final Pattern                   NON_BREAKING_SPACE = Pattern.compile("\\xa0");
    private static final Pattern                   SCRIPT_BLOCK       = Pattern.compile("(?s)<script>(.*?)</script>");

@@ -5,7 +5,8 @@ import java.util.Map;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.swt.editor.SyntaxData.StyleGroup;
 
@@ -15,7 +16,7 @@ import util.swt.editor.SyntaxData.StyleGroup;
  */
 class SyntaxManager {
 
-   private static Logger _log = Logger.getLogger(SyntaxManager.class);
+   private static Logger _log = LoggerFactory.getLogger(SyntaxManager.class);
 
    // Lazy cache of SyntaxData objects
    private static Map    data = new Hashtable();

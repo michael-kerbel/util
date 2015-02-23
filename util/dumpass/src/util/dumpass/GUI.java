@@ -26,7 +26,8 @@ import java.util.Set;
 import net.miginfocom.swt.MigLayout;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.StatusLineManager;
@@ -95,7 +96,7 @@ public class GUI extends ApplicationWindow {
    }
 
 
-   private Logger             _log           = Logger.getLogger(getClass());
+   private Logger _log = LoggerFactory.getLogger(getClass());
 
    Class                      _class;
    File                       _dumpFile;

@@ -11,12 +11,13 @@ import java.io.UTFDataFormatException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class DumpUtils {
 
-   private static final Logger        LOG                        = Logger.getLogger(DumpUtils.class);
+   private static final Logger LOG = LoggerFactory.getLogger(DumpUtils.class);
 
    private static ThreadLocal<byte[]> _writeUTFReusableByteArray = new ThreadLocal<byte[]>() {
 

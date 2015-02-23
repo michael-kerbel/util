@@ -25,8 +25,8 @@ import java.io.OutputStream;
  */
 public class SingleTypeObjectStreamProvider<E extends Externalizable> implements ObjectStreamProvider {
 
-   private final Class     _class;
-   private Compression _compressionType = Compression.None;
+   private final Class _class;
+   private Compression _compressionType = null;
 
 
    public SingleTypeObjectStreamProvider( Class c ) {
@@ -42,10 +42,12 @@ public class SingleTypeObjectStreamProvider<E extends Externalizable> implements
       _compressionType = compressionType;
    }
 
+   @Override
    public ObjectInput createObjectInput( InputStream in ) throws IOException {
       return new SingleTypeObjectInputStream<E>(in, _class, _compressionType);
    }
 
+   @Override
    public ObjectOutput createObjectOutput( OutputStream out ) throws IOException {
       return new SingleTypeObjectOutputStream<E>(out, _class, _compressionType);
    }

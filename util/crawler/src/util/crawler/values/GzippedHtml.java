@@ -9,14 +9,15 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.dump.ExternalizableBean;
 
 
 public class GzippedHtml extends ExternalizableBean {
 
-   private static Logger _log = Logger.getLogger(GzippedHtml.class);
+   private static Logger _log = LoggerFactory.getLogger(GzippedHtml.class);
 
    @externalize(1)
    String                _url;

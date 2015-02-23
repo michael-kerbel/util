@@ -24,7 +24,8 @@ import org.apache.http.HttpHost;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.protocol.HttpContext;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
 import util.concurrent.ExecutorUtils;
@@ -44,7 +45,7 @@ public class Crawler {
 
    private static final Pattern PATTERN_RE_ENCODE_URL      = Pattern.compile("([/?&=]*)([^/?&=]+)");
 
-   private static Logger        _log                       = Logger.getLogger(Crawler.class);
+   private static Logger _log = LoggerFactory.getLogger(Crawler.class);
 
 
    public static void main( String[] args ) {

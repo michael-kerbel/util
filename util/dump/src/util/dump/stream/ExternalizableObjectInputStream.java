@@ -39,7 +39,7 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
    private Map<String, Class>   _classes                      = new HashMap<String, Class>();
 
    private ObjectInputStream    _objectInputStream;
-   private Compression          _compressionType              = Compression.None;
+   private Compression          _compressionType              = null;
    private ByteArrayInputStream _compressionByteBuffer        = null;
    private InputStream          _originalIn                   = null;
    private ObjectInputStream    _originalObjectInputStream;
@@ -62,12 +62,13 @@ public class ExternalizableObjectInputStream extends DataInputStream implements 
       _objectInputStream.close();
    }
 
+   @Override
    public Object readObject() throws ClassNotFoundException, IOException {
       boolean isNotNull = readBoolean();
       if ( isNotNull ) {
          boolean restore = false;
          try {
-            if ( _compressionType != Compression.None && _originalIn == null ) {
+            if ( _compressionType != null && _originalIn == null ) {
                _originalIn = in;
                restore = true;
                boolean compressed = readBoolean();

@@ -4,12 +4,11 @@
 	<groupId>mkr</groupId>
 	<artifactId>util-base</artifactId>
 	<name>mkr util base</name>
-	<version>${parent.version}</version>
 
 	<parent>
 		<groupId>mkr</groupId>
 		<artifactId>util-pom</artifactId>
-		<version>1.0-SNAPSHOT</version>
+    <version>1.0.20150218-2</version>     
 	</parent>
 
 	<dependencies>
@@ -17,11 +16,6 @@
 			<groupId>net.sf.trove4j</groupId>
 			<artifactId>trove4j</artifactId>
 			<version>3.0.2</version>
-		</dependency>
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.16</version>
 		</dependency>
 		<dependency>
 			<groupId>jsr305</groupId>

@@ -13,7 +13,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.crawler.proxy.ProxyList.ProxyAddress;
 import util.http.HttpClientFactory;
@@ -56,7 +57,7 @@ public class Proxy implements Comparable<Proxy> {
    }
 
 
-   Logger                     _log             = Logger.getLogger(getClass());
+   Logger _log = LoggerFactory.getLogger(getClass());
 
    private final ProxyAddress _address;
    private HttpHost           _proxyHost;
