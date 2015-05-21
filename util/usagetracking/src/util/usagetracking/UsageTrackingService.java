@@ -35,7 +35,7 @@ import util.time.TimeUtils;
 
 public class UsageTrackingService {
 
-   private static Logger _log = LoggerFactory.getLogger(UsageTrackingService.class);
+   private static Logger                                        _log      = LoggerFactory.getLogger(UsageTrackingService.class);
    private static final DateFormat                              DAY       = new SimpleDateFormat("yyyy-MM-dd");
 
    private static UsageTrackingService                          INSTANCE;
@@ -212,7 +212,9 @@ public class UsageTrackingService {
             percentileValues = new TIntArrayList();
             _percentileData.put(id.getId(), percentileValues);
          }
-         percentileValues.add(value);
+         synchronized ( percentileValues ) {
+            percentileValues.add(value);
+         }
          break;
       }
    }
