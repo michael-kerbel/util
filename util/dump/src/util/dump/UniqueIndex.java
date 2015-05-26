@@ -127,11 +127,29 @@ public class UniqueIndex<E> extends DumpIndex<E> {
       return pos;
    }
 
+   public int[] getAllIntKeys() {
+      return _lookupInt.keys();
+   }
+
+   public long[] getAllLongKeys() {
+      return _lookupLong.keys();
+   }
+
+   public Object[] getAllObjectKeys() {
+      return _lookupObject.keys();
+   }
+
    @Override
    public int getNumKeys() {
-      if ( _lookupObject != null ) return _lookupObject.size();
-      if ( _lookupLong != null ) return _lookupLong.size();
-      if ( _lookupInt != null ) return _lookupInt.size();
+      if ( _lookupObject != null ) {
+         return _lookupObject.size();
+      }
+      if ( _lookupLong != null ) {
+         return _lookupLong.size();
+      }
+      if ( _lookupInt != null ) {
+         return _lookupInt.size();
+      }
       throw new IllegalStateException("weird, all lookup maps are null");
    }
 
