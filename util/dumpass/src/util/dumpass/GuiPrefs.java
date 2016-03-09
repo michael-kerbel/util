@@ -4,22 +4,26 @@ import gnu.trove.list.TIntList;
 import gnu.trove.list.array.TIntArrayList;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.apache.commons.configuration.AbstractConfiguration;
-import org.apache.commons.configuration.AbstractFileConfiguration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.MapConfiguration;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.configuration2.AbstractConfiguration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileBased;
+import org.apache.commons.configuration2.io.FileHandler;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableColumn;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.dumpass.GUI.BeanMetaData;
 import util.string.StringTool;
@@ -44,21 +48,23 @@ public class GuiPrefs {
    public static final String CLEANUP_CREATED_FILES = "cleanup.created.files";
 
    AbstractConfiguration      _preferences;
-   Logger _log = LoggerFactory.getLogger(getClass());
+   Logger                     _log                  = LoggerFactory.getLogger(getClass());
    GUI                        _gui;
    char                       _listDelimiter        = ',';
    Pattern                    _escaper              = Pattern.compile(Pattern.quote("" + _listDelimiter));
+   private FileHandler        _preferencesHandler;
 
 
    public GuiPrefs( GUI gui ) {
       _gui = gui;
 
       File file = new File(System.getProperty("user.home"), ".dumpass");
+      Parameters params = new Parameters();
+      FileBasedConfigurationBuilder<PropertiesConfiguration> builder = new FileBasedConfigurationBuilder<PropertiesConfiguration>(PropertiesConfiguration.class)
+            .configure(params.fileBased().setFile(file));
+
       try {
-         _preferences = new PropertiesConfiguration();
-         //_preferences.setListDelimiter('\u0000');
-         ((PropertiesConfiguration)_preferences).setFile(file);
-         ((PropertiesConfiguration)_preferences).load();
+         _preferences = builder.getConfiguration();
       }
       catch ( Exception e ) {
          _log.warn("Failed to load preferences, creating new ones.", e);
@@ -69,14 +75,25 @@ public class GuiPrefs {
                _preferences = new MapConfiguration(new HashMap());
             }
          }
+         if ( !file.exists() ) {
+            try {
+               file.createNewFile();
+            }
+            catch ( IOException argh ) {
+               _log.warn("Failed to create file " + file);
+            }
+         }
+
          try {
-            _preferences = new PropertiesConfiguration(file);
+            _preferences = builder.getConfiguration();
          }
          catch ( ConfigurationException e1 ) {
             _log.warn("Failed to create new preferences. Continueing without persistent prefs.", e);
             _preferences = new MapConfiguration(new HashMap());
          }
       }
+      _preferencesHandler = new FileHandler((FileBased)_preferences);
+      _preferencesHandler.setFile(file);
 
    }
 
@@ -94,12 +111,10 @@ public class GuiPrefs {
 
    public void flush() {
       try {
-         if ( _preferences instanceof AbstractFileConfiguration ) {
-            ((AbstractFileConfiguration)_preferences).save();
-         }
+         _preferencesHandler.save();
       }
-      catch ( Exception e ) {
-         _log.error("Failed to store preferences.", e);
+      catch ( ConfigurationException argh ) {
+         _log.error("Failed to store preferences.", argh);
       }
    }
 
@@ -252,7 +267,7 @@ public class GuiPrefs {
    }
 
    private String escape( String value ) {
-      return _escaper.matcher(value).replaceAll("\\" + _listDelimiter);
+      return value;
    }
 
    private String[] escape( String[] values ) {
