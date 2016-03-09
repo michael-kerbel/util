@@ -33,13 +33,13 @@ import net.sf.saxon.s9api.XsltCompiler;
 import net.sf.saxon.s9api.XsltExecutable;
 import net.sf.saxon.s9api.XsltTransformer;
 
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.htmlcleaner.CleanerProperties;
 import org.htmlcleaner.DomSerializer;
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.TagNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -49,18 +49,13 @@ import org.xml.sax.SAXParseException;
 
 public class Transformer {
 
-   private static Logger _log = LoggerFactory.getLogger(Transformer.class);
+   private static Logger                          _log               = LoggerFactory.getLogger(Transformer.class);
 
    private static final Pattern                   NON_BREAKING_SPACE = Pattern.compile("\\xa0");
    private static final Pattern                   SCRIPT_BLOCK       = Pattern.compile("(?s)<script>(.*?)</script>");
 
-   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = new ThreadLocal<ScriptEngine>() {
-
-                                                                        @Override
-                                                                        protected ScriptEngine initialValue() {
-                                                                           return new ScriptEngineManager().getEngineByName("JavaScript");
-                                                                        }
-                                                                     };
+   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial( //
+                                                                           ( ) -> new ScriptEngineManager().getEngineByMimeType("text/javascript"));
 
 
    public static Map<String, String>[] toMap( String transformed ) {
