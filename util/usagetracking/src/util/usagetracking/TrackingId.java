@@ -14,6 +14,8 @@ public interface TrackingId {
 
    public TrackingId getSlave();
 
+   public TrackingId getAggregationWeight();
+
    public int getMaxId();
 
 }

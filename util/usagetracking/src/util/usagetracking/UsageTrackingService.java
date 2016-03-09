@@ -16,6 +16,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
@@ -297,19 +298,18 @@ public class UsageTrackingService {
       Runtime.getRuntime().addShutdownHook(_shutdownThread);
    }
 
-   public List<StatData> readFromDump( String filename ) {
+   public synchronized List<StatData> readFromDump( String filename ) {
       List<StatData> data = new ArrayList<StatData>();
       File dumpFile = new File(_dumpFolder, filename);
-      Dump<StatData> dump = null;
-      try {
-         dump = new Dump<StatData>(StatData.class, dumpFile, Dump.SHARED_MODE);
+      try (Dump<StatData> dump = new Dump<StatData>(StatData.class, dumpFile, Dump.SHARED_MODE)) {
          for ( StatData d : dump ) {
             data.add(d);
          }
          return data;
       }
-      finally {
-         DumpUtils.closeSilently(dump);
+      catch ( IOException argh ) {
+         _log.error("failed to read from dump " + filename, argh);
+         return Collections.emptyList();
       }
    }
 
@@ -489,7 +489,7 @@ public class UsageTrackingService {
    }
 
 
-   public static class StatData extends ExternalizableBean {
+   public static class StatData implements ExternalizableBean {
 
       private static final long serialVersionUID = -1816997029156670474L;
 
@@ -505,7 +505,14 @@ public class UsageTrackingService {
 
    public static class UsageTrackingData implements Serializable {
 
+      /** timestamps */
       public TLongList     _keys;
+
+      /** 
+       * _data[i] and _keys[i] belong together. 
+       * For each timestamp in keys there is an array of values. 
+       * The index of these int[] corresponds with the TrackingId.getId() value  
+       */
       public List<int[]>   _data;
 
       transient TrackingId _exampleTrackingIdInstance;
@@ -515,26 +522,35 @@ public class UsageTrackingService {
          _exampleTrackingIdInstance = exampleTrackingIdInstance;
       }
 
-      public void addAll( TLongList otherKeys, List<int[]> otherData ) {
-         int otherI = 0;
-         for ( int myI = 0, myLength = _keys.size(), otherLength = otherKeys.size(); myI < myLength; myI++ ) {
-            while ( otherI < otherLength && otherKeys.get(otherI) < _keys.get(myI) ) {
-               _keys.insert(myI, otherKeys.get(otherI));
-               _data.add(myI, otherData.get(otherI));
-               myI++;
-               myLength++;
-               otherI++;
-            }
-            if ( otherI >= otherLength || otherKeys.get(otherI) != _keys.get(myI) ) {
-               continue;
-            }
-            addAll(_data.get(myI), otherData.get(otherI));
-            otherI++;
+      public void addAll( Collection<UsageTrackingData> utds ) {
+
+         // weight own data of percentile TrackingIds
+         forAllPercentileDatasWithWeights(( data, indexOfId, indexOfWeight ) -> data[indexOfId] = data[indexOfId] * data[indexOfWeight]);
+
+         for ( UsageTrackingData utd : utds ) {
+            addAll(utd._keys, utd._data);
          }
+
+         // normalize the aggregated percentile TrackingIds
+         forAllPercentileDatasWithWeights(( data, indexOfId, indexOfWeight ) -> data[indexOfId] = Math.round(data[indexOfId] / (float)data[indexOfWeight]));
       }
 
-      public void addAll( UsageTrackingData utd ) {
-         addAll(utd._keys, utd._data);
+      private void addAll( TLongList otherKeys, List<int[]> otherData ) {
+         int otherTimestampIndex = 0;
+         for ( int myTimestampIndex = 0, myLength = _keys.size(), otherLength = otherKeys.size(); myTimestampIndex < myLength; myTimestampIndex++ ) {
+            while ( otherTimestampIndex < otherLength && otherKeys.get(otherTimestampIndex) < _keys.get(myTimestampIndex) ) {
+               _keys.insert(myTimestampIndex, otherKeys.get(otherTimestampIndex));
+               _data.add(myTimestampIndex, otherData.get(otherTimestampIndex));
+               myTimestampIndex++;
+               myLength++;
+               otherTimestampIndex++;
+            }
+            if ( otherTimestampIndex >= otherLength || otherKeys.get(otherTimestampIndex) != _keys.get(myTimestampIndex) ) {
+               continue;
+            }
+            addAll(_data.get(myTimestampIndex), otherData.get(otherTimestampIndex));
+            otherTimestampIndex++;
+         }
       }
 
       private void addAll( int[] target, int[] source ) {
@@ -552,10 +568,40 @@ public class UsageTrackingService {
                break;
             case Percentile90:
             case Percentile99:
-               target[i] = Math.round((target[i] + source[i]) / 2.0f);
+               TrackingId weight = id.getAggregationWeight();
+               if ( weight != null ) {
+                  int indexOfWeight = weight.getId();
+                  target[i] += source[i] * source[indexOfWeight]; // we weight the data prior to aggregation
+               } else {
+                  target[i] = Math.round((target[i] + source[i]) / 2.0f);
+               }
             }
          }
       }
+
+      private void forAllPercentileDatasWithWeights( MyConsumer<int[]> function ) {
+         for ( int indexOfId = 0, length = _data.get(0).length; indexOfId < length; indexOfId++ ) {
+            TrackingId id = _exampleTrackingIdInstance.getForId(indexOfId);
+            if ( id == null ) {
+               continue;
+            }
+            if ( id.getAggregation() == Aggregation.Percentile90 || id.getAggregation() == Aggregation.Percentile99 ) {
+               TrackingId weight = id.getAggregationWeight();
+               if ( weight == null ) {
+                  continue;
+               }
+               int indexOfWeight = weight.getId();
+               for ( int[] data : _data ) {
+                  function.accept(data, indexOfId, indexOfWeight);
+               }
+            }
+         }
+      }
+   }
+
+   public interface MyConsumer<T> {
+
+      void accept( T t, int i, int j );
    }
 
    private class DataCollectionThread extends Thread {

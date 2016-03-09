@@ -37,6 +37,7 @@ public enum SimpleTrackingId implements TrackingId {
    private Aggregation                          _aggregation         = Aggregation.Sum;
 
    private TrackingId                           _slave;
+   private TrackingId                           _aggregationWeight;
 
    private long                                 _lastGCTimeTotal     = 0;
    private long                                 _lastFullGCTimeTotal = 0;
@@ -57,6 +58,15 @@ public enum SimpleTrackingId implements TrackingId {
       if ( _slave.getAggregation() != Aggregation.Sum ) {
          throw new IllegalStateException(
             "A slave TrackingId must be of Aggregation.Sum, since it currently only makes sense for RequestTime TrackingId to be slaves!");
+      }
+   }
+
+   private SimpleTrackingId( int id, Aggregation aggregation, TrackingId aggregationWeight ) {
+      _id = id;
+      _aggregation = aggregation;
+      _aggregationWeight = aggregationWeight;
+      if ( _aggregation != Aggregation.Percentile90 && _aggregation != Aggregation.Percentile99 ) {
+         throw new IllegalStateException("To use a weight TrackingId aggregation must be Aggregation.PercentileXX!");
       }
    }
 
@@ -122,6 +132,11 @@ public enum SimpleTrackingId implements TrackingId {
    @Override
    public TrackingId getSlave() {
       return _slave;
+   }
+
+   @Override
+   public TrackingId getAggregationWeight() {
+      return _aggregationWeight;
    }
 
 }
