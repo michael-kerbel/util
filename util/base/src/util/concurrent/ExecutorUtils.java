@@ -3,7 +3,6 @@ package util.concurrent;
 import gnu.trove.map.TIntIntMap;
 import gnu.trove.map.hash.TIntIntHashMap;
 
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -72,7 +71,7 @@ public class ExecutorUtils {
       }
    }
 
-   public static ExecutorService newFixedThreadPool( int nThreads, String threadNamePrefix ) {
+   public static ThreadPoolExecutor newFixedThreadPool( int nThreads, String threadNamePrefix ) {
       return new ThreadPoolExecutor(nThreads, nThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(),
          new NamedThreadFactory(threadNamePrefix));
    }
