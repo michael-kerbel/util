@@ -9,22 +9,18 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import util.crawler.CrawlParams;
 import util.crawler.Crawler;
-import util.http.HttpClientFactory;
 
 
 public class ProxyCrawler {
 
-   private static Logger _log = LoggerFactory.getLogger(ProxyCrawler.class);
+   private static Logger      _log             = LoggerFactory.getLogger(ProxyCrawler.class);
 
    private static CrawlParams SAMAIR_PARAMS    = new CrawlParamsWithXsltFromClasspath("proxies-samair.xsl");
    static {
@@ -33,7 +29,7 @@ public class ProxyCrawler {
       SAMAIR_PARAMS.setHost("www.samair.ru");
       SAMAIR_PARAMS.setId("proxies");
       SAMAIR_PARAMS.setNumberOfThreads(1);
-      SAMAIR_PARAMS.setStartURLs(Arrays.asList("/proxy/proxy-100.htm", "/proxy/proxy-200.htm", "/proxy/proxy-300.htm", "/proxy/proxy-01.htm"));
+      SAMAIR_PARAMS.setStartURLs(Arrays.asList("/proxy/proxy-02.htm"));
    }
 
    private static CrawlParams HIDEMYASS_PARAMS = new CrawlParamsWithXsltFromClasspath("proxies-hidemyass.xsl");
@@ -54,7 +50,7 @@ public class ProxyCrawler {
    }
 
    public static void refreshProxyList( String testHost, List<Pattern> sanePatterns, List<Pattern> insanePatterns, int maxTimeToMeasureLatency,
-         long maxResponseTimeInMillis ) {
+         int maxResponseTimeInMillis ) {
       ProxyCrawler proxyCrawler = new ProxyCrawler();
       proxyCrawler.crawl();
 
@@ -72,13 +68,13 @@ public class ProxyCrawler {
 
 
    public void crawl() {
-      new TheRealProxyCrawler(HIDEMYASS_PARAMS).crawl();
-      //new TheRealProxyCrawler(SAMAIR_PARAMS).crawl();
-
-      addProxiesFromProxyNova("http://www.proxynova.com/proxy_list.txt");
-      addProxiesFromProxyNova("http://www.proxynova.com/proxy_list.txt?country=us,de,fr,es,ch,it,pl,uk,ca,no");
+      //      new TheRealProxyCrawler(HIDEMYASS_PARAMS).crawl();
+      new TheRealProxyCrawler(SAMAIR_PARAMS).crawl();
 
       int n = _proxyList.getProxies().size();
+
+      System.err.println(_proxyList);
+
       if ( n == 0 ) {
          _log.warn("initializing from static file");
          _proxyList.initFromDisk();
@@ -89,26 +85,6 @@ public class ProxyCrawler {
 
    public ProxyList getProxyList() {
       return _proxyList;
-   }
-
-   private void addProxiesFromProxyNova( String url ) {
-      try {
-         HttpClient httpClient = new HttpClientFactory().create();
-         HttpGet get = HttpClientFactory.createGet(url);
-         HttpResponse response = httpClient.execute(get);
-         String page = HttpClientFactory.readPage(response);
-         for ( String line : StringUtils.split(page, "\n") ) {
-            if ( line.trim().isEmpty() ) {
-               continue;
-            }
-            if ( Character.isDigit(line.charAt(0)) ) {
-               _proxyList.addProxy(line);
-            }
-         }
-      }
-      catch ( Exception argh ) {
-         _log.warn("Failed to get proxies from proxynova.", argh);
-      }
    }
 
 
@@ -157,6 +133,7 @@ public class ProxyCrawler {
          for ( Map<String, String> map : maps ) {
             String ip = map.get("ip");
             String port = map.get("port");
+            port = mapPort(port);
             if ( ip != null && !ip.isEmpty() && StringUtils.trimToNull(port) != null ) {
                if ( _proxyAdresses.add(ip + ":" + port) ) {
                   added++;
@@ -164,6 +141,25 @@ public class ProxyCrawler {
             }
          }
          return added;
+      }
+
+      private String mapPort( String port ) {
+         if ( port.equals("ra41c") ) {
+            return "80";
+         }
+         if ( port.equals("r5816") ) {
+            return "3128";
+         }
+         if ( port.equals("r4f66") ) {
+            return "8080";
+         }
+         if ( port.equals("rc468") ) {
+            return "8090";
+         }
+         if ( port.equals("r29f1") ) {
+            return "3129";
+         }
+         return null;
       }
    }
 }
