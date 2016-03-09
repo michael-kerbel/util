@@ -25,9 +25,7 @@ import java.util.Set;
 
 import net.miginfocom.swt.MigLayout;
 
-import org.apache.commons.lang.ArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.StatusLineManager;
@@ -56,6 +54,8 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.ToolBar;
 import org.eclipse.swt.widgets.ToolItem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import util.dump.Dump;
 import util.dump.DumpIndex;
@@ -96,7 +96,7 @@ public class GUI extends ApplicationWindow {
    }
 
 
-   private Logger _log = LoggerFactory.getLogger(getClass());
+   private Logger             _log           = LoggerFactory.getLogger(getClass());
 
    Class                      _class;
    File                       _dumpFile;
@@ -387,6 +387,7 @@ public class GUI extends ApplicationWindow {
 
       _table.addListener(SWT.SetData, new Listener() {
 
+         @Override
          public void handleEvent( Event e ) {
             try {
                TableItem item = (TableItem)e.item;
@@ -507,6 +508,7 @@ public class GUI extends ApplicationWindow {
       List<FieldAccessor> fas = new ArrayList<FieldAccessor>(_accessors);
       Collections.sort(fas, new Comparator<FieldAccessor>() {
 
+         @Override
          public int compare( FieldAccessor o1, FieldAccessor o2 ) {
             return o1.getName().compareTo(o2.getName());
          }
@@ -931,6 +933,7 @@ public class GUI extends ApplicationWindow {
             sorter.setObjectStreamProvider(new SingleTypeObjectStreamProvider(_class));
             sorter.setComparator(new Comparator() {
 
+               @Override
                public int compare( Object o1, Object o2 ) {
                   try {
                      Comparable f1 = (Comparable)fa.get(o1);
@@ -1254,6 +1257,7 @@ public class GUI extends ApplicationWindow {
       // sort fields by the value of @externalize (ascending)
       Collections.sort(fields, new Comparator<Field>() {
 
+         @Override
          public int compare( Field o1, Field o2 ) {
 
             int val1 = Integer.MAX_VALUE;
@@ -1347,6 +1351,7 @@ public class GUI extends ApplicationWindow {
          _dumpFile = dumpFile;
          _existingFiles = _dumpFile.getAbsoluteFile().getParentFile().listFiles(new FilenameFilter() {
 
+            @Override
             public boolean accept( File dir, String name ) {
                return name.startsWith(_dumpFile.getName());
             }
@@ -1357,6 +1362,7 @@ public class GUI extends ApplicationWindow {
          Set<File> existingFiles = new HashSet<File>(Arrays.asList(_existingFiles));
          File[] f = _dumpFile.getAbsoluteFile().getParentFile().listFiles(new FilenameFilter() {
 
+            @Override
             public boolean accept( File dir, String name ) {
                return name.startsWith(_dumpFile.getName());
             }
