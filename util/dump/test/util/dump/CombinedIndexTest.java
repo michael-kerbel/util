@@ -11,11 +11,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import util.dump.CombinedIndex;
-import util.dump.Dump;
-import util.dump.ExternalizableBean;
-import util.dump.GroupIndex;
-
 
 public class CombinedIndexTest {
 
@@ -32,12 +27,15 @@ public class CombinedIndexTest {
    public void deleteOldTestDumps() {
       File[] dumpFile = new File(".").listFiles(new FileFilter() {
 
+         @Override
          public boolean accept( File f ) {
             return f.getName().startsWith("DumpTest.");
          }
       });
       for ( File df : dumpFile ) {
-         if ( !df.delete() ) System.out.println("Failed to delete old dump file " + df);
+         if ( !df.delete() ) {
+            System.out.println("Failed to delete old dump file " + df);
+         }
       }
    }
 
@@ -150,7 +148,7 @@ public class CombinedIndexTest {
    }
 
 
-   public static class Bean extends ExternalizableBean {
+   public static class Bean implements ExternalizableBean {
 
       @externalize(1)
       private long   _groupLong;
@@ -164,7 +162,7 @@ public class CombinedIndexTest {
       //      private String _data;
 
       public Bean() {
-      // for Externalization
+         // for Externalization
       }
 
       public Bean( int id, String data ) {

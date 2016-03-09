@@ -206,7 +206,7 @@ public class GroupedIndex<E> implements NonUniqueIndex<E> {
          }
 
          if ( _e != null && !_index.getObjectKey(_e).equals(_key) ) {
-            _e = null;
+            _e = (E)null;
          }
       }
    }

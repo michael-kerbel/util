@@ -10,13 +10,15 @@ import util.dump.stream.SingleTypeObjectStreamProvider;
 import util.io.IOUtils;
 
 
-public class ScaleData extends ExternalizableBean {
+public class ScaleData implements ExternalizableBean {
 
    public static ScaleData load( File file ) throws IOException {
       DumpReader<ScaleData> reader = null;
       try {
          reader = new DumpReader<ScaleData>(file, false, new SingleTypeObjectStreamProvider<ScaleData>(ScaleData.class));
-         if ( reader.hasNext() ) return reader.next();
+         if ( reader.hasNext() ) {
+            return reader.next();
+         }
       }
       finally {
          IOUtils.close(reader);
@@ -89,8 +91,10 @@ public class ScaleData extends ExternalizableBean {
    }
 
    public void save( File file ) throws IOException {
-      if ( file.exists() ) if ( !file.delete() ) {
-         throw new RuntimeException("Failed to delete old file " + file);
+      if ( file.exists() ) {
+         if ( !file.delete() ) {
+            throw new RuntimeException("Failed to delete old file " + file);
+         }
       }
       DumpWriter<ScaleData> writer = new DumpWriter<ScaleData>(file, new SingleTypeObjectStreamProvider<ScaleData>(ScaleData.class));
       writer.write(this);
@@ -100,15 +104,20 @@ public class ScaleData extends ExternalizableBean {
    public Node scale( Node node ) {
       int index = node.index;
       double value = node.value;
-      if ( _featureMax.length <= index || _featureMin.length <= index ) return null; // test data might have unknown features, which we can safely ignore
-      if ( _featureMax[index] == _featureMin[index] ) return null;
+      if ( _featureMax.length <= index || _featureMin.length <= index ) {
+         return null; // test data might have unknown features, which we can safely ignore
+      }
+      if ( _featureMax[index] == _featureMin[index] ) {
+         return null;
+      }
 
-      if ( value == _featureMin[index] )
+      if ( value == _featureMin[index] ) {
          value = _lowerLimit;
-      else if ( value == _featureMax[index] )
+      } else if ( value == _featureMax[index] ) {
          value = _upperLimit;
-      else
+      } else {
          value = _lowerLimit + (_upperLimit - _lowerLimit) * (value - _featureMin[index]) / (_featureMax[index] - _featureMin[index]);
+      }
 
       return new Node(index, value);
    }

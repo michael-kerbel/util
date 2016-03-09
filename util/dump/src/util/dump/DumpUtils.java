@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 public class DumpUtils {
 
-   private static final Logger LOG = LoggerFactory.getLogger(DumpUtils.class);
+   private static final Logger        LOG                        = LoggerFactory.getLogger(DumpUtils.class);
 
    private static ThreadLocal<byte[]> _writeUTFReusableByteArray = new ThreadLocal<byte[]>() {
 
@@ -319,7 +319,7 @@ public class DumpUtils {
          }
          catch ( IOException ex ) {}
       }
-      return null;
+      return (E)null;
    }
 
    /** this is an extension of {@link java.io.DataOutputStream.writeUTF()} which allows more than 65535 chars. 

@@ -38,10 +38,16 @@ import util.dump.ExternalizableBean.externalize;
 public class ExternalizableBeanTest {
 
    private static final int NUMBER_OF_INSTANCES_TO_CREATE = 100;
+   private static Random    r;
+
+   static {
+      long seed = System.currentTimeMillis();
+      System.out.println("random seed: " + seed);
+      r = new Random(seed);
+   }
 
 
    public static Externalizable newRandomInstance( Class testClass ) throws Exception {
-      Random r = new Random();
 
       Externalizable t = (Externalizable)testClass.newInstance();
       for ( Field f : testClass.getFields() ) {
@@ -361,6 +367,21 @@ public class ExternalizableBeanTest {
    }
 
    @Test
+   public void testStreamCache() throws Exception {
+      TestBeanStreamCache b = new TestBeanStreamCache();
+      b._list1 = null;
+      b._list2 = new LinkedList<Externalizable>();
+      TestBeanStreamCache bb = new TestBeanStreamCache();
+      b._list2.add(bb);
+      bb._list1 = new LinkedList<Externalizable>();
+      bb._list1.add(new TestBeanStreamCache());
+      bb._list2 = new LinkedList<Externalizable>();
+      Externalizable[] t = new Externalizable[] { b };
+
+      readAndAssert(write(t), TestBeanStreamCache.class, t);
+   }
+
+   @Test
    public void testCompatibility() throws Exception {
       testCompatibility(TestBean3.class, TestBean4.class);
       testCompatibility(TestBean4.class, TestBean3.class);
@@ -376,11 +397,7 @@ public class ExternalizableBeanTest {
          t[i]._other._other = t[i];
       }
 
-      Externalizable[] tt = read(write(t), TestBeanCyclic.class);
-
-      for ( int j = 0, length = t.length; j < length; j++ ) {
-         assertThat(equals(TestBeanCyclic.class, t[j], tt[j])).isTrue();
-      }
+      readAndAssert(write(t), TestBeanCyclic.class, t);
    }
 
    @Test
@@ -398,11 +415,7 @@ public class ExternalizableBeanTest {
          t[i] = newRandomInstance(testClass);
       }
 
-      Externalizable[] tt = read(write(t), testClass);
-
-      for ( int j = 0, length = t.length; j < length; j++ ) {
-         assertThat(equals(testClass, t[j], tt[j])).isTrue();
-      }
+      readAndAssert(write(t), testClass, t);
    }
 
    @Test
@@ -410,12 +423,13 @@ public class ExternalizableBeanTest {
       testCompatibility(TestBean.class, TestBean2.class);
    }
 
-   protected Externalizable[] read( byte[] bytes, Class testClass ) throws Exception {
+   protected Externalizable[] readAndAssert( byte[] bytes, Class testClass, Externalizable[] t ) throws Exception {
       ObjectInput i = new ObjectInputStream(new ByteArrayInputStream(bytes));
-      Externalizable[] tt = new Externalizable[NUMBER_OF_INSTANCES_TO_CREATE];
+      Externalizable[] tt = new Externalizable[t.length];
       for ( int j = 0, length = tt.length; j < length; j++ ) {
          tt[j] = (Externalizable)testClass.newInstance();
          tt[j].readExternal(i);
+         assertThat(equalsIgnoreMissingFields(t[j], tt[j])).as("index " + j + " is equal").isTrue();
       }
       i.close();
       return tt;
@@ -691,15 +705,32 @@ public class ExternalizableBeanTest {
          t[i] = newRandomInstance(testClass1);
       }
 
-      Externalizable[] tt = read(write(t), testClass2);
-
-      for ( int j = 0, length = t.length; j < length; j++ ) {
-         assertThat(equalsIgnoreMissingFields(t[j], tt[j])).isTrue();
-      }
+      readAndAssert(write(t), testClass2, t);
    }
 
 
-   public static class TestBean extends ExternalizableBean implements Comparable<TestBean> {
+   public static class TestBeanStreamCache implements ExternalizableBean, Comparable<TestBean> {
+
+      @Override
+      public String toString() {
+         return "TestBeanStreamCache [_list1=" + _list1 + ", _list2=" + _list2 + "]";
+      }
+
+
+      @externalize(1)
+      public List<Externalizable> _list1;
+
+      @externalize(2)
+      public List<Externalizable> _list2;
+
+
+      @Override
+      public int compareTo( TestBean o ) {
+         return 0;
+      }
+   }
+
+   public static class TestBean implements ExternalizableBean, Comparable<TestBean> {
 
       @externalize(1)
       public int                  _int;
@@ -795,10 +826,12 @@ public class ExternalizableBeanTest {
    public static class TestBean2 extends TestBean {
 
       @externalize(50)
-      public int _int2;
+      public Set<Externalizable> _setOfExternalizable2;
+      @externalize(51)
+      public int                 _int2;
    }
 
-   public static class TestBean3 extends ExternalizableBean implements Comparable<TestBean3> {
+   public static class TestBean3 implements ExternalizableBean, Comparable<TestBean3> {
 
       // the member vars get initialized randomly only if the field is public - a limitation of this testcase
 
@@ -1012,7 +1045,7 @@ public class ExternalizableBeanTest {
       }
    }
 
-   public static class TestBean4 extends ExternalizableBean {
+   public static class TestBean4 implements ExternalizableBean {
 
       // this member var gets initialized randomly only if the field is public - a limitation of this testcase
 
@@ -1201,13 +1234,13 @@ public class ExternalizableBeanTest {
       }
    }
 
-   public static class TestBeanCyclic extends ExternalizableBean {
+   public static class TestBeanCyclic implements ExternalizableBean {
 
       @externalize(1)
       TestBeanCyclic _other;
    }
 
-   public static class TestBeanSimple extends ExternalizableBean {
+   public static class TestBeanSimple implements ExternalizableBean {
 
       // the member vars get initialized randomly only if the field is public - a limitation of this testcase
 

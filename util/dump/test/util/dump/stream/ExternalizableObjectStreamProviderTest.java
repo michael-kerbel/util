@@ -141,7 +141,7 @@ public class ExternalizableObjectStreamProviderTest {
    }
 
 
-   public static class TestExternalizableBean extends ExternalizableBean {
+   public static class TestExternalizableBean implements ExternalizableBean {
 
       @externalize(1)
       Date   _date;

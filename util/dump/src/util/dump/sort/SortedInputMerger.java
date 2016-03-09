@@ -20,16 +20,17 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
    private DumpInput<E>  dualChannelA   = null;                    // first channel for dual stream mode (using comparator)
 
    private Iterator<E>   iteratorA      = null;
-   private E             lastA          = null;
+   private E             lastA          = (E)null;
    private DumpInput<E>  dualChannelB   = null;                    // second channel for dual stream mode (using comparator)
    private Iterator<E>   iteratorB      = null;
-   private E             lastB          = null;
+   private E             lastB          = (E)null;
    private Iterator<E>   singleIterator = null;                    // channel for single stream mode
-   private E             lastSingle     = null;
-   private E             nextElement    = null;                    // next element to be returned
+   private E             lastSingle     = (E)null;
+   private E             nextElement    = (E)null;                 // next element to be returned
    private boolean       nextPrepared   = false;
    private Comparator<E> comparator     = null;                    // reference to the provided Comparator
    private MergerMode    mergerMode     = MergerMode.uninitialized; // indicates the current merger status
+
 
    /**
     * Constructs a merger using the given collection of <code>DumpInput</code> objetcs,
@@ -59,9 +60,10 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
    /**
     * Closes the stream
     */
+   @Override
    public void close() throws IOException {
 
-      this.nextElement = null;
+      this.nextElement = (E)null;
 
       if ( dualChannelA != null ) {
          dualChannelA.close();
@@ -74,8 +76,12 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
 
    private int compare( E a, E b ) {
       if ( comparator == null ) {
-         if ( !(a instanceof Comparable) ) throw new IllegalArgumentException(a + " isn't Comparable and no comparator is set");
-         if ( !(b instanceof Comparable) ) throw new IllegalArgumentException(a + " isn't Comparable and no comparator is set");
+         if ( !(a instanceof Comparable) ) {
+            throw new IllegalArgumentException(a + " isn't Comparable and no comparator is set");
+         }
+         if ( !(b instanceof Comparable) ) {
+            throw new IllegalArgumentException(a + " isn't Comparable and no comparator is set");
+         }
 
          return ((Comparable)a).compareTo(b);
       }
@@ -83,6 +89,7 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
       return comparator.compare(a, b);
    }
 
+   @Override
    public boolean hasNext() {
       if ( nextPrepared ) {
          return nextElement != null;
@@ -132,7 +139,7 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
             }
             // EOF reached change status and inform the user
             mergerMode = MergerMode.concluded;
-            this.nextElement = null;
+            this.nextElement = (E)null;
             nextPrepared = true;
             return false;
 
@@ -145,7 +152,7 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
             return true;
 
          case concluded:
-            this.nextElement = null;
+            this.nextElement = (E)null;
             nextPrepared = true;
             return false;
 
@@ -162,10 +169,12 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
 
    }
 
+   @Override
    public Iterator<E> iterator() {
       return this;
    }
 
+   @Override
    public E next() {
       nextPrepared = false;
       if ( nextElement == null ) {
@@ -174,6 +183,7 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
       return nextElement;
    }
 
+   @Override
    public void remove() {}
 
    @Override
@@ -211,7 +221,7 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
          }
          lastA = next;
       } else {
-         lastA = null;
+         lastA = (E)null;
       }
       return hasNext;
    }
@@ -225,7 +235,7 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
          }
          lastB = next;
       } else {
-         lastB = null;
+         lastB = (E)null;
       }
       return hasNext;
    }
@@ -235,7 +245,7 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
       if ( hasNext ) {
          lastSingle = singleIterator.next();
       } else {
-         lastSingle = null;
+         lastSingle = (E)null;
       }
       return hasNext;
    }
@@ -277,6 +287,7 @@ class SortedInputMerger<E> implements DumpInput<E>, Iterator<E> {
       }
 
    }
+
 
    // private enumartion used to document the merger status
    private enum MergerMode {

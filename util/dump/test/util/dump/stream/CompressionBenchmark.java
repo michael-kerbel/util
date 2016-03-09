@@ -59,11 +59,11 @@ public class CompressionBenchmark {
 
       for ( int i = 0; i < 2; i++ ) {
          File dumpFile = new File("compression-benchmark.dmp");
-         //         Dump uncompressed = new Dump<TestBean>(TestBean.class, dumpFile);
-         //         measure(uncompressed, "no compression");
-         //         uncompressed.close();
-         //         System.err.println("file size: " + dumpFile.length());
-         //         dumpFile.delete();
+         Dump uncompressed = new Dump<TestBean>(TestBean.class, dumpFile);
+         measure(uncompressed, "no compression");
+         uncompressed.close();
+         System.err.println("file size: " + dumpFile.length());
+         dumpFile.delete();
          Dump compressed = new Dump<TestBean>(TestBean.class, dumpFile, _compressor);
          measure(compressed, "lz4");
          compressed.close();
@@ -94,7 +94,7 @@ public class CompressionBenchmark {
    }
 
 
-   private static class TestBean extends ExternalizableBean {
+   private static class TestBean implements ExternalizableBean {
 
       @externalize(1)
       String _data = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet.";

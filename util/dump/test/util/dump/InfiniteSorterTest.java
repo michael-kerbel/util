@@ -11,8 +11,6 @@ import util.dump.stream.ObjectStreamProvider;
 import util.dump.stream.SingleTypeObjectStreamProvider;
 
 
-
-
 public class InfiniteSorterTest {
 
    @Test
@@ -50,10 +48,12 @@ public class InfiniteSorterTest {
       Assert.assertEquals(n, 10000000);
    }
 
-   public static class Bean extends ExternalizableBean implements Comparable<Bean> {
+
+   public static class Bean implements ExternalizableBean, Comparable<Bean> {
 
       @externalize(1)
       private long _id;
+
 
       public Bean() {}
 
@@ -61,6 +61,7 @@ public class InfiniteSorterTest {
          _id = id;
       }
 
+      @Override
       public int compareTo( Bean o ) {
          return (_id < o._id ? -1 : (_id == o._id ? 0 : 1));
       }

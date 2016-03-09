@@ -5,9 +5,7 @@ import java.util.Random;
 import util.dump.ExternalizableBean;
 
 
-
-
-public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean implements Comparable<DumpOfferBeanExternalizableBeanMethods> {
+public class DumpOfferBeanExternalizableBeanMethods implements ExternalizableBean, Comparable<DumpOfferBeanExternalizableBeanMethods> {
 
    private static final long   RANDOM_SEED = 123456;
    private static final Random RANDOM      = new Random(RANDOM_SEED);
@@ -57,6 +55,7 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
       return sb.toString();
    }
 
+
    public long    contentId;
    public long    ownerId;
    public String  sourceId;
@@ -98,13 +97,13 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
    public String  imageView;
    public String  imageSmall;
 
+
    public DumpOfferBeanExternalizableBeanMethods() {}
 
-
+   @Override
    public int compareTo( DumpOfferBeanExternalizableBeanMethods o ) {
       return this.contentId < o.contentId ? -1 : (this.contentId == o.contentId ? 0 : 1);
    }
-
 
    @Override
    public boolean equals( Object obj ) {
@@ -122,8 +121,7 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
          if ( other.code != null ) {
             return false;
          }
-      }
-      else if ( !code.equals(other.code) ) {
+      } else if ( !code.equals(other.code) ) {
          return false;
       }
       if ( codeType != other.codeType ) {
@@ -139,32 +137,28 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
          if ( other.deeplink != null ) {
             return false;
          }
-      }
-      else if ( !deeplink.equals(other.deeplink) ) {
+      } else if ( !deeplink.equals(other.deeplink) ) {
          return false;
       }
       if ( deliveryCost == null ) {
          if ( other.deliveryCost != null ) {
             return false;
          }
-      }
-      else if ( !deliveryCost.equals(other.deliveryCost) ) {
+      } else if ( !deliveryCost.equals(other.deliveryCost) ) {
          return false;
       }
       if ( deliveryCostValue == null ) {
          if ( other.deliveryCostValue != null ) {
             return false;
          }
-      }
-      else if ( !deliveryCostValue.equals(other.deliveryCostValue) ) {
+      } else if ( !deliveryCostValue.equals(other.deliveryCostValue) ) {
          return false;
       }
       if ( deliveryTime == null ) {
          if ( other.deliveryTime != null ) {
             return false;
          }
-      }
-      else if ( !deliveryTime.equals(other.deliveryTime) ) {
+      } else if ( !deliveryTime.equals(other.deliveryTime) ) {
          return false;
       }
       if ( deliveryTimeColor != other.deliveryTimeColor ) {
@@ -174,8 +168,7 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
          if ( other.description != null ) {
             return false;
          }
-      }
-      else if ( !description.equals(other.description) ) {
+      } else if ( !description.equals(other.description) ) {
          return false;
       }
       if ( hid != other.hid ) {
@@ -185,16 +178,14 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
          if ( other.imageSmall != null ) {
             return false;
          }
-      }
-      else if ( !imageSmall.equals(other.imageSmall) ) {
+      } else if ( !imageSmall.equals(other.imageSmall) ) {
          return false;
       }
       if ( imageView == null ) {
          if ( other.imageView != null ) {
             return false;
          }
-      }
-      else if ( !imageView.equals(other.imageView) ) {
+      } else if ( !imageView.equals(other.imageView) ) {
          return false;
       }
       if ( isActive != other.isActive ) {
@@ -204,16 +195,14 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
          if ( other.manufacturer != null ) {
             return false;
          }
-      }
-      else if ( !manufacturer.equals(other.manufacturer) ) {
+      } else if ( !manufacturer.equals(other.manufacturer) ) {
          return false;
       }
       if ( manufacturerPrdId == null ) {
          if ( other.manufacturerPrdId != null ) {
             return false;
          }
-      }
-      else if ( !manufacturerPrdId.equals(other.manufacturerPrdId) ) {
+      } else if ( !manufacturerPrdId.equals(other.manufacturerPrdId) ) {
          return false;
       }
       if ( matchOwner != other.matchOwner ) {
@@ -232,16 +221,14 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
          if ( other.name != null ) {
             return false;
          }
-      }
-      else if ( !name.equals(other.name) ) {
+      } else if ( !name.equals(other.name) ) {
          return false;
       }
       if ( oldPrice == null ) {
          if ( other.oldPrice != null ) {
             return false;
          }
-      }
-      else if ( !oldPrice.equals(other.oldPrice) ) {
+      } else if ( !oldPrice.equals(other.oldPrice) ) {
          return false;
       }
       if ( ownerId != other.ownerId ) {
@@ -257,24 +244,21 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
          if ( other.promoText != null ) {
             return false;
          }
-      }
-      else if ( !promoText.equals(other.promoText) ) {
+      } else if ( !promoText.equals(other.promoText) ) {
          return false;
       }
       if ( sourceGroup == null ) {
          if ( other.sourceGroup != null ) {
             return false;
          }
-      }
-      else if ( !sourceGroup.equals(other.sourceGroup) ) {
+      } else if ( !sourceGroup.equals(other.sourceGroup) ) {
          return false;
       }
       if ( sourceId == null ) {
          if ( other.sourceId != null ) {
             return false;
          }
-      }
-      else if ( !sourceId.equals(other.sourceId) ) {
+      } else if ( !sourceId.equals(other.sourceId) ) {
          return false;
       }
       if ( updated != other.updated ) {
@@ -286,180 +270,150 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
       return true;
    }
 
-
    @externalize(1)
    public String getCode() {
       return code;
    }
-
 
    @externalize(2)
    public int getCodeType() {
       return codeType;
    }
 
-
    @externalize(3)
    public long getContentId() {
       return contentId;
    }
-
 
    @externalize(4)
    public long getCreated() {
       return created;
    }
 
-
    @externalize(5)
    public String getDeeplink() {
       return deeplink;
    }
-
 
    @externalize(6)
    public String getDeliveryCost() {
       return deliveryCost;
    }
 
-
    @externalize(7)
    public Double getDeliveryCostValue() {
       return deliveryCostValue;
    }
-
 
    @externalize(8)
    public String getDeliveryTime() {
       return deliveryTime;
    }
 
-
    @externalize(9)
    public int getDeliveryTimeColor() {
       return deliveryTimeColor;
    }
-
 
    @externalize(10)
    public String getDescription() {
       return description;
    }
 
-
    @externalize(11)
    public long getHid() {
       return hid;
    }
-
 
    @externalize(12)
    public String getImageSmall() {
       return imageSmall;
    }
 
-
    @externalize(13)
    public String getImageView() {
       return imageView;
    }
-
 
    @externalize(14)
    public String getManufacturer() {
       return manufacturer;
    }
 
-
    @externalize(15)
    public String getManufacturerPrdId() {
       return manufacturerPrdId;
    }
-
 
    @externalize(16)
    public long getMatchOwner() {
       return matchOwner;
    }
 
-
    @externalize(17)
    public long getMatchProgram() {
       return matchProgram;
    }
-
 
    @externalize(18)
    public long getMatchStamp() {
       return matchStamp;
    }
 
-
    @externalize(19)
    public long getMatchType() {
       return matchType;
    }
-
 
    @externalize(20)
    public String getName() {
       return name;
    }
 
-
    @externalize(21)
    public Double getOldPrice() {
       return oldPrice;
    }
-
 
    @externalize(22)
    public long getOwnerId() {
       return ownerId;
    }
 
-
    @externalize(23)
    public long getParentHid() {
       return parentHid;
    }
-
 
    @externalize(24)
    public double getPrice() {
       return price;
    }
 
-
    @externalize(25)
    public String getPromoText() {
       return promoText;
    }
-
 
    @externalize(26)
    public String getSourceGroup() {
       return sourceGroup;
    }
 
-
    @externalize(27)
    public String getSourceId() {
       return sourceId;
    }
-
 
    @externalize(28)
    public long getUpdated() {
       return updated;
    }
 
-
    @externalize(29)
    public long getVariant() {
       return variant;
    }
-
 
    @Override
    public int hashCode() {
@@ -505,131 +459,105 @@ public class DumpOfferBeanExternalizableBeanMethods extends ExternalizableBean i
       return isActive;
    }
 
-
    public void setActive( boolean isActive ) {
       this.isActive = isActive;
    }
-
 
    public void setCode( String code ) {
       this.code = code;
    }
 
-
    public void setCodeType( int codeType ) {
       this.codeType = codeType;
    }
-
 
    public void setContentId( long contentId ) {
       this.contentId = contentId;
    }
 
-
    public void setCreated( long created ) {
       this.created = created;
    }
-
 
    public void setDeeplink( String deeplink ) {
       this.deeplink = deeplink;
    }
 
-
    public void setDeliveryCost( String deliveryCost ) {
       this.deliveryCost = deliveryCost;
    }
-
 
    public void setDeliveryCostValue( Double deliveryCostValue ) {
       this.deliveryCostValue = deliveryCostValue;
    }
 
-
    public void setDeliveryTime( String deliveryTime ) {
       this.deliveryTime = deliveryTime;
    }
-
 
    public void setDeliveryTimeColor( int deliveryTimeColor ) {
       this.deliveryTimeColor = deliveryTimeColor;
    }
 
-
    public void setDescription( String description ) {
       this.description = description;
    }
-
 
    public void setHid( long hid ) {
       this.hid = hid;
    }
 
-
    public void setImageSmall( String imageSmall ) {
       this.imageSmall = imageSmall;
    }
-
 
    public void setImageView( String imageView ) {
       this.imageView = imageView;
    }
 
-
    public void setManufacturer( String manufacturer ) {
       this.manufacturer = manufacturer;
    }
-
 
    public void setManufacturerPrdId( String manufacturerPrdId ) {
       this.manufacturerPrdId = manufacturerPrdId;
    }
 
-
    public void setMatchOwner( long matchOwner ) {
       this.matchOwner = matchOwner;
    }
-
 
    public void setMatchProgram( long matchProgram ) {
       this.matchProgram = matchProgram;
    }
 
-
    public void setMatchStamp( long matchStamp ) {
       this.matchStamp = matchStamp;
    }
-
 
    public void setMatchType( long matchType ) {
       this.matchType = matchType;
    }
 
-
    public void setName( String name ) {
       this.name = name;
    }
-
 
    public void setOldPrice( Double oldPrice ) {
       this.oldPrice = oldPrice;
    }
 
-
    public void setOwnerId( long ownerId ) {
       this.ownerId = ownerId;
    }
-
 
    public void setParentHid( long parentHid ) {
       this.parentHid = parentHid;
    }
 
-
    public void setPrice( double price ) {
       this.price = price;
    }
-
 
    public void setPromoText( String promoText ) {
       this.promoText = promoText;

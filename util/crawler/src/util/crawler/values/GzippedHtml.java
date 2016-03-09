@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 import util.dump.ExternalizableBean;
 
 
-public class GzippedHtml extends ExternalizableBean {
+public class GzippedHtml implements ExternalizableBean {
 
    private static Logger _log = LoggerFactory.getLogger(GzippedHtml.class);
 

@@ -5,9 +5,7 @@ import java.util.Random;
 import util.dump.ExternalizableBean;
 
 
-
-
-public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean implements Comparable<DumpOfferBeanExternalizableBeanFields> {
+public class DumpOfferBeanExternalizableBeanFields implements ExternalizableBean, Comparable<DumpOfferBeanExternalizableBeanFields> {
 
    private static final long   RANDOM_SEED = 123456;
    private static final Random RANDOM      = new Random(RANDOM_SEED);
@@ -56,6 +54,7 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
       }
       return sb.toString();
    }
+
 
    @externalize(1)
    private long    contentId;
@@ -131,6 +130,7 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
 
    public DumpOfferBeanExternalizableBeanFields() {}
 
+   @Override
    public int compareTo( DumpOfferBeanExternalizableBeanFields o ) {
       return this.contentId < o.contentId ? -1 : (this.contentId == o.contentId ? 0 : 1);
    }
@@ -151,8 +151,7 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
          if ( other.code != null ) {
             return false;
          }
-      }
-      else if ( !code.equals(other.code) ) {
+      } else if ( !code.equals(other.code) ) {
          return false;
       }
       if ( codeType != other.codeType ) {
@@ -168,32 +167,28 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
          if ( other.deeplink != null ) {
             return false;
          }
-      }
-      else if ( !deeplink.equals(other.deeplink) ) {
+      } else if ( !deeplink.equals(other.deeplink) ) {
          return false;
       }
       if ( deliveryCost == null ) {
          if ( other.deliveryCost != null ) {
             return false;
          }
-      }
-      else if ( !deliveryCost.equals(other.deliveryCost) ) {
+      } else if ( !deliveryCost.equals(other.deliveryCost) ) {
          return false;
       }
       if ( deliveryCostValue == null ) {
          if ( other.deliveryCostValue != null ) {
             return false;
          }
-      }
-      else if ( !deliveryCostValue.equals(other.deliveryCostValue) ) {
+      } else if ( !deliveryCostValue.equals(other.deliveryCostValue) ) {
          return false;
       }
       if ( deliveryTime == null ) {
          if ( other.deliveryTime != null ) {
             return false;
          }
-      }
-      else if ( !deliveryTime.equals(other.deliveryTime) ) {
+      } else if ( !deliveryTime.equals(other.deliveryTime) ) {
          return false;
       }
       if ( deliveryTimeColor != other.deliveryTimeColor ) {
@@ -203,8 +198,7 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
          if ( other.description != null ) {
             return false;
          }
-      }
-      else if ( !description.equals(other.description) ) {
+      } else if ( !description.equals(other.description) ) {
          return false;
       }
       if ( hid != other.hid ) {
@@ -214,16 +208,14 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
          if ( other.imageSmall != null ) {
             return false;
          }
-      }
-      else if ( !imageSmall.equals(other.imageSmall) ) {
+      } else if ( !imageSmall.equals(other.imageSmall) ) {
          return false;
       }
       if ( imageView == null ) {
          if ( other.imageView != null ) {
             return false;
          }
-      }
-      else if ( !imageView.equals(other.imageView) ) {
+      } else if ( !imageView.equals(other.imageView) ) {
          return false;
       }
       if ( isActive != other.isActive ) {
@@ -233,16 +225,14 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
          if ( other.manufacturer != null ) {
             return false;
          }
-      }
-      else if ( !manufacturer.equals(other.manufacturer) ) {
+      } else if ( !manufacturer.equals(other.manufacturer) ) {
          return false;
       }
       if ( manufacturerPrdId == null ) {
          if ( other.manufacturerPrdId != null ) {
             return false;
          }
-      }
-      else if ( !manufacturerPrdId.equals(other.manufacturerPrdId) ) {
+      } else if ( !manufacturerPrdId.equals(other.manufacturerPrdId) ) {
          return false;
       }
       if ( matchOwner != other.matchOwner ) {
@@ -261,16 +251,14 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
          if ( other.name != null ) {
             return false;
          }
-      }
-      else if ( !name.equals(other.name) ) {
+      } else if ( !name.equals(other.name) ) {
          return false;
       }
       if ( oldPrice == null ) {
          if ( other.oldPrice != null ) {
             return false;
          }
-      }
-      else if ( !oldPrice.equals(other.oldPrice) ) {
+      } else if ( !oldPrice.equals(other.oldPrice) ) {
          return false;
       }
       if ( ownerId != other.ownerId ) {
@@ -286,24 +274,21 @@ public class DumpOfferBeanExternalizableBeanFields extends ExternalizableBean im
          if ( other.promoText != null ) {
             return false;
          }
-      }
-      else if ( !promoText.equals(other.promoText) ) {
+      } else if ( !promoText.equals(other.promoText) ) {
          return false;
       }
       if ( sourceGroup == null ) {
          if ( other.sourceGroup != null ) {
             return false;
          }
-      }
-      else if ( !sourceGroup.equals(other.sourceGroup) ) {
+      } else if ( !sourceGroup.equals(other.sourceGroup) ) {
          return false;
       }
       if ( sourceId == null ) {
          if ( other.sourceId != null ) {
             return false;
          }
-      }
-      else if ( !sourceId.equals(other.sourceId) ) {
+      } else if ( !sourceId.equals(other.sourceId) ) {
          return false;
       }
       if ( updated != other.updated ) {

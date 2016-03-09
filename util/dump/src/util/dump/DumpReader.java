@@ -27,7 +27,7 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
    BufferedInputStream     _inputbuffer;
    InputStream             _primitiveInputStream;
    ObjectInput             _objectInputStream;
-   E                       _nextObject         = null;
+   E                       _nextObject         = (E)null;
    boolean                 _nextPrepared       = false;
    File                    _sourceFile         = null;
    boolean                 _deleteFileOnEOF    = false;
@@ -123,6 +123,7 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
     * This method is invoqued automatically when <code>hasNext()</code> returns <code>false</code>.
     *
     */
+   @Override
    public void close() throws IOException {
       closeStreams(false);
    }
@@ -134,6 +135,7 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
       return _objectInputStream;
    }
 
+   @Override
    public boolean hasNext() {
       if ( _nextPrepared ) {
          return _nextObject != null;
@@ -146,7 +148,7 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
          return true;
       }
       catch ( OptionalDataException e ) {
-         _nextObject = null;
+         _nextObject = (E)null;
          if ( e.eof ) {
             closeStreams(true);
             _nextPrepared = true;
@@ -156,18 +158,19 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
          }
       }
       catch ( EOFException e ) {
-         _nextObject = null;
+         _nextObject = (E)null;
          _nextPrepared = true;
          closeStreams(true);
          return false;
       }
       catch ( Exception e ) {
-         _nextObject = null;
+         _nextObject = (E)null;
          closeStreams(true);
          throw new RuntimeException(e);
       }
    }
 
+   @Override
    public Iterator<E> iterator() {
       return this;
    }
@@ -176,11 +179,13 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
       return _nextObject;
    }
 
+   @Override
    public E next() {
       _nextPrepared = false;
       return _nextObject;
    }
 
+   @Override
    public void remove() {
       throw new UnsupportedOperationException("remove() not supported by DumpReader!");
    }

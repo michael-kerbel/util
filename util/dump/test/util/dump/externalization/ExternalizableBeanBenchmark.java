@@ -2,6 +2,7 @@ package util.dump.externalization;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Externalizable;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
@@ -12,6 +13,7 @@ import java.util.List;
 
 import util.dump.ExternalizableBean;
 import util.dump.ExternalizableBeanTest;
+import util.dump.ExternalizableBeanTest.TestBean;
 import util.dump.ExternalizableBeanTest.TestBeanSimple;
 import util.dump.stream.SingleTypeObjectInputStream;
 import util.dump.stream.SingleTypeObjectOutputStream;
@@ -25,12 +27,15 @@ public class ExternalizableBeanBenchmark {
    }
 
    private void benchmark() throws Exception {
-      System.err.println("---------- simple instances");
+      System.err.print("---------- instances");
 
       {
-         TestBeanSimple[] beans = new TestBeanSimple[1000000];
+         Class testClass = TestBean.class;
+         System.err.println(" of type " + testClass);
+
+         Externalizable[] beans = new Externalizable[50000];
          for ( int i = 0, length = beans.length; i < length; i++ ) {
-            beans[i] = (TestBeanSimple)ExternalizableBeanTest.newRandomInstance(TestBeanSimple.class);
+            beans[i] = ExternalizableBeanTest.newRandomInstance(testClass);
          }
 
          for ( int k = 0; k < 10; k++ ) {
@@ -39,33 +44,15 @@ public class ExternalizableBeanBenchmark {
             StopWatch t = new StopWatch();
 
             ByteArrayOutputStream bo = new ByteArrayOutputStream();
-            ObjectOutput o = new SingleTypeObjectOutputStream<TestBeanSimple>(bo, TestBeanSimple.class);
-            for ( int i = 0, length = beans.length; i < length; i++ ) {
-               o.writeObject(beans[i]);
-            }
-            o.close();
-
-            ObjectInput i = new SingleTypeObjectInputStream<TestBeanSimple>(new ByteArrayInputStream(bo.toByteArray()), TestBeanSimple.class);
-            for ( int j = 0, length = beans.length; j < length; j++ ) {
-               TestBeanSimple dd = (TestBeanSimple)i.readObject();
-               assert (dd.equals(beans[j]));
-            }
-            i.close();
-
-            System.err.println("java Serialization: " + t);
-
-            t = new StopWatch();
-
-            bo = new ByteArrayOutputStream();
-            o = new SingleTypeObjectOutputStream<TestBeanSimple>(bo, TestBeanSimple.class);
+            ObjectOutput o = new SingleTypeObjectOutputStream(bo, testClass);
             for ( int j = 0, length = beans.length; j < length; j++ ) {
                beans[j].writeExternal(o);
             }
             o.close();
 
-            i = new SingleTypeObjectInputStream<TestBeanSimple>(new ByteArrayInputStream(bo.toByteArray()), TestBeanSimple.class);
+            ObjectInput i = new SingleTypeObjectInputStream(new ByteArrayInputStream(bo.toByteArray()), testClass);
             for ( int j = 0, length = beans.length; j < length; j++ ) {
-               TestBeanSimple dd = new TestBeanSimple();
+               Externalizable dd = (Externalizable)testClass.newInstance();
                dd.readExternal(i);
                assert (dd.equals(beans[j]));
             }
@@ -73,9 +60,10 @@ public class ExternalizableBeanBenchmark {
 
             System.err.println("ExternalizableBean: " + t);
          }
+
       }
 
-      System.err.println("---------- single-dim array");
+      System.err.println("---------- single-dim array of externalizables");
 
       {
          TestBeanSimple[][] beans = new TestBeanSimple[1000][1000];
@@ -109,7 +97,7 @@ public class ExternalizableBeanBenchmark {
          }
       }
 
-      System.err.println("---------- two-dim array");
+      System.err.println("---------- two-dim array of externalizables");
       {
          TestBeanSimple[][] beans = new TestBeanSimple[1000][1000];
          //      beans[i][j] = (TestBeanExternalizableBean)ExternalizableBeanTest.newRandomInstance(TestBeanExternalizableBean.class);
@@ -138,7 +126,7 @@ public class ExternalizableBeanBenchmark {
          }
       }
 
-      System.err.println("---------- list");
+      System.err.println("---------- list of externalizables");
       {
          {
             List<TestBeanSimple>[] beans = new List[1000];
@@ -209,19 +197,19 @@ public class ExternalizableBeanBenchmark {
    }
 
 
-   public static class ExternalizableBeanBean extends ExternalizableBean {
+   public static class ExternalizableBeanBean implements ExternalizableBean {
 
       @externalize(1)
       public TestBeanSimple[] _beans;
    }
 
-   public static class ExternalizableBeanBean2dim extends ExternalizableBean {
+   public static class ExternalizableBeanBean2dim implements ExternalizableBean {
 
       @externalize(1)
       public TestBeanSimple[][] _beans;
    }
 
-   public static class ExternalizableBeanBeanList extends ExternalizableBean {
+   public static class ExternalizableBeanBeanList implements ExternalizableBean {
 
       @externalize(1)
       public List<TestBeanSimple> _beans;
@@ -245,7 +233,7 @@ public class ExternalizableBeanBenchmark {
       public List<TestBeanSimple> _beans;
    }
 
-   public static class TestBeanExternalizableBean extends ExternalizableBean {
+   public static class TestBeanExternalizableBean implements ExternalizableBean {
 
       // the member vars get initialized randomly only if the field is public - a limitation of this testcase
 

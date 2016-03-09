@@ -71,6 +71,7 @@ public class UniqueIndexTest {
    public void deleteOldTestDumps() {
       File[] dumpFile = _tmpdir.listFiles(new FileFilter() {
 
+         @Override
          public boolean accept( File f ) {
             return f.getName().startsWith("DumpTest.");
          }
@@ -347,6 +348,7 @@ public class UniqueIndexTest {
          /* delete index meta file to invalidate the index */
          File[] metaFiles = _tmpdir.listFiles(new FileFilter() {
 
+            @Override
             public boolean accept( File f ) {
                return f.getName().startsWith("DumpTest.") && f.getName().endsWith("meta");
             }
@@ -454,7 +456,7 @@ public class UniqueIndexTest {
    }
 
 
-   public static class Bean extends ExternalizableBean {
+   public static class Bean implements ExternalizableBean {
 
       @externalize(1)
       long             _idLong;
@@ -471,7 +473,7 @@ public class UniqueIndexTest {
 
 
       public Bean() {
-      // for Externalization
+         // for Externalization
       }
 
       public Bean( int id, String data ) {
@@ -538,14 +540,14 @@ public class UniqueIndexTest {
       }
    }
 
-   public static class ExternalizableId extends ExternalizableBean {
+   public static class ExternalizableId implements ExternalizableBean {
 
       @externalize(1)
       long _id;
 
 
       public ExternalizableId() {
-      // for Externalization
+         // for Externalization
       }
 
       public ExternalizableId( long id ) {

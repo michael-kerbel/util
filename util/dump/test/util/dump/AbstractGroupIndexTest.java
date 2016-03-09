@@ -68,6 +68,7 @@ abstract public class AbstractGroupIndexTest {
    public void deleteOldTestDumps() {
       File[] dumpFile = _tmpdir.listFiles(new FileFilter() {
 
+         @Override
          public boolean accept( File f ) {
             return f.getName().startsWith("DumpTest.");
          }
@@ -225,6 +226,7 @@ abstract public class AbstractGroupIndexTest {
          /* delete index meta file to invalidate the index */
          File[] metaFiles = _tmpdir.listFiles(new FileFilter() {
 
+            @Override
             public boolean accept( File f ) {
                return f.getName().startsWith("DumpTest.") && f.getName().endsWith("meta");
             }
@@ -350,7 +352,7 @@ abstract public class AbstractGroupIndexTest {
    }
 
 
-   public static class Bean extends ExternalizableBean {
+   public static class Bean implements ExternalizableBean {
 
       @externalize(1)
       long             _groupLong;
@@ -367,7 +369,7 @@ abstract public class AbstractGroupIndexTest {
 
 
       public Bean() {
-      // for Externalization
+         // for Externalization
       }
 
       public Bean( int id, String data ) {
@@ -432,14 +434,14 @@ abstract public class AbstractGroupIndexTest {
       }
    }
 
-   public static class ExternalizableId extends ExternalizableBean {
+   public static class ExternalizableId implements ExternalizableBean {
 
       @externalize(1)
       long _id;
 
 
       public ExternalizableId() {
-      // for Externalization
+         // for Externalization
       }
 
       public ExternalizableId( long id ) {

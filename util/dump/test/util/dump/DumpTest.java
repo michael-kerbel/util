@@ -26,6 +26,7 @@ public class DumpTest {
    public void deleteOldTestDumps() {
       File[] dumpFile = new File(".").listFiles(new FileFilter() {
 
+         @Override
          public boolean accept( File f ) {
             return f.getName().startsWith("DumpTest.");
          }
@@ -254,7 +255,7 @@ public class DumpTest {
    }
 
 
-   public static class Bean extends ExternalizableBean {
+   public static class Bean implements ExternalizableBean {
 
       @externalize(1)
       int _id;
