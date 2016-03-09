@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +15,7 @@ import org.apache.http.HttpHost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import util.concurrent.ExecutorUtils;
 import util.crawler.proxy.ProxyList.ProxyAddress;
 import util.string.StringTable;
 import util.string.StringTable.Alignment;
@@ -75,22 +75,19 @@ public class ProxyPool {
     * @param maxTimeToMeasureLatency in s
     * @return proxies which responded faster than <code>maxResponseTimeInMillis</code>
     */
-   public ProxyList measureLatency( int maxTimeToMeasureLatency, final long maxResponseTimeInMillis ) {
+   public ProxyList measureLatency( int maxTimeToMeasureLatency, final int maxResponseTimeInMillis ) {
       final ProxyList fastProxies = new ProxyList();
 
-      ThreadPoolExecutor executor = (ThreadPoolExecutor)Executors.newFixedThreadPool(50);
+      ThreadPoolExecutor executor = ExecutorUtils.newFixedThreadPool(50, "proxy-pool-latency-test");
 
       for ( final Proxy p : _proxies ) {
-         executor.execute(new Runnable() {
-
-            @Override
-            public void run() {
-               long lastByteLatency = p.getStats().getLastByteLatency();
-               if ( !p.isInsane() && lastByteLatency > 0 && lastByteLatency < maxResponseTimeInMillis ) {
-                  fastProxies.addProxy(p.getAddress().toString());
-               }
-               _log.debug(p.toString());
+         executor.execute(( ) -> {
+            p.measureLatency(maxResponseTimeInMillis);
+            long lastByteLatency = p.getStats().getLastByteLatency();
+            if ( !p.isInsane() && lastByteLatency > 0 && lastByteLatency < maxResponseTimeInMillis ) {
+               fastProxies.addProxy(p.getAddress().toString());
             }
+            _log.debug(p.toString());
          });
       }
 
