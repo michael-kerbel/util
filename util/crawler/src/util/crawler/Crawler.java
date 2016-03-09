@@ -214,7 +214,7 @@ public class Crawler {
          return new ThreadPoolExecutor(numberOfThreads, numberOfThreads, 0L, TimeUnit.MILLISECONDS, queue, new ExecutorUtils.NamedThreadFactory(
             "crawl task executor - " + _params.getId() + " "));
       } else {
-         return (ThreadPoolExecutor)ExecutorUtils.newFixedThreadPool(numberOfThreads, "crawl task executor - " + _params.getId() + " ");
+         return ExecutorUtils.newFixedThreadPool(numberOfThreads, "crawl task executor - " + _params.getId() + " ");
       }
    }
 
