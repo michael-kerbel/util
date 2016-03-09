@@ -11,6 +11,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
@@ -57,7 +58,7 @@ public class Proxy implements Comparable<Proxy> {
    }
 
 
-   Logger _log = LoggerFactory.getLogger(getClass());
+   Logger                     _log             = LoggerFactory.getLogger(getClass());
 
    private final ProxyAddress _address;
    private HttpHost           _proxyHost;
@@ -157,10 +158,15 @@ public class Proxy implements Comparable<Proxy> {
       if ( _httpClient != null ) {
          return _httpClient;
       }
+      _httpClient = createHttpClient(60000);
 
+      return _httpClient;
+   }
+
+   private DefaultHttpClient createHttpClient( int timeoutInMillis ) {
       HttpClientFactory httpClientFactory = new HttpClientFactory();
-      httpClientFactory.setConnectionTimeout(60 * 1000);
-      httpClientFactory.setSoTimeout(60 * 1000);
+      httpClientFactory.setConnectionTimeout(timeoutInMillis);
+      httpClientFactory.setSoTimeout(timeoutInMillis);
       if ( _userAgent != null ) {
          httpClientFactory.setUserAgent(_userAgent);
       }
@@ -169,12 +175,12 @@ public class Proxy implements Comparable<Proxy> {
          httpClientFactory.setPassword(_authenticationPassword);
       }
       httpClientFactory.setNeverRetryHttpRequests(true);
-      _httpClient = httpClientFactory.create();
+      DefaultHttpClient httpClient = httpClientFactory.create();
 
-      HttpParams params = _httpClient.getParams();
+      HttpParams params = httpClient.getParams();
       params.setParameter(ConnRoutePNames.DEFAULT_PROXY, _proxyHost);
 
-      return _httpClient;
+      return httpClient;
    }
 
    public Stats getStats() {
@@ -194,7 +200,11 @@ public class Proxy implements Comparable<Proxy> {
    }
 
    public void measureLatency() {
-      HttpClient httpClient = getHttpClient();
+      measureLatency(60000);
+   }
+
+   public void measureLatency( int maxLatencyInMillis ) {
+      DefaultHttpClient httpClient = createHttpClient(maxLatencyInMillis);
 
       HttpGet req = new HttpGet("/");
 
@@ -225,7 +235,11 @@ public class Proxy implements Comparable<Proxy> {
       }
       catch ( Exception argh ) {
          _log.debug("Failed to measure latency of proxy " + _address + " - maybe it's offline?", argh);
+         _stats._firstByteLatency = maxLatencyInMillis + 1;
+         _stats._lastByteLatency = maxLatencyInMillis + 1;
       }
+
+      httpClient.close();
    }
 
    public void setAuthenticationPassword( String authenticationPassword ) {
