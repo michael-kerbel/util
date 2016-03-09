@@ -290,7 +290,7 @@ public class HttpClientFactory {
    int         _maxConnections         = 10;
 
 
-   public HttpClient create() {
+   public DefaultHttpClient create() {
       // general setup
       SchemeRegistry supportedSchemes = new SchemeRegistry();
 
@@ -354,66 +354,81 @@ public class HttpClientFactory {
    }
 
    /** in ms */
-   public void setConnectionTimeout( int connectionTimeout ) {
+   public HttpClientFactory setConnectionTimeout( int connectionTimeout ) {
       _connectionTimeout = connectionTimeout;
+      return this;
    }
 
-   public void setContentCharset( String contentCharset ) {
+   public HttpClientFactory setContentCharset( String contentCharset ) {
       _contentCharset = contentCharset;
+      return this;
    }
 
-   public void setExecuteRedirects( boolean executeRedirects ) {
+   public HttpClientFactory setExecuteRedirects( boolean executeRedirects ) {
       _executeRedirects = executeRedirects;
+      return this;
    }
 
-   public void setGzipSupport( boolean gzipSupport ) {
+   public HttpClientFactory setGzipSupport( boolean gzipSupport ) {
       _gzipSupport = gzipSupport;
+      return this;
    }
 
-   public void setHttpVersion( HttpVersion httpVersion ) {
+   public HttpClientFactory setHttpVersion( HttpVersion httpVersion ) {
       _httpVersion = httpVersion;
+      return this;
    }
 
-   public void setMaxConnections( int maxConnections ) {
+   public HttpClientFactory setMaxConnections( int maxConnections ) {
       _maxConnections = maxConnections;
+      return this;
    }
 
-   public void setNeverRetryHttpRequests( boolean neverRetry ) {
+   public HttpClientFactory setNeverRetryHttpRequests( boolean neverRetry ) {
       _neverRetryHttpRequests = neverRetry;
+      return this;
    }
 
-   public void setPassword( String password ) {
+   public HttpClientFactory setPassword( String password ) {
       _password = password;
+      return this;
    }
 
    /** in ms */
-   public void setSoTimeout( int soTimeout ) {
+   public HttpClientFactory setSoTimeout( int soTimeout ) {
       _soTimeout = soTimeout;
+      return this;
    }
 
-   public void setTcpNodelay( boolean tcpNodelay ) {
+   public HttpClientFactory setTcpNodelay( boolean tcpNodelay ) {
       _tcpNodelay = tcpNodelay;
+      return this;
    }
 
-   public void setTrustAllSsl( boolean trustAllSsl ) {
+   public HttpClientFactory setTrustAllSsl( boolean trustAllSsl ) {
       _trustAllSsl = trustAllSsl;
+      return this;
    }
 
-   public void setUseCookies( boolean useCookies ) {
+   public HttpClientFactory setUseCookies( boolean useCookies ) {
       _useCookies = useCookies;
+      return this;
    }
 
    /** @see {@link org.apache.http.params.CoreProtocolPNames#USE_EXPECT_CONTINUE} */
-   public void setUseExpectContinue( boolean useExpectContinue ) {
+   public HttpClientFactory setUseExpectContinue( boolean useExpectContinue ) {
       _useExpectContinue = useExpectContinue;
+      return this;
    }
 
-   public void setUser( String user ) {
+   public HttpClientFactory setUser( String user ) {
       _user = user;
+      return this;
    }
 
-   public void setUserAgent( String userAgent ) {
+   public HttpClientFactory setUserAgent( String userAgent ) {
       _userAgent = userAgent;
+      return this;
    }
 
    private DefaultHttpClient setTrustManager( DefaultHttpClient httpclient ) {
