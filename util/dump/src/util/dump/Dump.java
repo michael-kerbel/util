@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
@@ -46,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import util.collections.SoftLRUCache;
+import util.dump.UniqueIndex.DuplicateKeyException;
 import util.dump.sort.InfiniteSorter;
 import util.dump.stream.Compression;
 import util.dump.stream.ObjectStreamProvider;
@@ -72,7 +74,7 @@ import util.time.StopWatch;
  */
 public class Dump<E> implements DumpInput<E> {
 
-   private static final Logger LOG = LoggerFactory.getLogger(Dump.class);
+   private static final Logger          LOG                              = LoggerFactory.getLogger(Dump.class);
 
    // TODO add pack() and a threshold based repack mechanism which prunes deletions from dump and indexes
    // TODO add registry for Iterators and close all open iterators in close()
@@ -136,6 +138,8 @@ public class Dump<E> implements DumpInput<E> {
    ObjectInput                          _cacheObjectInput;
    ResetableBufferedInputStream         _cacheByteInput;
    Map<Long, byte[]>                    _singleItemCache                 = new HashMap<Long, byte[]>();
+   AtomicInteger                        _cacheLookups                    = new AtomicInteger(0);
+   AtomicInteger                        _cacheHits                       = new AtomicInteger(0);
 
    ByteArrayOutputStream                _updateByteOutput;
    ObjectOutput                         _updateOut;
@@ -148,7 +152,7 @@ public class Dump<E> implements DumpInput<E> {
    ThreadLocal<Long>                    _lastItemPos                     = new LongThreadLocal();
 
    /** incremented on each write operation */
-   long                                 _sequence                        = 0;
+   long                                 _sequence                        = (long)(Math.random() * 1000000);
 
    final EnumSet<DumpAccessFlag>        _mode;
 
@@ -268,6 +272,12 @@ public class Dump<E> implements DumpInput<E> {
             throw new AccessControlException("Add operation not allowed with current modes.");
          }
          assertOpen();
+         for ( DumpIndex<E> index : _indexes ) {
+            if ( index instanceof UniqueIndex && index.contains(((UniqueIndex)index).getKey(o)) ) {
+               // check this before actually adding anything
+               throw new DuplicateKeyException("Dump already contains an instance with the key " + ((UniqueIndex)index).getKey(o));
+            }
+         }
          long pos = _outputStream._n;
          _writer.write(o);
          _sequence++;
@@ -334,6 +344,15 @@ public class Dump<E> implements DumpInput<E> {
       OPENED_DUMPPATHS.remove(_dumpFile.getPath());
       OPENED_DUMPS.remove(this);
       _isClosed = true;
+   }
+
+   /** 
+    * clear the accumulated hit rate of the cache
+    * @see Dump#getCacheHitRate() 
+    */
+   public void clearCacheHitRate() {
+      _cacheLookups.set(0);
+      _cacheHits.set(0);
    }
 
    /**
@@ -439,12 +458,14 @@ public class Dump<E> implements DumpInput<E> {
 
          boolean positionIsDeleted = _deletedPositions.contains(pos);
          if ( _cache != null ) {
+            _cacheLookups.incrementAndGet();
             byte[] bytes = _cache.get(Long.valueOf(pos)); // ugly boxing of pos necessary here, since _cache is a regular Map - the cost of beauty is ugliness
             if ( bytes != null ) {
+               _cacheHits.incrementAndGet();
                _lastItemPos.set(pos);
                _nextItemPos.set(getNextItemPos(bytes));
                if ( positionIsDeleted ) {
-                  return null;
+                  return (E)null;
                }
                return readFromBytes(bytes);
             }
@@ -481,7 +502,7 @@ public class Dump<E> implements DumpInput<E> {
                _resetableBufferedInputStream._lastElementBytesLength = 0;
                _lastItemPos.set(pos);
                if ( positionIsDeleted ) {
-                  return null;
+                  return (E)null;
                }
                return value;
             } else {
@@ -489,12 +510,24 @@ public class Dump<E> implements DumpInput<E> {
                _reader.next();
             }
 
-            return null;
+            return (E)null;
          }
          catch ( IOException argh ) {
             throw new RuntimeException("Failed to read from dump " + _dumpFile + " at position " + pos, argh);
          }
       }
+   }
+
+   /** 
+    * @return the accumulated hit rate of the cache, value between 0 and 1, 0 if none used
+    * @see Dump#clearCacheHitRate() 
+    */
+   public float getCacheHitRate() {
+      int lookups = _cacheLookups.get();
+      if ( lookups <= 0 ) {
+         return 0f;
+      }
+      return _cacheHits.get() / (float)lookups;
    }
 
    /**
@@ -537,6 +570,15 @@ public class Dump<E> implements DumpInput<E> {
       try {
          flush();
          return new DeletionAwareDumpReader(_dumpFile, _streamProvider).iterator();
+      }
+      catch ( IOException argh ) {
+         throw new RuntimeException("Failed to create a DumpReader.", argh);
+      }
+   }
+
+   public MultithreadedDumpReader<E> multithreadedIterator( DumpIndex index ) {
+      try {
+         return new MultithreadedDumpReader<E>(this, index);
       }
       catch ( IOException argh ) {
          throw new RuntimeException("Failed to create a DumpReader.", argh);

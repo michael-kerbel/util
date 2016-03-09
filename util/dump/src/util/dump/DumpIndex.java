@@ -45,6 +45,7 @@ public abstract class DumpIndex<E> implements Closeable {
    public static List<IndexMeta> discoverIndexes( final Dump dump ) {
       File[] indexFiles = dump.getDumpFile().getParentFile().listFiles(new FilenameFilter() {
 
+         @Override
          public boolean accept( File dir, String name ) {
             return name.startsWith(dump.getDumpFile().getName()) && name.endsWith(".lookup");
          }
@@ -165,6 +166,7 @@ public abstract class DumpIndex<E> implements Closeable {
    /**
     * Failing to close the index may result in data loss!
     */
+   @Override
    public void close() throws IOException {
       writeMeta();
       if ( _lookupOutputStream != null ) {
@@ -285,6 +287,7 @@ public abstract class DumpIndex<E> implements Closeable {
       File dir = _dump.getDumpFile().getParentFile();
       File[] indexFiles = dir.listFiles(new FilenameFilter() {
 
+         @Override
          public boolean accept( File dir, String name ) {
             return name.startsWith(indexPrefix);
          }
@@ -343,16 +346,18 @@ public abstract class DumpIndex<E> implements Closeable {
       return _updatesFile;
    }
 
-   protected synchronized DataOutputStream getUpdatesOutput() {
-      if ( _updatesOutput == null ) {
-         try {
-            _updatesOutput = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(_updatesFile, true), DumpWriter.DEFAULT_BUFFER_SIZE));
+   protected DataOutputStream getUpdatesOutput() {
+      synchronized ( _dump ) {
+         if ( _updatesOutput == null ) {
+            try {
+               _updatesOutput = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(_updatesFile, true), DumpWriter.DEFAULT_BUFFER_SIZE));
+            }
+            catch ( IOException argh ) {
+               throw new RuntimeException("Failed to init updates outputstream " + _updatesFile, argh);
+            }
          }
-         catch ( IOException argh ) {
-            throw new RuntimeException("Failed to init updates outputstream " + _updatesFile, argh);
-         }
+         return _updatesOutput;
       }
-      return _updatesOutput;
    }
 
    protected void init() {

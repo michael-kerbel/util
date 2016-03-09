@@ -80,37 +80,53 @@ public class UniqueIndex<E> extends DumpIndex<E> {
       }
    }
 
-   @Override
-   public synchronized boolean contains( int key ) {
-      if ( !_fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate contains(.) method.");
+   public Object getKey( E o ) {
+      if ( _fieldIsInt ) {
+         return getIntKey(o);
       }
-      return _lookupInt.containsKey(key) && !_dump._deletedPositions.contains(_lookupInt.get(key));
+      if ( _fieldIsLong ) {
+         return getLongKey(o);
+      }
+      return getObjectKey(o);
    }
 
    @Override
-   public synchronized boolean contains( long key ) {
-      if ( !_fieldIsLong ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate contains(.) method.");
+   public boolean contains( int key ) {
+      synchronized ( _dump ) {
+         if ( !_fieldIsInt ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate contains(.) method.");
+         }
+         return _lookupInt.containsKey(key) && !_dump._deletedPositions.contains(_lookupInt.get(key));
       }
-      return _lookupLong.containsKey(key) && !_dump._deletedPositions.contains(_lookupLong.get(key));
    }
 
    @Override
-   public synchronized boolean contains( Object key ) {
-      if ( (_fieldIsLong || _fieldIsLongObject) && key instanceof Long ) {
-         return contains(((Long)key).longValue());
+   public boolean contains( long key ) {
+      synchronized ( _dump ) {
+         if ( !_fieldIsLong ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate contains(.) method.");
+         }
+         return _lookupLong.containsKey(key) && !_dump._deletedPositions.contains(_lookupLong.get(key));
       }
-      if ( (_fieldIsInt || _fieldIsIntObject) && key instanceof Integer ) {
-         return contains(((Integer)key).intValue());
+   }
+
+   @Override
+   public boolean contains( Object key ) {
+      synchronized ( _dump ) {
+         if ( (_fieldIsLong || _fieldIsLongObject) && key instanceof Long ) {
+            return contains(((Long)key).longValue());
+         }
+         if ( (_fieldIsInt || _fieldIsIntObject) && key instanceof Integer ) {
+            return contains(((Integer)key).intValue());
+         }
+         if ( _fieldIsLong || _fieldIsInt ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate contains(.) method.");
+         }
+         return _lookupObject.containsKey(key) && !_dump._deletedPositions.contains(_lookupObject.get(key));
       }
-      if ( _fieldIsLong || _fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate contains(.) method.");
-      }
-      return _lookupObject.containsKey(key) && !_dump._deletedPositions.contains(_lookupObject.get(key));
    }
 
    @Override
@@ -153,46 +169,52 @@ public class UniqueIndex<E> extends DumpIndex<E> {
       throw new IllegalStateException("weird, all lookup maps are null");
    }
 
-   public synchronized E lookup( int key ) {
-      if ( !_fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
+   public E lookup( int key ) {
+      synchronized ( _dump ) {
+         if ( !_fieldIsInt ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate lookup(.) method.");
+         }
+         long pos = getPosition(key);
+         if ( pos < 0 ) {
+            return (E)null;
+         }
+         return _dump.get(pos);
       }
-      long pos = getPosition(key);
-      if ( pos < 0 ) {
-         return null;
-      }
-      return _dump.get(pos);
    }
 
-   public synchronized E lookup( long key ) {
-      if ( !_fieldIsLong ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
+   public E lookup( long key ) {
+      synchronized ( _dump ) {
+         if ( !_fieldIsLong ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate lookup(.) method.");
+         }
+         long pos = getPosition(key);
+         if ( pos < 0 ) {
+            return (E)null;
+         }
+         return _dump.get(pos);
       }
-      long pos = getPosition(key);
-      if ( pos < 0 ) {
-         return null;
-      }
-      return _dump.get(pos);
    }
 
-   public synchronized E lookup( Object key ) {
-      if ( (_fieldIsLong || _fieldIsLongObject) && key instanceof Long ) {
-         return lookup(((Long)key).longValue());
+   public E lookup( Object key ) {
+      synchronized ( _dump ) {
+         if ( (_fieldIsLong || _fieldIsLongObject) && key instanceof Long ) {
+            return lookup(((Long)key).longValue());
+         }
+         if ( (_fieldIsInt || _fieldIsIntObject) && key instanceof Integer ) {
+            return lookup(((Integer)key).intValue());
+         }
+         if ( _fieldIsLong || _fieldIsInt ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate lookup(.) method.");
+         }
+         long pos = getPosition(key);
+         if ( pos < 0 ) {
+            return (E)null;
+         }
+         return _dump.get(pos);
       }
-      if ( (_fieldIsInt || _fieldIsIntObject) && key instanceof Integer ) {
-         return lookup(((Integer)key).intValue());
-      }
-      if ( _fieldIsLong || _fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
-      }
-      long pos = getPosition(key);
-      if ( pos < 0 ) {
-         return null;
-      }
-      return _dump.get(pos);
    }
 
    @Override

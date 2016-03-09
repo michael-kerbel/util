@@ -42,7 +42,7 @@ import util.reflection.FieldAccessor;
  */
 public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
 
-   private static final Logger LOG = LoggerFactory.getLogger(InfiniteGroupIndex.class);
+   private static final Logger   LOG                               = LoggerFactory.getLogger(InfiniteGroupIndex.class);
 
    private static final int      MAX_POSITIONS_LENGTH_IN_CACHE     = 1000;
    /* TODO [MKR 08.06.2009] add following two methods for efficient lookup of many keys at once:
@@ -306,21 +306,27 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
    }
 
    @Override
-   public synchronized Iterable<E> lookup( int key ) {
-      long[] pos = getPositions(key);
-      return new GroupIterable(pos);
+   public Iterable<E> lookup( int key ) {
+      synchronized ( _dump ) {
+         long[] pos = getPositions(key);
+         return new GroupIterable(pos);
+      }
    }
 
    @Override
-   public synchronized Iterable<E> lookup( long key ) {
-      long[] pos = getPositions(key);
-      return new GroupIterable(pos);
+   public Iterable<E> lookup( long key ) {
+      synchronized ( _dump ) {
+         long[] pos = getPositions(key);
+         return new GroupIterable(pos);
+      }
    }
 
    @Override
-   public synchronized Iterable<E> lookup( Object key ) {
-      long[] pos = getPositions(key);
-      return new GroupIterable(pos);
+   public Iterable<E> lookup( Object key ) {
+      synchronized ( _dump ) {
+         long[] pos = getPositions(key);
+         return new GroupIterable(pos);
+      }
    }
 
    public void setLRUCacheSize( int lruCacheSize ) {
@@ -936,7 +942,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
    }
 
 
-   public static class ExternalizableKeyPosition extends ExternalizableBean implements Comparable<ExternalizableKeyPosition> {
+   public static class ExternalizableKeyPosition implements ExternalizableBean, Comparable<ExternalizableKeyPosition> {
 
       @externalize(1)
       Externalizable _key;
@@ -1026,7 +1032,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
    }
 
-   public static class StringKeyPosition extends ExternalizableBean implements Comparable<StringKeyPosition> {
+   public static class StringKeyPosition implements ExternalizableBean, Comparable<StringKeyPosition> {
 
       @externalize(1)
       String _key;

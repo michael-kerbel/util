@@ -118,42 +118,48 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
    }
 
    @Override
-   public synchronized boolean contains( int key ) {
-      if ( !_fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate contains(.) method.");
+   public boolean contains( int key ) {
+      synchronized ( _dump ) {
+         if ( !_fieldIsInt ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate contains(.) method.");
+         }
+         Positions pos = _lookupInt.get(key);
+         ensureSorting(pos);
+         return contains(pos);
       }
-      Positions pos = _lookupInt.get(key);
-      ensureSorting(pos);
-      return contains(pos);
    }
 
    @Override
-   public synchronized boolean contains( long key ) {
-      if ( !_fieldIsLong ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate contains(.) method.");
+   public boolean contains( long key ) {
+      synchronized ( _dump ) {
+         if ( !_fieldIsLong ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate contains(.) method.");
+         }
+         Positions pos = _lookupLong.get(key);
+         ensureSorting(pos);
+         return contains(pos);
       }
-      Positions pos = _lookupLong.get(key);
-      ensureSorting(pos);
-      return contains(pos);
    }
 
    @Override
-   public synchronized boolean contains( Object key ) {
-      if ( (_fieldIsLong || _fieldIsLongObject) && key instanceof Long ) {
-         return contains(((Long)key).longValue());
+   public boolean contains( Object key ) {
+      synchronized ( _dump ) {
+         if ( (_fieldIsLong || _fieldIsLongObject) && key instanceof Long ) {
+            return contains(((Long)key).longValue());
+         }
+         if ( (_fieldIsInt || _fieldIsIntObject) && key instanceof Integer ) {
+            return contains(((Integer)key).intValue());
+         }
+         if ( _fieldIsLong || _fieldIsInt ) {
+            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
+               + ". Please use the appropriate contains(.) method.");
+         }
+         Positions pos = _lookupObject.get(key);
+         ensureSorting(pos);
+         return contains(pos);
       }
-      if ( (_fieldIsInt || _fieldIsIntObject) && key instanceof Integer ) {
-         return contains(((Integer)key).intValue());
-      }
-      if ( _fieldIsLong || _fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate contains(.) method.");
-      }
-      Positions pos = _lookupObject.get(key);
-      ensureSorting(pos);
-      return contains(pos);
    }
 
    @Override
@@ -188,21 +194,27 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
    }
 
    @Override
-   public synchronized Iterable<E> lookup( int key ) {
-      long[] pos = getPositions(key);
-      return new GroupIterable(pos);
+   public Iterable<E> lookup( int key ) {
+      synchronized ( _dump ) {
+         long[] pos = getPositions(key);
+         return new GroupIterable(pos);
+      }
    }
 
    @Override
-   public synchronized Iterable<E> lookup( long key ) {
-      long[] pos = getPositions(key);
-      return new GroupIterable(pos);
+   public Iterable<E> lookup( long key ) {
+      synchronized ( _dump ) {
+         long[] pos = getPositions(key);
+         return new GroupIterable(pos);
+      }
    }
 
    @Override
-   public synchronized Iterable<E> lookup( Object key ) {
-      long[] pos = getPositions(key);
-      return new GroupIterable(pos);
+   public Iterable<E> lookup( Object key ) {
+      synchronized ( _dump ) {
+         long[] pos = getPositions(key);
+         return new GroupIterable(pos);
+      }
    }
 
    @Override
