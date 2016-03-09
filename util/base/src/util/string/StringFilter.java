@@ -7,7 +7,7 @@ import java.util.Map;
 
 
 /**
- * Filter Strings, wenn sie nicht alle Tokens des aktuellen <code>filterStrings</code> enthalten.
+ * Filtert Strings, wenn sie nicht alle Tokens des aktuellen <code>filterStrings</code> enthalten.
  * Tokens, die mit '-' anfangen, dürfen NICHT enthalten sein. Default ist eine Substring-Suche, 
  * d.h. 'eng' findet auch 'englisch'. Für eine Wort- oder Phrasensuche das Wort in doppelte 
  * Anführungszeichen setzen.
@@ -23,6 +23,16 @@ public class StringFilter {
    private String                  _filterString;
    private String[]                _filterTokens;
 
+
+   public StringFilter() {}
+
+   public StringFilter( String filterString ) {
+      setFilterString(filterString);
+   }
+
+   /**
+    * @return true, if the filter string does not match
+    */
    public boolean filter( String element ) {
       return filter(element, false);
    }
