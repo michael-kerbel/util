@@ -29,17 +29,17 @@ import org.slf4j.LoggerFactory;
  */
 public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
-   private static Logger log = LoggerFactory.getLogger(ConcurrentLRUCache.class);
+   private static Logger                               log              = LoggerFactory.getLogger(ConcurrentLRUCache.class);
 
    private final ConcurrentHashMap<Object, CacheEntry> map;
    private final int                                   upperWaterMark, lowerWaterMark;
    private final ReentrantLock                         markAndSweepLock = new ReentrantLock(true);
-   private boolean                                     isCleaning       = false;                                     // not volatile... piggybacked on other volatile vars
+   private boolean                                     isCleaning       = false;                                            // not volatile... piggybacked on other volatile vars
    private final boolean                               newThreadForCleanup;
    private volatile boolean                            islive           = true;
    private final Stats                                 stats            = new Stats();
    private final int                                   acceptableWaterMark;
-   private long                                        oldestEntry      = 0;                                         // not volatile, only accessed in the cleaning method
+   private long                                        oldestEntry      = 0;                                                // not volatile, only accessed in the cleaning method
    private final EvictionListener<K, V>                evictionListener;
    private CleanupThread                               cleanupThread;
 
@@ -52,8 +52,12 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
    public ConcurrentLRUCache( int upperWaterMark, final int lowerWaterMark, int acceptableWatermark, int initialSize, boolean runCleanupThread,
          boolean runNewThreadForCleanup, EvictionListener<K, V> evictionListener ) {
-      if ( upperWaterMark < 1 ) throw new IllegalArgumentException("upperWaterMark must be > 0");
-      if ( lowerWaterMark >= upperWaterMark ) throw new IllegalArgumentException("lowerWaterMark must be  < upperWaterMark");
+      if ( upperWaterMark < 1 ) {
+         throw new IllegalArgumentException("upperWaterMark must be > 0");
+      }
+      if ( lowerWaterMark >= upperWaterMark ) {
+         throw new IllegalArgumentException("lowerWaterMark must be  < upperWaterMark");
+      }
       map = new ConcurrentHashMap<Object, CacheEntry>(initialSize);
       newThreadForCleanup = runNewThreadForCleanup;
       this.upperWaterMark = upperWaterMark;
@@ -66,14 +70,17 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       }
    }
 
+   @Override
    public void clear() {
       map.clear();
    }
 
+   @Override
    public boolean containsKey( Object key ) {
       return map.containsKey(key);
    }
 
+   @Override
    public boolean containsValue( Object value ) {
       return map.containsValue(value);
    }
@@ -90,17 +97,23 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
    }
 
    /** UnsupportedOperation */
+   @Override
    public Set<java.util.Map.Entry<K, V>> entrySet() {
       throw new UnsupportedOperationException();
    }
 
+   @Override
    public V get( Object key ) {
       CacheEntry<K, V> e = map.get(key);
       if ( e == null ) {
-         if ( islive ) stats.missCounter.incrementAndGet();
-         return null;
+         if ( islive ) {
+            stats.missCounter.incrementAndGet();
+         }
+         return (V)null;
       }
-      if ( islive ) e.lastAccessed = stats.accessCounter.incrementAndGet();
+      if ( islive ) {
+         e.lastAccessed = stats.accessCounter.incrementAndGet();
+      }
       return e.value;
    }
 
@@ -175,17 +188,22 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       return stats;
    }
 
+   @Override
    public boolean isEmpty() {
       return size() == 0;
    }
 
    /** UnsupportedOperation */
+   @Override
    public Set<K> keySet() {
       throw new UnsupportedOperationException();
    }
 
+   @Override
    public V put( K key, V val ) {
-      if ( val == null ) return null;
+      if ( val == null ) {
+         return (V)null;
+      }
       CacheEntry<K, V> e = new CacheEntry(key, val, stats.accessCounter.incrementAndGet());
       CacheEntry<K, V> oldCacheEntry = map.put(key, e);
       int currentSize;
@@ -225,32 +243,36 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
             markAndSweep();
          }
       }
-      return oldCacheEntry == null ? null : oldCacheEntry.value;
+      return oldCacheEntry == null ? (V)null : oldCacheEntry.value;
    }
 
    /** UnsupportedOperation */
+   @Override
    public void putAll( Map<? extends K, ? extends V> m ) {
       throw new UnsupportedOperationException();
    }
 
+   @Override
    public V remove( Object key ) {
       CacheEntry<K, V> cacheEntry = map.remove(key);
       if ( cacheEntry != null ) {
          stats.size.decrementAndGet();
          return cacheEntry.value;
       }
-      return null;
+      return (V)null;
    }
 
    public void setAlive( boolean live ) {
       islive = live;
    }
 
+   @Override
    public int size() {
       return stats.size.get();
    }
 
    /** UnsupportedOperation */
+   @Override
    public Collection<V> values() {
       throw new UnsupportedOperationException();
    }
@@ -270,10 +292,14 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
    private void evictEntry( K key ) {
       CacheEntry<K, V> o = map.remove(key);
-      if ( o == null ) return;
+      if ( o == null ) {
+         return;
+      }
       stats.size.decrementAndGet();
       stats.evictionCounter.incrementAndGet();
-      if ( evictionListener != null ) evictionListener.evictedEntry(o.key, o.value);
+      if ( evictionListener != null ) {
+         evictionListener.evictedEntry(o.key, o.value);
+      }
    }
 
    /**
@@ -296,7 +322,9 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       // oldestEntry through oldestEntry+500 are guaranteed to be
       // removed (however many there are there).
 
-      if ( !markAndSweepLock.tryLock() ) return;
+      if ( !markAndSweepLock.tryLock() ) {
+         return;
+      }
       try {
          long oldestEntry = this.oldestEntry;
          isCleaning = true;
@@ -450,7 +478,9 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
                      CacheEntry otherEntry = (CacheEntry)queue.pop();
                      newOldestEntry = Math.min(otherEntry.lastAccessedCopy, newOldestEntry);
                   }
-                  if ( queue.myMaxSize <= 0 ) break;
+                  if ( queue.myMaxSize <= 0 ) {
+                     break;
+                  }
 
                   Object o = queue.myInsertWithOverflow(ce);
                   if ( o != null ) {
@@ -462,7 +492,9 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
             // Now delete everything in the priority queue.
             // avoid using pop() since order doesn't matter anymore
             for ( Object o : queue.getValues() ) {
-               if ( o == null ) continue;
+               if ( o == null ) {
+                  continue;
+               }
                CacheEntry<K, V> ce = (CacheEntry)o;
                evictEntry(ce.key);
                numRemoved++;
@@ -546,8 +578,11 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
          this.lastAccessed = lastAccessed;
       }
 
+      @Override
       public int compareTo( CacheEntry that ) {
-         if ( this.lastAccessedCopy == that.lastAccessedCopy ) return 0;
+         if ( this.lastAccessedCopy == that.lastAccessedCopy ) {
+            return 0;
+         }
          return this.lastAccessedCopy < that.lastAccessedCopy ? 1 : -1;
       }
 
@@ -586,15 +621,21 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       public void run() {
          while ( true ) {
             synchronized ( this ) {
-               if ( stop ) break;
+               if ( stop ) {
+                  break;
+               }
                try {
                   this.wait();
                }
                catch ( InterruptedException e ) {}
             }
-            if ( stop ) break;
+            if ( stop ) {
+               break;
+            }
             ConcurrentLRUCache c = cache.get();
-            if ( c == null ) break;
+            if ( c == null ) {
+               break;
+            }
             c.markAndSweep();
          }
       }

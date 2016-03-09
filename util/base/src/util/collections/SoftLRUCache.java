@@ -37,11 +37,13 @@ public class SoftLRUCache<K, V> extends LRUCache {
    @Override
    public V get( Object key ) {
       SoftReference<V> ref = (SoftReference<V>)super.get(key);
-      if ( ref == null ) return null;
+      if ( ref == null ) {
+         return (V)null;
+      }
       V o = ref.get();
       if ( o == null ) {
          remove(key);
-         return null;
+         return (V)null;
       }
       return o;
    }
