@@ -1,7 +1,5 @@
 package util.dump;
 
-import gnu.trove.list.TLongList;
-
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -14,6 +12,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import gnu.trove.list.TLongList;
 
 
 public class MultithreadedDumpReader<E> implements DumpInput<E>, Iterator<E> {
@@ -37,6 +37,15 @@ public class MultithreadedDumpReader<E> implements DumpInput<E>, Iterator<E> {
    public MultithreadedDumpReader( Dump d, DumpIndex index ) throws IOException {
       _dump = d;
       _allPositions = index.getAllPositions();
+      long maxElementSize = 0, lastPosition = 0;
+      for ( long pos : _allPositions.toArray() ) {
+         long elementSize = pos - lastPosition;
+         maxElementSize = Math.max(maxElementSize, elementSize);
+         lastPosition = pos;
+      }
+      if ( _buffer.length < maxElementSize ) {
+         _buffer = new byte[(int)(maxElementSize * 2)];
+      }
       _preloadedInstances = (E[])new Object[_allPositions.size()];
       _inputbuffer = new FileInputStream(_dump.getDumpFile()); // using a BufferedInputStream doesn't improve the situation! see: http://stackoverflow.com/questions/3122422/usage-of-bufferedinputstream
 
@@ -129,9 +138,9 @@ public class MultithreadedDumpReader<E> implements DumpInput<E>, Iterator<E> {
       private AtomicBoolean                _waitingForCacheDepletion   = new AtomicBoolean(false);
       private AtomicBoolean                _waitingForPreloaderTask    = new AtomicBoolean(false);
 
-      ThreadLocal<OwnByteArrayInputStream> _byteArrayInputs            = ThreadLocal.withInitial(( ) -> new OwnByteArrayInputStream(_buffer));
+      ThreadLocal<OwnByteArrayInputStream> _byteArrayInputs            = ThreadLocal.withInitial(() -> new OwnByteArrayInputStream(_buffer));
 
-      ThreadLocal<ObjectInput>             _objectInputs               = ThreadLocal.withInitial(( ) -> {
+      ThreadLocal<ObjectInput>             _objectInputs               = ThreadLocal.withInitial(() -> {
                                                                           try {
                                                                              return _dump.getStreamProvider().createObjectInput(_byteArrayInputs.get());
                                                                           }
