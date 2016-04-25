@@ -23,16 +23,6 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamSource;
 
-import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.QName;
-import net.sf.saxon.s9api.Serializer;
-import net.sf.saxon.s9api.XdmAtomicValue;
-import net.sf.saxon.s9api.XdmNode;
-import net.sf.saxon.s9api.XdmValue;
-import net.sf.saxon.s9api.XsltCompiler;
-import net.sf.saxon.s9api.XsltExecutable;
-import net.sf.saxon.s9api.XsltTransformer;
-
 import org.apache.commons.lang3.StringUtils;
 import org.htmlcleaner.CleanerProperties;
 import org.htmlcleaner.DomSerializer;
@@ -46,6 +36,16 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXParseException;
 
+import net.sf.saxon.s9api.Processor;
+import net.sf.saxon.s9api.QName;
+import net.sf.saxon.s9api.Serializer;
+import net.sf.saxon.s9api.XdmAtomicValue;
+import net.sf.saxon.s9api.XdmNode;
+import net.sf.saxon.s9api.XdmValue;
+import net.sf.saxon.s9api.XsltCompiler;
+import net.sf.saxon.s9api.XsltExecutable;
+import net.sf.saxon.s9api.XsltTransformer;
+
 
 public class Transformer {
 
@@ -54,8 +54,8 @@ public class Transformer {
    private static final Pattern                   NON_BREAKING_SPACE = Pattern.compile("\\xa0");
    private static final Pattern                   SCRIPT_BLOCK       = Pattern.compile("(?s)<script>(.*?)</script>");
 
-   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial( //
-                                                                           ( ) -> new ScriptEngineManager().getEngineByMimeType("text/javascript"));
+   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                       //
+      () -> new ScriptEngineManager().getEngineByMimeType("text/javascript"));
 
 
    public static Map<String, String>[] toMap( String transformed ) {
@@ -147,7 +147,9 @@ public class Transformer {
          }
          HtmlCleaner cleaner = new HtmlCleaner();
          TagNode clean = cleaner.clean(page);
-         Document document = new DomSerializer(new CleanerProperties()).createDOM(clean);
+         CleanerProperties prop = new CleanerProperties();
+         prop.setNamespacesAware(false);
+         Document document = new DomSerializer(prop).createDOM(clean);
 
          XdmNode source = proc.newDocumentBuilder().build(new DOMSource(document));
 
@@ -159,9 +161,9 @@ public class Transformer {
          for ( Map.Entry<String, String> e : variablesForXSLT.entrySet() ) {
             String variableName = e.getKey();
             String value = e.getValue();
-            trans.setParameter(new QName(variableName), new XdmValue((Iterable)Collections.singletonList(new XdmAtomicValue(value))));
+            trans.setParameter(new QName(variableName), new XdmValue(Collections.singletonList(new XdmAtomicValue(value))));
          }
-         trans.setParameter(new QName("newline"), new XdmValue((Iterable)Collections.singletonList(new XdmAtomicValue("\n"))));
+         trans.setParameter(new QName("newline"), new XdmValue(Collections.singletonList(new XdmAtomicValue("\n"))));
 
          trans.setInitialContextNode(source);
          trans.setDestination(out);

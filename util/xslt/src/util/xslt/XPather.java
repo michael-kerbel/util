@@ -2,18 +2,18 @@ package util.xslt;
 
 import javax.xml.transform.dom.DOMSource;
 
+import org.htmlcleaner.CleanerProperties;
+import org.htmlcleaner.DomSerializer;
+import org.htmlcleaner.HtmlCleaner;
+import org.htmlcleaner.TagNode;
+import org.w3c.dom.Document;
+
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XPathExecutable;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmValue;
-
-import org.htmlcleaner.CleanerProperties;
-import org.htmlcleaner.DomSerializer;
-import org.htmlcleaner.HtmlCleaner;
-import org.htmlcleaner.TagNode;
-import org.w3c.dom.Document;
 
 
 public class XPather {
@@ -23,7 +23,9 @@ public class XPather {
 
       HtmlCleaner cleaner = new HtmlCleaner();
       TagNode clean = cleaner.clean(page);
-      Document document = new DomSerializer(new CleanerProperties()).createDOM(clean);
+      CleanerProperties prop = new CleanerProperties();
+      prop.setNamespacesAware(false);
+      Document document = new DomSerializer(prop).createDOM(clean);
 
       XdmNode source = proc.newDocumentBuilder().build(new DOMSource(document));
 
