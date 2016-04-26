@@ -54,7 +54,7 @@ public class Transformer {
    private static final Pattern                   NON_BREAKING_SPACE = Pattern.compile("\\xa0");
    private static final Pattern                   SCRIPT_BLOCK       = Pattern.compile("(?s)<script>(.*?)</script>");
 
-   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                       //
+   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                                                                                                                                                           //
       () -> new ScriptEngineManager().getEngineByMimeType("text/javascript"));
 
 
@@ -145,10 +145,10 @@ public class Transformer {
             // script tag preserves the text as text in the DOM, i.e. it doesn't try to parse any html elements which might occur in the text 
             page = "<script>" + page + "</script>";
          }
-         HtmlCleaner cleaner = new HtmlCleaner();
-         TagNode clean = cleaner.clean(page);
          CleanerProperties prop = new CleanerProperties();
          prop.setNamespacesAware(false);
+         HtmlCleaner cleaner = new HtmlCleaner(prop);
+         TagNode clean = cleaner.clean(page);
          Document document = new DomSerializer(prop).createDOM(clean);
 
          XdmNode source = proc.newDocumentBuilder().build(new DOMSource(document));

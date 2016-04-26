@@ -21,10 +21,10 @@ public class XPather {
    public static String eval( String page, String xpath ) throws Exception {
       Processor proc = new Processor(false);
 
-      HtmlCleaner cleaner = new HtmlCleaner();
-      TagNode clean = cleaner.clean(page);
       CleanerProperties prop = new CleanerProperties();
       prop.setNamespacesAware(false);
+      HtmlCleaner cleaner = new HtmlCleaner(prop);
+      TagNode clean = cleaner.clean(page);
       Document document = new DomSerializer(prop).createDOM(clean);
 
       XdmNode source = proc.newDocumentBuilder().build(new DOMSource(document));
