@@ -54,7 +54,7 @@ public class Transformer {
    private static final Pattern                   NON_BREAKING_SPACE = Pattern.compile("\\xa0");
    private static final Pattern                   SCRIPT_BLOCK       = Pattern.compile("(?s)<script>(.*?)</script>");
 
-   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                                                                                                                                                           //
+   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                                                                                                                                                                                 //
       () -> new ScriptEngineManager().getEngineByMimeType("text/javascript"));
 
 
@@ -147,6 +147,7 @@ public class Transformer {
          }
          CleanerProperties prop = new CleanerProperties();
          prop.setNamespacesAware(false);
+         prop.setAllowHtmlInsideAttributes(true);
          HtmlCleaner cleaner = new HtmlCleaner(prop);
          TagNode clean = cleaner.clean(page);
          Document document = new DomSerializer(prop).createDOM(clean);

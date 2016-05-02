@@ -23,6 +23,7 @@ public class XPather {
 
       CleanerProperties prop = new CleanerProperties();
       prop.setNamespacesAware(false);
+      prop.setAllowHtmlInsideAttributes(true);
       HtmlCleaner cleaner = new HtmlCleaner(prop);
       TagNode clean = cleaner.clean(page);
       Document document = new DomSerializer(prop).createDOM(clean);
