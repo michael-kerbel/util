@@ -25,7 +25,6 @@ import javax.xml.transform.stream.StreamSource;
 
 import org.apache.commons.lang3.StringUtils;
 import org.htmlcleaner.CleanerProperties;
-import org.htmlcleaner.DomSerializer;
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.TagNode;
 import org.slf4j.Logger;
@@ -54,7 +53,7 @@ public class Transformer {
    private static final Pattern                   NON_BREAKING_SPACE = Pattern.compile("\\xa0");
    private static final Pattern                   SCRIPT_BLOCK       = Pattern.compile("(?s)<script>(.*?)</script>");
 
-   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                                                                                                                                                                                 //
+   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                                                                                                                                                                                                       //
       () -> new ScriptEngineManager().getEngineByMimeType("text/javascript"));
 
 
@@ -150,7 +149,7 @@ public class Transformer {
          prop.setAllowHtmlInsideAttributes(true);
          HtmlCleaner cleaner = new HtmlCleaner(prop);
          TagNode clean = cleaner.clean(page);
-         Document document = new DomSerializer(prop).createDOM(clean);
+         Document document = new LenientDomSerializer(prop).createDOM(clean);
 
          XdmNode source = proc.newDocumentBuilder().build(new DOMSource(document));
 

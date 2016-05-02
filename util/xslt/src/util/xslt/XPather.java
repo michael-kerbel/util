@@ -3,7 +3,6 @@ package util.xslt;
 import javax.xml.transform.dom.DOMSource;
 
 import org.htmlcleaner.CleanerProperties;
-import org.htmlcleaner.DomSerializer;
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.TagNode;
 import org.w3c.dom.Document;
@@ -26,7 +25,7 @@ public class XPather {
       prop.setAllowHtmlInsideAttributes(true);
       HtmlCleaner cleaner = new HtmlCleaner(prop);
       TagNode clean = cleaner.clean(page);
-      Document document = new DomSerializer(prop).createDOM(clean);
+      Document document = new LenientDomSerializer(prop).createDOM(clean);
 
       XdmNode source = proc.newDocumentBuilder().build(new DOMSource(document));
 
