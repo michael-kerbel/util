@@ -1,5 +1,7 @@
 package util.xslt;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import javax.xml.transform.dom.DOMSource;
 
 import org.htmlcleaner.CleanerProperties;
@@ -13,27 +15,39 @@ import net.sf.saxon.s9api.XPathExecutable;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmValue;
+import util.collections.ConcurrentLRUCache;
 
 
 public class XPather {
 
+   static final Processor                                  PROC                   = new Processor(false);
+   static final ConcurrentHashMap<String, XPathExecutable> XPATH_EXECUTABLE_CACHE = new ConcurrentHashMap<>();
+   static final ConcurrentLRUCache<String, XdmNode>        DOCUMENT_CACHE         = new ConcurrentLRUCache<>(30, 15);
+
+
    public static String eval( String page, String xpath ) throws Exception {
-      Processor proc = new Processor(false);
 
-      CleanerProperties prop = new CleanerProperties();
-      prop.setNamespacesAware(false);
-      prop.setAllowHtmlInsideAttributes(true);
-      HtmlCleaner cleaner = new HtmlCleaner(prop);
-      TagNode clean = cleaner.clean(page);
-      Document document = new LenientDomSerializer(prop).createDOM(clean);
+      XdmNode source = DOCUMENT_CACHE.get(page);
+      if ( source == null ) {
+         CleanerProperties prop = new CleanerProperties();
+         prop.setNamespacesAware(false);
+         prop.setAllowHtmlInsideAttributes(true);
+         HtmlCleaner cleaner = new HtmlCleaner(prop);
+         TagNode clean = cleaner.clean(page);
+         Document document = new LenientDomSerializer(prop).createDOM(clean);
+         source = PROC.newDocumentBuilder().build(new DOMSource(document));
+         DOCUMENT_CACHE.put(page, source);
+      }
 
-      XdmNode source = proc.newDocumentBuilder().build(new DOMSource(document));
-
-      XPathCompiler xPathCompiler = proc.newXPathCompiler();
-      XPathExecutable xPathExecutable = xPathCompiler.compile(xpath);
+      XPathExecutable xPathExecutable = XPATH_EXECUTABLE_CACHE.get(xpath);
+      if ( xPathExecutable == null ) {
+         XPathCompiler xPathCompiler = PROC.newXPathCompiler();
+         xPathExecutable = xPathCompiler.compile(xpath);
+         XPATH_EXECUTABLE_CACHE.put(xpath, xPathExecutable);
+      }
       XPathSelector xPathSelector = xPathExecutable.load();
-
       xPathSelector.setContextItem(source);
+
       XdmValue value = xPathSelector.evaluate();
       if ( value.size() == 0 ) {
          return "";
