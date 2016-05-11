@@ -1,7 +1,9 @@
 package util.collections;
 
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -29,26 +31,20 @@ import org.slf4j.LoggerFactory;
  */
 public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
-   private static Logger                               log              = LoggerFactory.getLogger(ConcurrentLRUCache.class);
+   private static Logger                                     log              = LoggerFactory.getLogger(ConcurrentLRUCache.class);
 
-   private final ConcurrentHashMap<Object, CacheEntry> map;
-   private final int                                   upperWaterMark, lowerWaterMark;
-   private final ReentrantLock                         markAndSweepLock = new ReentrantLock(true);
-   private boolean                                     isCleaning       = false;                                            // not volatile... piggybacked on other volatile vars
-   private final boolean                               newThreadForCleanup;
-   private volatile boolean                            islive           = true;
-   private final Stats                                 stats            = new Stats();
-   private final int                                   acceptableWaterMark;
-   private long                                        oldestEntry      = 0;                                                // not volatile, only accessed in the cleaning method
-   private final EvictionListener<K, V>                evictionListener;
-   private CleanupThread                               cleanupThread;
+   private final ConcurrentHashMap<Object, CacheEntry<K, V>> map;
+   private final int                                         upperWaterMark, lowerWaterMark;
+   private final ReentrantLock                               markAndSweepLock = new ReentrantLock(true);
+   private boolean                                           isCleaning       = false;                                                                                          // not volatile... piggybacked on other volatile vars
+   private final boolean                                     newThreadForCleanup;
+   private volatile boolean                                  islive           = true;
+   private final Stats                                       stats            = new Stats();
+   private final int                                         acceptableWaterMark;
+   private long                                              oldestEntry      = 0;                                                                                                  // not volatile, only accessed in the cleaning method
+   private final EvictionListener<K, V>                      evictionListener;
+   private CleanupThread                                     cleanupThread;
 
-   private boolean                                     isDestroyed      = false;
-
-
-   public ConcurrentLRUCache( int size, int lowerWatermark ) {
-      this(size, lowerWatermark, (int)Math.floor((lowerWatermark + size) / 2), (int)Math.ceil(0.75 * size), false, false, null);
-   }
 
    public ConcurrentLRUCache( int upperWaterMark, final int lowerWaterMark, int acceptableWatermark, int initialSize, boolean runCleanupThread,
          boolean runNewThreadForCleanup, EvictionListener<K, V> evictionListener ) {
@@ -58,7 +54,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       if ( lowerWaterMark >= upperWaterMark ) {
          throw new IllegalArgumentException("lowerWaterMark must be  < upperWaterMark");
       }
-      map = new ConcurrentHashMap<Object, CacheEntry>(initialSize);
+      map = new ConcurrentHashMap<>(initialSize);
       newThreadForCleanup = runNewThreadForCleanup;
       this.upperWaterMark = upperWaterMark;
       this.lowerWaterMark = lowerWaterMark;
@@ -70,36 +66,12 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       }
    }
 
-   @Override
-   public void clear() {
-      map.clear();
+   public ConcurrentLRUCache( int size, int lowerWatermark ) {
+      this(size, lowerWatermark, (int)Math.floor((lowerWatermark + size) / 2), (int)Math.ceil(0.75 * size), false, false, null);
    }
 
-   @Override
-   public boolean containsKey( Object key ) {
-      return map.containsKey(key);
-   }
-
-   @Override
-   public boolean containsValue( Object value ) {
-      return map.containsValue(value);
-   }
-
-   public void destroy() {
-      try {
-         if ( cleanupThread != null ) {
-            cleanupThread.stopThread();
-         }
-      }
-      finally {
-         isDestroyed = true;
-      }
-   }
-
-   /** UnsupportedOperation */
-   @Override
-   public Set<java.util.Map.Entry<K, V>> entrySet() {
-      throw new UnsupportedOperationException();
+   public void setAlive( boolean live ) {
+      islive = live;
    }
 
    @Override
@@ -109,7 +81,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
          if ( islive ) {
             stats.missCounter.incrementAndGet();
          }
-         return (V)null;
+         return null;
       }
       if ( islive ) {
          e.lastAccessed = stats.accessCounter.incrementAndGet();
@@ -117,94 +89,22 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       return e.value;
    }
 
-   public Map<K, V> getLatestAccessedItems( int n ) {
-      Map<K, V> result = new LinkedHashMap<K, V>();
-      TreeSet<CacheEntry> tree = new TreeSet<CacheEntry>();
-      // we need to grab the lock since we are changing lastAccessedCopy
-      markAndSweepLock.lock();
-      try {
-         for ( Map.Entry<Object, CacheEntry> entry : map.entrySet() ) {
-            CacheEntry ce = entry.getValue();
-            ce.lastAccessedCopy = ce.lastAccessed;
-            if ( tree.size() < n ) {
-               tree.add(ce);
-            } else {
-               if ( ce.lastAccessedCopy > tree.last().lastAccessedCopy ) {
-                  tree.remove(tree.last());
-                  tree.add(ce);
-               }
-            }
-         }
-      }
-      finally {
-         markAndSweepLock.unlock();
-      }
-      for ( CacheEntry<K, V> e : tree ) {
-         result.put(e.key, e.value);
-      }
-      return result;
-   }
-
-   public Map<Object, CacheEntry> getMap() {
-      return map;
-   }
-
-   /**
-    * Returns 'n' number of oldest accessed entries present in this cache.
-    *
-    * This uses a TreeSet to collect the 'n' oldest items ordered by ascending last access time
-    *  and returns a LinkedHashMap containing 'n' or less than 'n' entries.
-    * @param n the number of oldest items needed
-    * @return a LinkedHashMap containing 'n' or less than 'n' entries
-    */
-   public Map<K, V> getOldestAccessedItems( int n ) {
-      Map<K, V> result = new LinkedHashMap<K, V>();
-      TreeSet<CacheEntry> tree = new TreeSet<CacheEntry>();
-      markAndSweepLock.lock();
-      try {
-         for ( Map.Entry<Object, CacheEntry> entry : map.entrySet() ) {
-            CacheEntry ce = entry.getValue();
-            ce.lastAccessedCopy = ce.lastAccessed;
-            if ( tree.size() < n ) {
-               tree.add(ce);
-            } else {
-               if ( ce.lastAccessedCopy < tree.first().lastAccessedCopy ) {
-                  tree.remove(tree.first());
-                  tree.add(ce);
-               }
-            }
-         }
-      }
-      finally {
-         markAndSweepLock.unlock();
-      }
-      for ( CacheEntry<K, V> e : tree ) {
-         result.put(e.key, e.value);
-      }
-      return result;
-   }
-
-   public Stats getStats() {
-      return stats;
-   }
-
    @Override
-   public boolean isEmpty() {
-      return size() == 0;
-   }
-
-   /** UnsupportedOperation */
-   @Override
-   public Set<K> keySet() {
-      throw new UnsupportedOperationException();
+   public V remove( Object key ) {
+      CacheEntry<K, V> cacheEntry = map.remove(key);
+      if ( cacheEntry != null ) {
+         stats.size.decrementAndGet();
+         return cacheEntry.value;
+      }
+      return null;
    }
 
    @Override
    public V put( K key, V val ) {
       if ( val == null ) {
-         return (V)null;
+         return null;
       }
-      CacheEntry<K, V> e = new CacheEntry(key, val, stats.accessCounter.incrementAndGet());
+      CacheEntry<K, V> e = new CacheEntry<>(key, val, stats.accessCounter.incrementAndGet());
       CacheEntry<K, V> oldCacheEntry = map.put(key, e);
       int currentSize;
       if ( oldCacheEntry == null ) {
@@ -220,11 +120,11 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
       // Check if we need to clear out old entries from the cache.
       // isCleaning variable is checked instead of markAndSweepLock.isLocked()
-      // for performance because every put invokation will check until
+      // for performance because every put invocation will check until
       // the size is back to an acceptable level.
       //
       // There is a race between the check and the call to markAndSweep, but
-      // it's unimportant because markAndSweep actually aquires the lock or returns if it can't.
+      // it's unimportant because markAndSweep actually acquires the lock or returns if it can't.
       //
       // Thread safety note: isCleaning read is piggybacked (comes after) other volatile reads
       // in this method.
@@ -243,63 +143,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
             markAndSweep();
          }
       }
-      return oldCacheEntry == null ? (V)null : oldCacheEntry.value;
-   }
-
-   /** UnsupportedOperation */
-   @Override
-   public void putAll( Map<? extends K, ? extends V> m ) {
-      throw new UnsupportedOperationException();
-   }
-
-   @Override
-   public V remove( Object key ) {
-      CacheEntry<K, V> cacheEntry = map.remove(key);
-      if ( cacheEntry != null ) {
-         stats.size.decrementAndGet();
-         return cacheEntry.value;
-      }
-      return (V)null;
-   }
-
-   public void setAlive( boolean live ) {
-      islive = live;
-   }
-
-   @Override
-   public int size() {
-      return stats.size.get();
-   }
-
-   /** UnsupportedOperation */
-   @Override
-   public Collection<V> values() {
-      throw new UnsupportedOperationException();
-   }
-
-   @Override
-   protected void finalize() throws Throwable {
-      try {
-         if ( !isDestroyed ) {
-            log.error("ConcurrentLRUCache was not destroyed prior to finalize(), indicates a bug -- POSSIBLE RESOURCE LEAK!!!");
-            destroy();
-         }
-      }
-      finally {
-         super.finalize();
-      }
-   }
-
-   private void evictEntry( K key ) {
-      CacheEntry<K, V> o = map.remove(key);
-      if ( o == null ) {
-         return;
-      }
-      stats.size.decrementAndGet();
-      stats.evictionCounter.incrementAndGet();
-      if ( evictionListener != null ) {
-         evictionListener.evictedEntry(o.key, o.value);
-      }
+      return oldCacheEntry == null ? null : oldCacheEntry.value;
    }
 
    /**
@@ -316,7 +160,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
    private void markAndSweep() {
       // if we want to keep at least 1000 entries, then timestamps of
       // current through current-1000 are guaranteed not to be the oldest (but that does
-      // not mean there are 1000 entries in that group... it's acutally anywhere between
+      // not mean there are 1000 entries in that group... it's actually anywhere between
       // 1 and 1000).
       // Also, if we want to remove 500 entries, then
       // oldestEntry through oldestEntry+500 are guaranteed to be
@@ -328,7 +172,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       try {
          long oldestEntry = this.oldestEntry;
          isCleaning = true;
-         this.oldestEntry = oldestEntry; // volatile write to make isCleaning visible
+         this.oldestEntry = oldestEntry;     // volatile write to make isCleaning visible
 
          long timeCurrent = stats.accessCounter.get();
          int sz = stats.size.get();
@@ -342,6 +186,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
          int wantToKeep = lowerWaterMark;
          int wantToRemove = sz - lowerWaterMark;
 
+         @SuppressWarnings("unchecked") // generic array's are annoying
          CacheEntry<K, V>[] eset = new CacheEntry[sz];
          int eSize = 0;
 
@@ -401,7 +246,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
                   // this entry is guaranteed not to be in the bottom
                   // group, so do nothing but remove it from the eset.
                   numKept++;
-                  // remove the entry by moving the last element to it's position
+                  // remove the entry by moving the last element to its position
                   eset[i] = eset[eSize - 1];
                   eSize--;
 
@@ -414,7 +259,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
                   evictEntry(ce.key);
                   numRemoved++;
 
-                  // remove the entry by moving the last element to it's position
+                  // remove the entry by moving the last element to its position
                   eset[i] = eset[eSize - 1];
                   eSize--;
                } else {
@@ -438,7 +283,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
             wantToKeep = lowerWaterMark - numKept;
             wantToRemove = sz - lowerWaterMark - numRemoved;
 
-            PQueue queue = new PQueue(wantToRemove);
+            PQueue<K, V> queue = new PQueue<>(wantToRemove);
 
             for ( int i = eSize - 1; i >= 0; i-- ) {
                CacheEntry<K, V> ce = eset[i];
@@ -454,7 +299,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
                   newOldestEntry = Math.min(thisEntry, newOldestEntry);
 
-               } else if ( thisEntry < oldestEntry + wantToRemove ) { // entry in bottom group?
+               } else if ( thisEntry < oldestEntry + wantToRemove ) {  // entry in bottom group?
                   // this entry is guaranteed to be in the bottom group
                   // so immediately remove it.
                   evictEntry(ce.key);
@@ -475,7 +320,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
                   // this loop so far.
                   queue.myMaxSize = sz - lowerWaterMark - numRemoved;
                   while ( queue.size() > queue.myMaxSize && queue.size() > 0 ) {
-                     CacheEntry otherEntry = (CacheEntry)queue.pop();
+                     CacheEntry otherEntry = queue.pop();
                      newOldestEntry = Math.min(otherEntry.lastAccessedCopy, newOldestEntry);
                   }
                   if ( queue.myMaxSize <= 0 ) {
@@ -491,11 +336,10 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
             // Now delete everything in the priority queue.
             // avoid using pop() since order doesn't matter anymore
-            for ( Object o : queue.getValues() ) {
-               if ( o == null ) {
+            for ( CacheEntry<K, V> ce : queue.getValues() ) {
+               if ( ce == null ) {
                   continue;
                }
-               CacheEntry<K, V> ce = (CacheEntry)o;
                evictEntry(ce.key);
                numRemoved++;
             }
@@ -507,64 +351,150 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
          this.oldestEntry = oldestEntry;
       }
       finally {
-         isCleaning = false; // set before markAndSweep.unlock() for visibility
+         isCleaning = false;  // set before markAndSweep.unlock() for visibility
          markAndSweepLock.unlock();
       }
    }
 
 
-   public static interface EvictionListener<K, V> {
+   private static class PQueue<K, V> extends PriorityQueue<CacheEntry<K, V>> {
 
-      public void evictedEntry( K key, V value );
-   }
-
-   public static class Stats {
-
-      private final AtomicLong    accessCounter   = new AtomicLong(0), putCounter = new AtomicLong(0), nonLivePutCounter = new AtomicLong(0),
-            missCounter = new AtomicLong();
-      private final AtomicInteger size            = new AtomicInteger();
-      private AtomicLong          evictionCounter = new AtomicLong();
+      int            myMaxSize;
+      final Object[] heap;
 
 
-      public void add( Stats other ) {
-         accessCounter.addAndGet(other.accessCounter.get());
-         putCounter.addAndGet(other.putCounter.get());
-         nonLivePutCounter.addAndGet(other.nonLivePutCounter.get());
-         missCounter.addAndGet(other.missCounter.get());
-         evictionCounter.addAndGet(other.evictionCounter.get());
-         size.set(Math.max(size.get(), other.size.get()));
+      PQueue( int maxSz ) {
+         super(maxSz);
+         heap = getHeapArray();
+         myMaxSize = maxSz;
       }
 
-      public long getCumulativeEvictions() {
-         return evictionCounter.get();
+      @SuppressWarnings("unchecked")
+      Iterable<CacheEntry<K, V>> getValues() {
+         return (Iterable)Collections.unmodifiableCollection(Arrays.asList(heap));
       }
 
-      public long getCumulativeHits() {
-         return accessCounter.get() - putCounter.get() - nonLivePutCounter.get();
+      @Override
+      protected boolean lessThan( CacheEntry a, CacheEntry b ) {
+         // reverse the parameter order so that the queue keeps the oldest items
+         return b.lastAccessedCopy < a.lastAccessedCopy;
       }
 
-      public long getCumulativeLookups() {
-         return (accessCounter.get() - putCounter.get() - nonLivePutCounter.get()) + missCounter.get();
-      }
-
-      public long getCumulativeMisses() {
-         return missCounter.get();
-      }
-
-      public long getCumulativeNonLivePuts() {
-         return nonLivePutCounter.get();
-      }
-
-      public long getCumulativePuts() {
-         return putCounter.get();
-      }
-
-      public int getCurrentSize() {
-         return size.get();
+      // necessary because maxSize is private in base class
+      @SuppressWarnings("unchecked")
+      public CacheEntry<K, V> myInsertWithOverflow( CacheEntry<K, V> element ) {
+         if ( size() < myMaxSize ) {
+            add(element);
+            return null;
+         } else if ( size() > 0 && !lessThan(element, (CacheEntry<K, V>)heap[1]) ) {
+            CacheEntry<K, V> ret = (CacheEntry<K, V>)heap[1];
+            heap[1] = element;
+            updateTop();
+            return ret;
+         } else {
+            return element;
+         }
       }
    }
 
-   private static class CacheEntry<K, V> implements Comparable<CacheEntry> {
+
+   private void evictEntry( K key ) {
+      CacheEntry<K, V> o = map.remove(key);
+      if ( o == null ) {
+         return;
+      }
+      stats.size.decrementAndGet();
+      stats.evictionCounter.incrementAndGet();
+      if ( evictionListener != null ) {
+         evictionListener.evictedEntry(o.key, o.value);
+      }
+   }
+
+   /**
+    * Returns 'n' number of oldest accessed entries present in this cache.
+    *
+    * This uses a TreeSet to collect the 'n' oldest items ordered by ascending last access time
+    *  and returns a LinkedHashMap containing 'n' or less than 'n' entries.
+    * @param n the number of oldest items needed
+    * @return a LinkedHashMap containing 'n' or less than 'n' entries
+    */
+   public Map<K, V> getOldestAccessedItems( int n ) {
+      Map<K, V> result = new LinkedHashMap<>();
+      if ( n <= 0 ) {
+         return result;
+      }
+      TreeSet<CacheEntry<K, V>> tree = new TreeSet<>();
+      markAndSweepLock.lock();
+      try {
+         for ( Map.Entry<Object, CacheEntry<K, V>> entry : map.entrySet() ) {
+            CacheEntry<K, V> ce = entry.getValue();
+            ce.lastAccessedCopy = ce.lastAccessed;
+            if ( tree.size() < n ) {
+               tree.add(ce);
+            } else {
+               if ( ce.lastAccessedCopy < tree.first().lastAccessedCopy ) {
+                  tree.remove(tree.first());
+                  tree.add(ce);
+               }
+            }
+         }
+      }
+      finally {
+         markAndSweepLock.unlock();
+      }
+      for ( CacheEntry<K, V> e : tree ) {
+         result.put(e.key, e.value);
+      }
+      return result;
+   }
+
+   public Map<K, V> getLatestAccessedItems( int n ) {
+      Map<K, V> result = new LinkedHashMap<>();
+      if ( n <= 0 ) {
+         return result;
+      }
+      TreeSet<CacheEntry<K, V>> tree = new TreeSet<>();
+      // we need to grab the lock since we are changing lastAccessedCopy
+      markAndSweepLock.lock();
+      try {
+         for ( Map.Entry<Object, CacheEntry<K, V>> entry : map.entrySet() ) {
+            CacheEntry<K, V> ce = entry.getValue();
+            ce.lastAccessedCopy = ce.lastAccessed;
+            if ( tree.size() < n ) {
+               tree.add(ce);
+            } else {
+               if ( ce.lastAccessedCopy > tree.last().lastAccessedCopy ) {
+                  tree.remove(tree.last());
+                  tree.add(ce);
+               }
+            }
+         }
+      }
+      finally {
+         markAndSweepLock.unlock();
+      }
+      for ( CacheEntry<K, V> e : tree ) {
+         result.put(e.key, e.value);
+      }
+      return result;
+   }
+
+   @Override
+   public int size() {
+      return stats.size.get();
+   }
+
+   @Override
+   public void clear() {
+      map.clear();
+   }
+
+   public Map<Object, CacheEntry<K, V>> getMap() {
+      return map;
+   }
+
+
+   private static class CacheEntry<K, V> implements Comparable<CacheEntry<K, V>> {
 
       K             key;
       V             value;
@@ -578,12 +508,21 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
          this.lastAccessed = lastAccessed;
       }
 
+      public void setLastAccessed( long lastAccessed ) {
+         this.lastAccessed = lastAccessed;
+      }
+
       @Override
-      public int compareTo( CacheEntry that ) {
+      public int compareTo( CacheEntry<K, V> that ) {
          if ( this.lastAccessedCopy == that.lastAccessedCopy ) {
             return 0;
          }
          return this.lastAccessedCopy < that.lastAccessedCopy ? 1 : -1;
+      }
+
+      @Override
+      public int hashCode() {
+         return value.hashCode();
       }
 
       @Override
@@ -592,18 +531,80 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
       }
 
       @Override
-      public int hashCode() {
-         return value.hashCode();
-      }
-
-      public void setLastAccessed( long lastAccessed ) {
-         this.lastAccessed = lastAccessed;
-      }
-
-      @Override
       public String toString() {
          return "key: " + key + " value: " + value + " lastAccessed:" + lastAccessed;
       }
+   }
+
+
+   private boolean isDestroyed = false;
+
+
+   public void destroy() {
+      try {
+         if ( cleanupThread != null ) {
+            cleanupThread.stopThread();
+         }
+      }
+      finally {
+         isDestroyed = true;
+      }
+   }
+
+   public Stats getStats() {
+      return stats;
+   }
+
+
+   public static class Stats {
+
+      private final AtomicLong    accessCounter   = new AtomicLong(0), putCounter = new AtomicLong(0), nonLivePutCounter = new AtomicLong(0),
+            missCounter = new AtomicLong();
+      private final AtomicInteger size            = new AtomicInteger();
+      private AtomicLong          evictionCounter = new AtomicLong();
+
+
+      public long getCumulativeLookups() {
+         return (accessCounter.get() - putCounter.get() - nonLivePutCounter.get()) + missCounter.get();
+      }
+
+      public long getCumulativeHits() {
+         return accessCounter.get() - putCounter.get() - nonLivePutCounter.get();
+      }
+
+      public long getCumulativePuts() {
+         return putCounter.get();
+      }
+
+      public long getCumulativeEvictions() {
+         return evictionCounter.get();
+      }
+
+      public int getCurrentSize() {
+         return size.get();
+      }
+
+      public long getCumulativeNonLivePuts() {
+         return nonLivePutCounter.get();
+      }
+
+      public long getCumulativeMisses() {
+         return missCounter.get();
+      }
+
+      public void add( Stats other ) {
+         accessCounter.addAndGet(other.accessCounter.get());
+         putCounter.addAndGet(other.putCounter.get());
+         nonLivePutCounter.addAndGet(other.nonLivePutCounter.get());
+         missCounter.addAndGet(other.missCounter.get());
+         evictionCounter.addAndGet(other.evictionCounter.get());
+         size.set(Math.max(size.get(), other.size.get()));
+      }
+   }
+
+   public static interface EvictionListener<K, V> {
+
+      public void evictedEntry( K key, V value );
    }
 
    private static class CleanupThread extends Thread {
@@ -614,7 +615,7 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
 
 
       public CleanupThread( ConcurrentLRUCache c ) {
-         cache = new WeakReference<ConcurrentLRUCache>(c);
+         cache = new WeakReference<>(c);
       }
 
       @Override
@@ -640,53 +641,64 @@ public class ConcurrentLRUCache<K, V> implements Map<K, V> {
          }
       }
 
+      void wakeThread() {
+         synchronized ( this ) {
+            this.notify();
+         }
+      }
+
       void stopThread() {
          synchronized ( this ) {
             stop = true;
             this.notify();
          }
       }
+   }
 
-      void wakeThread() {
-         synchronized ( this ) {
-            this.notify();
+
+   @Override
+   protected void finalize() throws Throwable {
+      try {
+         if ( !isDestroyed && (cleanupThread != null) ) {
+            log.error("ConcurrentLRUCache created with a thread and was not destroyed prior to finalize(), indicates a bug -- POSSIBLE RESOURCE LEAK!!!");
+            destroy();
          }
+      }
+      finally {
+         super.finalize();
       }
    }
 
-   private static class PQueue extends PriorityQueue {
+   @Override
+   public boolean isEmpty() {
+      return false;
+   }
 
-      int myMaxSize;
+   @Override
+   public boolean containsKey( Object key ) {
+      return get(key) != null;
+   }
 
+   @Override
+   public boolean containsValue( Object value ) {
+      throw new UnsupportedOperationException("not implemented");
+   }
 
-      PQueue( int maxSz ) {
-         super.initialize(maxSz);
-         myMaxSize = maxSz;
-      }
+   @Override
+   public void putAll( Map<? extends K, ? extends V> m ) {}
 
-      // necessary because maxSize is private in base class
-      public Object myInsertWithOverflow( Object element ) {
-         if ( size() < myMaxSize ) {
-            put(element);
-            return null;
-         } else if ( size() > 0 && !lessThan(element, heap[1]) ) {
-            Object ret = heap[1];
-            heap[1] = element;
-            adjustTop();
-            return ret;
-         } else {
-            return element;
-         }
-      }
+   @Override
+   public Set<K> keySet() {
+      return null;
+   }
 
-      @Override
-      protected boolean lessThan( Object a, Object b ) {
-         // reverse the parameter order so that the queue keeps the oldest items
-         return ((CacheEntry)b).lastAccessedCopy < ((CacheEntry)a).lastAccessedCopy;
-      }
+   @Override
+   public Collection<V> values() {
+      return null;
+   }
 
-      Object[] getValues() {
-         return heap;
-      }
+   @Override
+   public Set<java.util.Map.Entry<K, V>> entrySet() {
+      return null;
    }
 }
