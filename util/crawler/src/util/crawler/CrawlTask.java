@@ -46,20 +46,20 @@ public class CrawlTask implements Runnable {
    private static final Pattern PIPE              = Pattern.compile("\\|");
    private static final Pattern AMP_ENTITY        = Pattern.compile("&amp;");
    private static final Pattern XML_CHAR_ENTITY   = Pattern.compile("&#(\\d+);");
-   private static final String  FOLLOW_XPATHS_XSL = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" + // 
-                                                     "<xsl:transform xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\r\n" + //
-                                                     "               xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\r\n" + //
-                                                     "               xmlns:f=\"http://localhost/functions\"\r\n" + //
-                                                     "               exclude-result-prefixes=\"xs f\"\r\n" + //
-                                                     "               version=\"2.0\">\r\n" + //
-                                                     "  \r\n" + //
-                                                     "  <xsl:output method=\"xml\" indent=\"yes\"/>\r\n" + //
-                                                     "  \r\n" + //
-                                                     "  <xsl:template match=\"/\">\r\n" + //
-                                                     "    @@@" + //
-                                                     "  </xsl:template>\r\n" + //
-                                                     "  \r\n" + //
-                                                     "</xsl:transform>";
+   private static final String  FOLLOW_XPATHS_XSL = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +                    // 
+      "<xsl:transform xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\r\n" +                                           //
+      "               xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\r\n" +                                                //
+      "               xmlns:f=\"http://localhost/functions\"\r\n" +                                                       //
+      "               exclude-result-prefixes=\"xs f\"\r\n" +                                                             //
+      "               version=\"2.0\">\r\n" +                                                                             //
+      "  \r\n" +                                                                                                          //
+      "  <xsl:output method=\"xml\" indent=\"yes\"/>\r\n" +                                                               //
+      "  \r\n" +                                                                                                          //
+      "  <xsl:template match=\"/\">\r\n" +                                                                                //
+      "    @@@" +                                                                                                         //
+      "  </xsl:template>\r\n" +                                                                                           //
+      "  \r\n" +                                                                                                          //
+      "</xsl:transform>";
 
    private static Logger        _log              = LoggerFactory.getLogger(CrawlTask.class);
 
@@ -352,8 +352,9 @@ public class CrawlTask implements Runnable {
          url = url.substring(0, url.length() - 5);
       }
       List<String> params = new ArrayList<String>();
-      if ( url.indexOf('?') > 0 ) {
-         for ( String p : StringUtils.split(url.substring(url.indexOf('?') + 1), '&') ) {
+      int indexOfQuestionmark = url.lastIndexOf('?');
+      if ( indexOfQuestionmark > 0 ) {
+         for ( String p : StringUtils.split(url.substring(indexOfQuestionmark + 1), '&') ) {
             String[] s = StringUtils.split(p, '=');
             if ( s.length == 0 ) {
                continue;
@@ -365,7 +366,7 @@ public class CrawlTask implements Runnable {
                params.add("");
             }
          }
-         url = url.substring(0, url.indexOf('?'));
+         url = url.substring(0, indexOfQuestionmark);
       }
       return HttpClientFactory.createPost(url, params.toArray(new String[params.size()]));
    }
