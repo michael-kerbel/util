@@ -16,10 +16,14 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,19 +50,19 @@ public class CrawlTask implements Runnable {
    private static final Pattern PIPE              = Pattern.compile("\\|");
    private static final Pattern AMP_ENTITY        = Pattern.compile("&amp;");
    private static final Pattern XML_CHAR_ENTITY   = Pattern.compile("&#(\\d+);");
-   private static final String  FOLLOW_XPATHS_XSL = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +                    // 
-      "<xsl:transform xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\r\n" +                                           //
-      "               xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\r\n" +                                                //
-      "               xmlns:f=\"http://localhost/functions\"\r\n" +                                                       //
-      "               exclude-result-prefixes=\"xs f\"\r\n" +                                                             //
-      "               version=\"2.0\">\r\n" +                                                                             //
-      "  \r\n" +                                                                                                          //
-      "  <xsl:output method=\"xml\" indent=\"yes\"/>\r\n" +                                                               //
-      "  \r\n" +                                                                                                          //
-      "  <xsl:template match=\"/\">\r\n" +                                                                                //
-      "    @@@" +                                                                                                         //
-      "  </xsl:template>\r\n" +                                                                                           //
-      "  \r\n" +                                                                                                          //
+   private static final String  FOLLOW_XPATHS_XSL = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +                                                          // 
+      "<xsl:transform xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\r\n" +                                                                                                                               //
+      "               xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\r\n" +                                                                                                                                              //
+      "               xmlns:f=\"http://localhost/functions\"\r\n" +                                                                                                                                                                   //
+      "               exclude-result-prefixes=\"xs f\"\r\n" +                                                                                                                                                                                     //
+      "               version=\"2.0\">\r\n" +                                                                                                                                                                                                                                     //
+      "  \r\n" +                                                                                                                                                                                                                                                                                                                            //
+      "  <xsl:output method=\"xml\" indent=\"yes\"/>\r\n" +                                                                                                                                                                                           //
+      "  \r\n" +                                                                                                                                                                                                                                                                                                                            //
+      "  <xsl:template match=\"/\">\r\n" +                                                                                                                                                                                                                                              //
+      "    @@@" +                                                                                                                                                                                                                                                                                                                         //
+      "  </xsl:template>\r\n" +                                                                                                                                                                                                                                                                               //
+      "  \r\n" +                                                                                                                                                                                                                                                                                                                            //
       "</xsl:transform>";
 
    private static Logger        _log              = LoggerFactory.getLogger(CrawlTask.class);
@@ -368,7 +372,15 @@ public class CrawlTask implements Runnable {
          }
          url = url.substring(0, indexOfQuestionmark);
       }
-      return HttpClientFactory.createPost(url, params.toArray(new String[params.size()]));
+
+      HttpPost post = new HttpPost(url);
+      List<NameValuePair> formparams = new ArrayList<NameValuePair>();
+      for ( int i = 0, length = params.size(); i < length; i += 2 ) {
+         formparams.add(new BasicNameValuePair(params.get(i), params.get(i + 1)));
+      }
+      UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formparams, "UTF-8");
+      post.setEntity(entity);
+      return post;
    }
 
    private Set<CrawlItem> extractCrawlItems( String page ) {
