@@ -100,6 +100,7 @@ public class RegexHighlighter implements LineStyleListener {
    /**
     * Called by StyledText to get styles for a line
     */
+   @Override
    public void lineGetStyle( LineStyleEvent event ) {
       // Only do styles if syntax data has been loaded
       if ( syntaxData != null ) {
@@ -227,6 +228,10 @@ public class RegexHighlighter implements LineStyleListener {
 
    public void setSearchString( String s ) {
       _searchStringPattern = s != null && s.length() > 1 ? Pattern.compile("(?i)" + Pattern.quote(s)) : null;
+   }
+
+   public void setSearchStringPattern( Pattern p ) {
+      _searchStringPattern = p;
    }
 
    private Matcher findNextOccurence( String line, Pattern p, int startIndex ) {
