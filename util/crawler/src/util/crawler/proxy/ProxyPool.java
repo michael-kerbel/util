@@ -32,12 +32,12 @@ public class ProxyPool {
 
 
    public ProxyPool( ProxyList proxyList ) {
-      init(proxyList, null, null, null, null, null, null);
+      init(proxyList, null, null, null, null, null, null, 60000, 60000);
    }
 
    public ProxyPool( ProxyList proxyList, HttpHost latencyTestHost, List<Pattern> sanePatterns, List<Pattern> insanePatterns, String userAgent,
-         String authenticationUser, String authenticationPassword ) {
-      init(proxyList, latencyTestHost, sanePatterns, insanePatterns, userAgent, authenticationUser, authenticationPassword);
+         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout ) {
+      init(proxyList, latencyTestHost, sanePatterns, insanePatterns, userAgent, authenticationUser, authenticationPassword, socketTimeout, connectionTimeout);
    }
 
    public Proxy checkoutProxy() {
@@ -81,7 +81,7 @@ public class ProxyPool {
       ThreadPoolExecutor executor = ExecutorUtils.newFixedThreadPool(50, "proxy-pool-latency-test");
 
       for ( final Proxy p : _proxies ) {
-         executor.execute(( ) -> {
+         executor.execute(() -> {
             p.measureLatency(maxResponseTimeInMillis);
             long lastByteLatency = p.getStats().getLastByteLatency();
             if ( !p.isInsane() && lastByteLatency > 0 && lastByteLatency < maxResponseTimeInMillis ) {
@@ -148,7 +148,7 @@ public class ProxyPool {
    }
 
    protected void init( ProxyList proxyList, HttpHost latencyTestHost, List<Pattern> sanePatterns, List<Pattern> insanePatterns, String userAgent,
-         String authenticationUser, String authenticationPassword ) {
+         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout ) {
       _proxyList = proxyList;
       _allProxies = new ArrayList<Proxy>();
       _proxies = new PriorityBlockingQueue<Proxy>();
@@ -160,6 +160,8 @@ public class ProxyPool {
          proxy.setUserAgent(userAgent);
          proxy.setAuthenticationUser(authenticationUser);
          proxy.setAuthenticationPassword(authenticationPassword);
+         proxy.setSocketTimeout(socketTimeout);
+         proxy.setConnectionTimeout(connectionTimeout);
          _proxies.add(proxy);
          _allProxies.add(proxy);
       }

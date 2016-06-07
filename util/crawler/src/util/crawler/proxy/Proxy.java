@@ -8,11 +8,8 @@ import java.util.regex.Pattern;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.HttpParams;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,22 +21,22 @@ import util.http.HttpClientFactory;
 public class Proxy implements Comparable<Proxy> {
 
    public static final HttpHost      DEFAULT_LATENCY_TEST_HOST = new HttpHost("www.chrono24.com");
-   public static final List<Pattern> DEFAULT_SANE_PATTERNS     = Arrays.asList(new Pattern[] { Pattern.compile("chrono24"),//
-                                                               });
-   public static final List<Pattern> DEFAULT_INSANE_PATTERNS   = Arrays.asList(new Pattern[] { Pattern.compile("Page Not Responding"),//
-         Pattern.compile("unimed"),//
-         Pattern.compile("samair"),//
-         Pattern.compile("404 Not Found"),//
-         Pattern.compile("Hickory Orchards"),//
-         Pattern.compile("<![CDATA[<body></body>]]>"),//
-         Pattern.compile("Acceso denegado"),//
-         Pattern.compile("CoDeeN CAPTCHA"),//
-         Pattern.compile("Access denied"),//
-         Pattern.compile("Barracuda Web Filter"),//
-         Pattern.compile("Barracuda410"),//
-         Pattern.compile("Now go away."),//
-         Pattern.compile("www.caalbor.adv.br"),//
-                                                               });
+   public static final List<Pattern> DEFAULT_SANE_PATTERNS     = Arrays.asList(new Pattern[] { Pattern.compile("chrono24"),                                                                                                                                                                           //
+   });
+   public static final List<Pattern> DEFAULT_INSANE_PATTERNS   = Arrays.asList(new Pattern[] { Pattern.compile("Page Not Responding"),                                                                        //
+                                                                                               Pattern.compile("unimed"),                                                                                                                                                                                             //
+                                                                                               Pattern.compile("samair"),                                                                                                                                                                                             //
+                                                                                               Pattern.compile("404 Not Found"),                                                                                                                              //
+                                                                                               Pattern.compile("Hickory Orchards"),                                                                                                   //
+                                                                                               Pattern.compile("<![CDATA[<body></body>]]>"),                  //
+                                                                                               Pattern.compile("Acceso denegado"),                                                                                                            //
+                                                                                               Pattern.compile("CoDeeN CAPTCHA"),                                                                                                                     //
+                                                                                               Pattern.compile("Access denied"),                                                                                                                              //
+                                                                                               Pattern.compile("Barracuda Web Filter"),                                                               //
+                                                                                               Pattern.compile("Barracuda410"),                                                                                                                                       //
+                                                                                               Pattern.compile("Now go away."),                                                                                                                                       //
+                                                                                               Pattern.compile("www.caalbor.adv.br"),                                                                                 //
+   });
 
 
    public static void main( String[] args ) {
@@ -58,24 +55,27 @@ public class Proxy implements Comparable<Proxy> {
    }
 
 
-   Logger                     _log             = LoggerFactory.getLogger(getClass());
+   Logger                      _log               = LoggerFactory.getLogger(getClass());
 
-   private final ProxyAddress _address;
-   private HttpHost           _proxyHost;
+   private final ProxyAddress  _address;
+   private HttpHost            _proxyHost;
 
-   private HttpClient         _httpClient;
+   private CloseableHttpClient _httpClient;
 
-   private Stats              _stats;
+   private Stats               _stats;
 
-   private HttpHost           _latencyTestHost = DEFAULT_LATENCY_TEST_HOST;
-   private List<Pattern>      _sanePatterns    = DEFAULT_SANE_PATTERNS;
-   private List<Pattern>      _insanePatterns  = DEFAULT_INSANE_PATTERNS;
+   private HttpHost            _latencyTestHost   = DEFAULT_LATENCY_TEST_HOST;
+   private List<Pattern>       _sanePatterns      = DEFAULT_SANE_PATTERNS;
+   private List<Pattern>       _insanePatterns    = DEFAULT_INSANE_PATTERNS;
 
-   private boolean            _insane;
-   private String             _userAgent;
+   private boolean             _insane;
+   private String              _userAgent;
 
-   private String             _authenticationUser;
-   private String             _authenticationPassword;
+   private String              _authenticationUser;
+   private String              _authenticationPassword;
+
+   private int                 _socketTimeout     = 60000;
+   private int                 _connectionTimeout = 60000;
 
 
    public Proxy( ProxyAddress address ) {
@@ -153,20 +153,20 @@ public class Proxy implements Comparable<Proxy> {
       return _address;
    }
 
-   public HttpClient getHttpClient() {
+   public CloseableHttpClient getHttpClient() {
       _stats._clientAccesses++;
       if ( _httpClient != null ) {
          return _httpClient;
       }
-      _httpClient = createHttpClient(60000);
+      _httpClient = createHttpClient(_socketTimeout, _connectionTimeout);
 
       return _httpClient;
    }
 
-   private DefaultHttpClient createHttpClient( int timeoutInMillis ) {
+   private CloseableHttpClient createHttpClient( int socketTimeout, int connectionTimeout ) {
       HttpClientFactory httpClientFactory = new HttpClientFactory();
-      httpClientFactory.setConnectionTimeout(timeoutInMillis);
-      httpClientFactory.setSoTimeout(timeoutInMillis);
+      httpClientFactory.setConnectionTimeout(socketTimeout);
+      httpClientFactory.setSoTimeout(connectionTimeout);
       if ( _userAgent != null ) {
          httpClientFactory.setUserAgent(_userAgent);
       }
@@ -175,10 +175,8 @@ public class Proxy implements Comparable<Proxy> {
          httpClientFactory.setPassword(_authenticationPassword);
       }
       httpClientFactory.setNeverRetryHttpRequests(true);
-      DefaultHttpClient httpClient = httpClientFactory.create();
-
-      HttpParams params = httpClient.getParams();
-      params.setParameter(ConnRoutePNames.DEFAULT_PROXY, _proxyHost);
+      httpClientFactory.setProxy(_proxyHost);
+      CloseableHttpClient httpClient = httpClientFactory.create();
 
       return httpClient;
    }
@@ -204,7 +202,7 @@ public class Proxy implements Comparable<Proxy> {
    }
 
    public void measureLatency( int maxLatencyInMillis ) {
-      DefaultHttpClient httpClient = createHttpClient(maxLatencyInMillis);
+      CloseableHttpClient httpClient = createHttpClient(maxLatencyInMillis, maxLatencyInMillis);
 
       HttpGet req = new HttpGet("/");
 
@@ -239,18 +237,26 @@ public class Proxy implements Comparable<Proxy> {
          _stats._lastByteLatency = maxLatencyInMillis + 1;
       }
 
-      httpClient.close();
+      HttpClientFactory.close(httpClient);
    }
 
    public void setAuthenticationPassword( String authenticationPassword ) {
       _authenticationPassword = authenticationPassword;
    }
 
+   public void setConnectionTimeout( int connectionTimeout ) {
+      _connectionTimeout = connectionTimeout;
+   }
+
+   public void setSocketTimeout( int socketTimeout ) {
+      _socketTimeout = socketTimeout;
+   }
+
    public void setAuthenticationUser( String authenticationUser ) {
       _authenticationUser = authenticationUser;
    }
 
-   public void setHttpClient( HttpClient httpClient ) {
+   public void setHttpClient( CloseableHttpClient httpClient ) {
       _httpClient = httpClient;
    }
 

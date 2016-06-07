@@ -45,7 +45,7 @@ public class Crawler {
 
    private static final Pattern PATTERN_RE_ENCODE_URL      = Pattern.compile("([/?&=]*)([^/?&=]+)");
 
-   private static Logger _log = LoggerFactory.getLogger(Crawler.class);
+   private static Logger        _log                       = LoggerFactory.getLogger(Crawler.class);
 
 
    public static void main( String[] args ) {
@@ -75,6 +75,7 @@ public class Crawler {
          factory.newCrawler(params).crawl();
          _log.info("finished crawl for '" + beanname + "'");
       }
+      context.close();
 
       System.exit(0);
    }
@@ -211,8 +212,8 @@ public class Crawler {
                return -(c1._index < c2._index ? -1 : (c1._index == c2._index ? 0 : 1));
             }
          });
-         return new ThreadPoolExecutor(numberOfThreads, numberOfThreads, 0L, TimeUnit.MILLISECONDS, queue, new ExecutorUtils.NamedThreadFactory(
-            "crawl task executor - " + _params.getId() + " "));
+         return new ThreadPoolExecutor(numberOfThreads, numberOfThreads, 0L, TimeUnit.MILLISECONDS, queue,
+            new ExecutorUtils.NamedThreadFactory("crawl task executor - " + _params.getId() + " "));
       } else {
          return ExecutorUtils.newFixedThreadPool(numberOfThreads, "crawl task executor - " + _params.getId() + " ");
       }
@@ -250,15 +251,9 @@ public class Crawler {
             }
          }
       }
-      if ( System.getProperty(HttpClientFactory.PARAM_KEY_CONNECTION_TIMEOUT) == null ) {
-         System.setProperty(HttpClientFactory.PARAM_KEY_CONNECTION_TIMEOUT, "" + _params.getConnectionTimeout());
-      }
-      if ( System.getProperty(HttpClientFactory.PARAM_KEY_SOCKET_TIMEOUT) == null ) {
-         System.setProperty(HttpClientFactory.PARAM_KEY_SOCKET_TIMEOUT, "" + _params.getSocketTimeout());
-      }
       HttpHost latencyTestHost = new HttpHost(_params.getHost());
       _proxyPool = new ProxyPool(proxyList, latencyTestHost, _params.getSanePatterns(), _params.getInsanePatterns(), _params.getUserAgent(),
-         _params.getAuthenticationUser(), _params.getAuthenticationPassword());
+         _params.getAuthenticationUser(), _params.getAuthenticationPassword(), _params.getSocketTimeout(), _params.getConnectionTimeout());
       _log.info("using proxy pool with " + _proxyPool.size() + " proxies");
    }
 

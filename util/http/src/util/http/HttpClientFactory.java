@@ -5,84 +5,74 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
+import org.apache.commons.codec.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HeaderElement;
+import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
-import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpResponseInterceptor;
-import org.apache.http.HttpVersion;
 import org.apache.http.NameValuePair;
 import org.apache.http.ProtocolException;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.HttpRequestRetryHandler;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.params.CookiePolicy;
-import org.apache.http.client.params.HttpClientParams;
-import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.utils.DateUtils;
 import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.PlainSocketFactory;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.conn.ssl.X509HostnameVerifier;
-import org.apache.http.entity.HttpEntityWrapper;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.config.SocketConfig;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.util.PublicSuffixMatcher;
+import org.apache.http.conn.util.PublicSuffixMatcherLoader;
+import org.apache.http.cookie.CookieSpecProvider;
 import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
-import org.apache.http.impl.cookie.DateParseException;
-import org.apache.http.impl.cookie.DateUtils;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.impl.cookie.DefaultCookieSpecProvider;
+import org.apache.http.impl.cookie.DefaultCookieSpecProvider.CompatibilityLevel;
+import org.apache.http.impl.cookie.IgnoreSpecProvider;
+import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 import util.string.StringTool;
 import util.time.TimeUtils;
 
 
 public class HttpClientFactory {
-
-   public static final String                 PARAM_KEY_SOCKET_TIMEOUT         = "HttpClientFactory.soTimeout";
-   public static final String                 PARAM_KEY_CONNECTION_TIMEOUT     = "HttpClientFactory.connectionTimeout";
-   public static final String                 PARAM_KEY_USER_AGENT             = "HttpClientFactory.userAgent";
 
    public static final int                    DEFAULT_VALUE_SOCKET_TIMEOUT     = 31000;
    public static final int                    DEFAULT_VALUE_CONNECTION_TIMEOUT = 31000;
@@ -96,7 +86,16 @@ public class HttpClientFactory {
 
 
    public static void close( HttpClient httpClient ) {
-      httpClient.getConnectionManager().shutdown();
+      if ( httpClient instanceof CloseableHttpClient ) {
+         try {
+            ((CloseableHttpClient)httpClient).close();
+         }
+         catch ( IOException argh ) {
+            _log.warn("Failed to close HttpClient", argh);
+         }
+      } else {
+         httpClient.getConnectionManager().shutdown();
+      }
    }
 
    public static HttpGet createGet( String url, String... queryParams ) throws UnsupportedEncodingException {
@@ -112,12 +111,15 @@ public class HttpClientFactory {
    public static HttpContext createHttpContext( boolean addCookieStore ) {
       HttpContext localContext = new BasicHttpContext();
       if ( addCookieStore ) {
-         localContext.setAttribute(ClientContext.COOKIE_STORE, new BasicCookieStore());
+         localContext.setAttribute(HttpClientContext.COOKIE_STORE, new BasicCookieStore());
       }
       return localContext;
    }
 
-   public static HttpPost createPost( String url, String... postParams ) throws UnsupportedEncodingException {
+   /**
+    * @return if the post has parameters, the result is castable to HttpEntityEnclosingRequestBase
+    */
+   public static HttpUriRequest createPost( String url, String... postParams ) throws UnsupportedEncodingException {
       int questionMarkIndex = url.indexOf('?');
       if ( questionMarkIndex > 0 && questionMarkIndex + 1 < url.length() ) {
          String params = url.substring(questionMarkIndex + 1);
@@ -132,18 +134,15 @@ public class HttpClientFactory {
          }
          postParams = newPostParams;
       }
-
-      HttpPost post = new HttpPost(url);
-      List<NameValuePair> formparams = new ArrayList<NameValuePair>();
+      RequestBuilder postBuilder = RequestBuilder.post(url);
       for ( int i = 0, length = postParams.length; i < length; i += 2 ) {
-         formparams.add(new BasicNameValuePair(postParams[i], postParams[i + 1]));
+         postBuilder.addParameter(new BasicNameValuePair(postParams[i], postParams[i + 1]));
       }
-      UrlEncodedFormEntity entity = new UrlEncodedFormEntity(formparams, "UTF-8");
-      post.setEntity(entity);
-      return post;
+      postBuilder.setCharset(Charsets.UTF_8);
+      return postBuilder.build();
    }
 
-   public static Date getLastModified( HttpClient httpClient, URL url ) throws ClientProtocolException, IOException, DateParseException, URISyntaxException {
+   public static Date getLastModified( HttpClient httpClient, URL url ) throws ClientProtocolException, IOException, URISyntaxException {
       HttpHead httpHead = new HttpHead(url.toURI());
       HttpContext localContext = createHttpContext(false);
       HttpResponse response = httpClient.execute(httpHead, localContext);
@@ -196,63 +195,6 @@ public class HttpClientFactory {
       return page;
    }
 
-   private static void addGZipSupport( DefaultHttpClient httpclient ) {
-      httpclient.addRequestInterceptor(new HttpRequestInterceptor() {
-
-         @Override
-         public void process( final HttpRequest request, final HttpContext context ) throws HttpException, IOException {
-            if ( !request.containsHeader("Accept-Encoding") ) {
-               request.addHeader("Accept-Encoding", "gzip");
-            }
-         }
-
-      });
-
-      httpclient.addResponseInterceptor(new HttpResponseInterceptor() {
-
-         @Override
-         public void process( final HttpResponse response, final HttpContext context ) throws HttpException, IOException {
-            HttpEntity entity = response.getEntity();
-            if ( entity == null ) {
-               return;
-            }
-            Header ceheader = entity.getContentEncoding();
-            if ( ceheader == null ) {
-               return;
-            }
-
-            HeaderElement[] codecs = ceheader.getElements();
-            for ( int i = 0; i < codecs.length; i++ ) {
-               if ( codecs[i].getName().equalsIgnoreCase("gzip") ) {
-                  MDC.put("gzip", "gz");
-                  response.setEntity(new GzipDecompressingEntity(response.getEntity()));
-                  return;
-               }
-            }
-
-            MDC.put("gzip", "");
-         }
-
-      });
-   }
-
-   private static int getIntParameter( String key, int defaultValue ) {
-      String value = System.getProperty(key);
-      if ( value != null ) {
-         try {
-            return Integer.parseInt(value);
-         }
-         catch ( Exception argh ) {
-            _log.warn("Failed to parse system property '" + key + "' as int: " + value);
-         }
-      }
-      return defaultValue;
-   }
-
-   private static String getParameter( String key, String defaultValue ) {
-      return System.getProperty(key, defaultValue);
-   }
-
    /**
     * @see http://dev.w3.org/html5/spec/Overview.html#character-encodings-0
     */
@@ -273,94 +215,108 @@ public class HttpClientFactory {
    }
 
 
-   int         _soTimeout              = getIntParameter(PARAM_KEY_SOCKET_TIMEOUT, DEFAULT_VALUE_SOCKET_TIMEOUT);
-   int         _connectionTimeout      = getIntParameter(PARAM_KEY_CONNECTION_TIMEOUT, DEFAULT_VALUE_CONNECTION_TIMEOUT);
-   HttpVersion _httpVersion            = HttpVersion.HTTP_1_1;
-   String      _contentCharset         = "UTF-8";
-   boolean     _useExpectContinue      = true;
-   String      _userAgent              = getParameter(PARAM_KEY_USER_AGENT, DEFAULT_VALUE_USER_AGENT);
-   boolean     _gzipSupport            = true;
-   boolean     _tcpNodelay             = false;
-   boolean     _executeRedirects       = true;
-   String      _user                   = null;
-   String      _password               = null;
-   boolean     _trustAllSsl            = true;
-   boolean     _neverRetryHttpRequests = false;
-   boolean     _useCookies             = true;
-   int         _maxConnections         = 10;
+   int                         _soTimeout               = DEFAULT_VALUE_SOCKET_TIMEOUT;
+   int                         _connectionTimeout       = DEFAULT_VALUE_CONNECTION_TIMEOUT;
+   boolean                     _useExpectContinue       = true;
+   String                      _userAgent               = DEFAULT_VALUE_USER_AGENT;
+   boolean                     _gzipSupport             = true;
+   boolean                     _tcpNodelay              = false;
+   boolean                     _executeRedirects        = true;
+   String                      _user                    = null;
+   String                      _password                = null;
+   boolean                     _trustAllSsl             = true;
+   boolean                     _neverRetryHttpRequests  = false;
+   boolean                     _useCookies              = true;
+   int                         _maxConnections          = 10;
+   Consumer<HttpClientBuilder> _clientBuilderConfigurer = null;
+   HttpHost                    _proxyHost;
 
 
-   public DefaultHttpClient create() {
-      // general setup
-      SchemeRegistry supportedSchemes = new SchemeRegistry();
+   public CloseableHttpClient create() {
 
-      // Register the "http" and "https" protocol schemes, they are
-      // required by the default operator to look up socket factories.
-      supportedSchemes.register(new Scheme("http", PlainSocketFactory.getSocketFactory(), 80));
-      supportedSchemes.register(new Scheme("https", SSLSocketFactory.getSocketFactory(), 443));
+      /* we need to allow broken cookie expire headers, so we have to tune the CookieSpecs.DEFAULT config */
+      PublicSuffixMatcher publicSuffixMatcher = PublicSuffixMatcherLoader.getDefault();
+      Registry<CookieSpecProvider> cookieSpecRegistry = RegistryBuilder.<CookieSpecProvider> create() //
+            .register(CookieSpecs.DEFAULT,
+               new DefaultCookieSpecProvider(CompatibilityLevel.DEFAULT, publicSuffixMatcher,
+                  new String[] { "EEE, dd-MMM-yy HH:mm:ss z", "EEE, dd MMM yy HH:mm:ss z" }, false)) //
+            .register(CookieSpecs.IGNORE_COOKIES, new IgnoreSpecProvider())//
+            .build();
 
-      // prepare parameters
-      HttpParams params = new BasicHttpParams();
-      HttpConnectionParams.setSoTimeout(params, _soTimeout);
-      HttpConnectionParams.setConnectionTimeout(params, _connectionTimeout);
-      HttpConnectionParams.setTcpNoDelay(params, _tcpNodelay);
-      HttpProtocolParams.setVersion(params, _httpVersion);
-      HttpProtocolParams.setContentCharset(params, _contentCharset);
-      HttpProtocolParams.setUseExpectContinue(params, _useExpectContinue);
-      HttpProtocolParams.setUserAgent(params, _userAgent);
-      HttpClientParams.setRedirecting(params, _executeRedirects);
-      HttpClientParams.setCookiePolicy(params, CookiePolicy.BROWSER_COMPATIBILITY);
-      if ( !_useCookies ) {
-         HttpClientParams.setCookiePolicy(params, CookiePolicy.IGNORE_COOKIES);
+      RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
+      requestConfigBuilder.setConnectTimeout(_connectionTimeout); // the time to establish the connection with the remote host
+      requestConfigBuilder.setConnectionRequestTimeout(_connectionTimeout); // the time to wait for a connection from the connection manager/pool
+      requestConfigBuilder.setSocketTimeout(_soTimeout); // the time waiting for data – after the connection was established; maximum time of inactivity between two data packets
+      requestConfigBuilder.setContentCompressionEnabled(_gzipSupport);
+      requestConfigBuilder.setRedirectsEnabled(_executeRedirects);
+      requestConfigBuilder.setExpectContinueEnabled(_useExpectContinue);
+      if ( _useCookies ) {
+         requestConfigBuilder.setCookieSpec(CookieSpecs.DEFAULT);
+      } else {
+         requestConfigBuilder.setCookieSpec(CookieSpecs.IGNORE_COOKIES);
       }
 
-      PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager();
-      connectionManager.setDefaultMaxPerRoute(_maxConnections);
-      connectionManager.setMaxTotal(_maxConnections * 10);
+      HttpClientBuilder clientBuilder = HttpClients.custom();
+      clientBuilder.setDefaultCookieSpecRegistry(cookieSpecRegistry);
+      clientBuilder.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(_soTimeout).setTcpNoDelay(_tcpNodelay).build());
+      clientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
+      clientBuilder.setUserAgent(_userAgent);
+      if ( _trustAllSsl ) {
+         clientBuilder.setSSLHostnameVerifier(new NoopHostnameVerifier());
+      }
+      if ( _neverRetryHttpRequests ) {
+         clientBuilder.disableAutomaticRetries();
+      }
+      if ( _user != null && _password != null ) {
+         CredentialsProvider provider = new BasicCredentialsProvider();
+         UsernamePasswordCredentials credentials = new UsernamePasswordCredentials(_user, _password);
+         provider.setCredentials(AuthScope.ANY, credentials);
+         clientBuilder.setDefaultCredentialsProvider(provider);
+      }
+      if ( _proxyHost != null ) {
+         clientBuilder.setRoutePlanner(new DefaultProxyRoutePlanner(_proxyHost));
+      }
 
-      // http://hc.apache.org/httpcomponents-client/tutorial/html/ch02.html
-      // The stale connection check is not 100% reliable and adds 10 to 30 ms overhead to each request execution
-      // instead we start the IdleConnectionMonitor thread as supposed in the tutorial
-      HttpConnectionParams.setStaleCheckingEnabled(params, false);
+      PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+      connectionManager.setMaxTotal(_maxConnections * 10);
+      connectionManager.setDefaultMaxPerRoute(_maxConnections);
+      clientBuilder.setConnectionManager(connectionManager);
+
       if ( _idleConnectionMonitorThread == null ) {
          _idleConnectionMonitorThread = new IdleConnectionMonitorThread();
          _idleConnectionMonitorThread.start();
       }
       _idleConnectionMonitorThread.add(connectionManager);
 
-      DefaultHttpClient httpclient = new DefaultHttpClient(connectionManager, params);
-      // BEWARE: the following block might replace the httpClient!
-      if ( _trustAllSsl ) {
-         httpclient = setTrustManager(httpclient);
-      }
+      clientBuilder.setKeepAliveStrategy(new MyConnectionKeepAliveStrategy());
+      clientBuilder.setRedirectStrategy(new Redirector());
 
-      if ( _executeRedirects ) {
-         httpclient.setRedirectStrategy(new Redirector());
+      if ( _clientBuilderConfigurer != null ) {
+         _clientBuilderConfigurer.accept(clientBuilder);
       }
+      return clientBuilder.build();
 
-      if ( _user != null && _password != null ) {
-         httpclient.getCredentialsProvider().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(_user, _password));
-      }
+   }
 
-      if ( _gzipSupport ) {
-         addGZipSupport(httpclient);
-      }
+   public HttpClientFactory setProxy( String proxyIP, int proxyPort ) {
+      _proxyHost = new HttpHost(proxyIP, proxyPort);
+      return this;
+   }
 
-      if ( _neverRetryHttpRequests ) {
-         httpclient.setHttpRequestRetryHandler(new DontRetryHandler());
-      }
+   public HttpClientFactory setProxy( HttpHost proxyHost ) {
+      _proxyHost = proxyHost;
+      return this;
+   }
 
-      return httpclient;
+   /** use this to configure anything in the HttpClientBuilder that is not provided here */
+   public HttpClientFactory setClientBuilderConfigurer( Consumer<HttpClientBuilder> clientBuilderConfigurer ) {
+      _clientBuilderConfigurer = clientBuilderConfigurer;
+      return this;
    }
 
    /** in ms */
    public HttpClientFactory setConnectionTimeout( int connectionTimeout ) {
       _connectionTimeout = connectionTimeout;
-      return this;
-   }
-
-   public HttpClientFactory setContentCharset( String contentCharset ) {
-      _contentCharset = contentCharset;
       return this;
    }
 
@@ -371,11 +327,6 @@ public class HttpClientFactory {
 
    public HttpClientFactory setGzipSupport( boolean gzipSupport ) {
       _gzipSupport = gzipSupport;
-      return this;
-   }
-
-   public HttpClientFactory setHttpVersion( HttpVersion httpVersion ) {
-      _httpVersion = httpVersion;
       return this;
    }
 
@@ -431,62 +382,19 @@ public class HttpClientFactory {
       return this;
    }
 
-   private DefaultHttpClient setTrustManager( DefaultHttpClient httpclient ) {
-      try {
-         SSLContext ctx = SSLContext.getInstance("TLS");
-         ctx.init(null, new TrustManager[] { new TrustAllSslTrustManager() }, null);
-         SSLSocketFactory ssf = new SSLSocketFactory(ctx, new TrustAllSslHostnameVerifier());
-         ClientConnectionManager ccm = httpclient.getConnectionManager();
-         SchemeRegistry sr = ccm.getSchemeRegistry();
-         sr.register(new Scheme("https", 443, ssf));
-         return new DefaultHttpClient(ccm, httpclient.getParams());
-      }
-      catch ( Exception ex ) {
-         _log.error("Failed to equip httpclient with TrustAllSslTrustManager.", ex);
-         return null;
-      }
 
-   }
-
-
-   static class DontRetryHandler implements HttpRequestRetryHandler {
-
-      @Override
-      public boolean retryRequest( IOException exception, int executionCount, HttpContext context ) {
-         return false;
-      }
-
-   }
-
-   static class GzipDecompressingEntity extends HttpEntityWrapper {
-
-      public GzipDecompressingEntity( final HttpEntity entity ) {
-         super(entity);
-      }
-
-      @Override
-      public InputStream getContent() throws IOException, IllegalStateException {
-
-         // the wrapped entity's getContent() decides about repeatability
-         InputStream wrappedin = wrappedEntity.getContent();
-
-         return new GZIPInputStream(wrappedin);
-      }
-
-      @Override
-      public long getContentLength() {
-         // length of ungzipped content is not known
-         return -1;
-      }
-
-   }
-
+   /**
+    * One of the major shortcomings of the classic blocking I/O model is that the network socket can react to I/O events only when blocked in an I/O operation. When a connection is released back to the manager, it can be kept alive however it is unable to monitor the status of the socket and react to any I/O events. If the connection gets closed on the server side, the client side connection is unable to detect the change in the connection state (and react appropriately by closing the socket on its end).
+    *
+    * HttpClient tries to mitigate the problem by testing whether the connection is 'stale', that is no longer valid because it was closed on the server side, prior to using the connection for executing an HTTP request. The stale connection check is not 100% reliable. The only feasible solution that does not involve a one thread per socket model for idle connections is a dedicated monitor thread used to evict connections that are considered expired due to a long period of inactivity. The monitor thread can periodically call ClientConnectionManager#closeExpiredConnections() method to close all expired connections and evict closed connections from the pool. It can also optionally call ClientConnectionManager#closeIdleConnections() method to close all connections that have been idle over a given period of time.
+   * @see https://hc.apache.org/httpcomponents-client-ga/tutorial/html/connmgmt.html
+    */
    static class IdleConnectionMonitorThread extends Thread {
 
-      Logger                                                _log     = LoggerFactory.getLogger(IdleConnectionMonitorThread.class);
+      Logger                                                    _log     = LoggerFactory.getLogger(IdleConnectionMonitorThread.class);
 
-      private WeakHashMap<ClientConnectionManager, Boolean> _conMans = new WeakHashMap<ClientConnectionManager, Boolean>();
-      private volatile boolean                              _shutdown;
+      private WeakHashMap<HttpClientConnectionManager, Boolean> _conMans = new WeakHashMap<HttpClientConnectionManager, Boolean>();
+      private volatile boolean                                  _shutdown;
 
 
       public IdleConnectionMonitorThread() {
@@ -494,7 +402,7 @@ public class HttpClientFactory {
          setDaemon(true);
       }
 
-      public void add( ClientConnectionManager ccm ) {
+      public void add( HttpClientConnectionManager ccm ) {
          synchronized ( _conMans ) {
             _conMans.put(ccm, Boolean.TRUE);
          }
@@ -507,7 +415,7 @@ public class HttpClientFactory {
             TimeUtils.sleepQuietlySeconds(5);
 
             synchronized ( _conMans ) {
-               for ( ClientConnectionManager ccm : _conMans.keySet() ) {
+               for ( HttpClientConnectionManager ccm : _conMans.keySet() ) {
                   if ( ccm != null ) {
                      // Close expired connections
                      ccm.closeExpiredConnections();
@@ -529,6 +437,30 @@ public class HttpClientFactory {
 
    }
 
+   /**
+    * Quoting the HttpClient 4.3.3. reference: “If the Keep-Alive header is not present in the response, HttpClient assumes the connection can be kept alive indefinitely.” (See the HttpClient Reference).
+    *
+    * To get around this, and be able to manage dead connections we need a customized strategy implementation and build it into the HttpClient.
+    * 
+    * @see https://hc.apache.org/httpcomponents-client-ga/tutorial/html/connmgmt.html
+    */
+   static class MyConnectionKeepAliveStrategy implements ConnectionKeepAliveStrategy {
+
+      @Override
+      public long getKeepAliveDuration( HttpResponse response, HttpContext context ) {
+         HeaderElementIterator it = new BasicHeaderElementIterator(response.headerIterator(HTTP.CONN_KEEP_ALIVE));
+         while ( it.hasNext() ) {
+            HeaderElement he = it.nextElement();
+            String param = he.getName();
+            String value = he.getValue();
+            if ( value != null && param.equalsIgnoreCase("timeout") ) {
+               return Long.parseLong(value) * 1000;
+            }
+         }
+         return 5 * 1000;
+      }
+   }
+
    static class Redirector extends DefaultRedirectStrategy {
 
       @Override
@@ -543,36 +475,6 @@ public class HttpClientFactory {
          }
          return isRedirect;
       }
-   };
-
-   static class TrustAllSslHostnameVerifier implements X509HostnameVerifier {
-
-      @Override
-      public boolean verify( String string, SSLSession ssls ) {
-         return true;
-      }
-
-      @Override
-      public void verify( String string, SSLSocket ssls ) throws IOException {}
-
-      @Override
-      public void verify( String string, String[] strings, String[] strings1 ) throws SSLException {}
-
-      @Override
-      public void verify( String string, X509Certificate xc ) throws SSLException {}
-   };
-
-   static class TrustAllSslTrustManager implements X509TrustManager {
-
-      @Override
-      public void checkClientTrusted( X509Certificate[] xcs, String string ) throws CertificateException {}
-
-      @Override
-      public void checkServerTrusted( X509Certificate[] xcs, String string ) throws CertificateException {}
-
-      @Override
-      public X509Certificate[] getAcceptedIssuers() {
-         return null;
-      }
    }
+
 }

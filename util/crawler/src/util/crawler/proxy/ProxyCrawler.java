@@ -20,9 +20,9 @@ import util.crawler.Crawler;
 
 public class ProxyCrawler {
 
-   private static Logger      _log             = LoggerFactory.getLogger(ProxyCrawler.class);
+   private static Logger      _log          = LoggerFactory.getLogger(ProxyCrawler.class);
 
-   private static CrawlParams SAMAIR_PARAMS    = new CrawlParamsWithXsltFromClasspath("proxies-samair.xsl");
+   private static CrawlParams SAMAIR_PARAMS = new CrawlParamsWithXsltFromClasspath("proxies-samair.xsl");
    static {
       SAMAIR_PARAMS.setDontFollowRegexes(Collections.EMPTY_LIST);
       SAMAIR_PARAMS.setFollowRegexes(Arrays.asList("/proxy/proxy-\\d+\\.htm"));
@@ -55,7 +55,8 @@ public class ProxyCrawler {
       proxyCrawler.crawl();
 
       HttpHost latencyTestHost = testHost != null ? new HttpHost(testHost) : null;
-      ProxyPool proxyPool = new ProxyPool(proxyCrawler._proxyList, latencyTestHost, sanePatterns, insanePatterns, null, null, null);
+      ProxyPool proxyPool = new ProxyPool(proxyCrawler._proxyList, latencyTestHost, sanePatterns, insanePatterns, null, null, null, maxResponseTimeInMillis,
+         maxResponseTimeInMillis);
       ProxyList fastProxies = proxyPool.measureLatency(maxTimeToMeasureLatency, maxResponseTimeInMillis);
 
       ProxyList.storeProxyList(fastProxies);
