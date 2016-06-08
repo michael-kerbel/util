@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -13,6 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.net.ssl.SSLContext;
 
 import org.apache.commons.codec.Charsets;
 import org.apache.commons.io.IOUtils;
@@ -32,6 +36,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -44,7 +49,10 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.util.PublicSuffixMatcher;
 import org.apache.http.conn.util.PublicSuffixMatcherLoader;
 import org.apache.http.cookie.CookieSpecProvider;
@@ -64,6 +72,8 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.ssl.SSLContexts;
+import org.apache.http.ssl.TrustStrategy;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +94,11 @@ public class HttpClientFactory {
 
    private static IdleConnectionMonitorThread _idleConnectionMonitorThread;
 
+
+   public static void main( String[] args ) throws Exception {
+      CloseableHttpResponse response = new HttpClientFactory().create().execute(new HttpGet("https://www.ikan.trade/uhren/"));
+      System.err.println(readPage(response));
+   }
 
    public static void close( HttpClient httpClient ) {
       if ( httpClient instanceof CloseableHttpClient ) {
@@ -261,9 +276,6 @@ public class HttpClientFactory {
       clientBuilder.setDefaultSocketConfig(SocketConfig.custom().setSoTimeout(_soTimeout).setTcpNoDelay(_tcpNodelay).build());
       clientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
       clientBuilder.setUserAgent(_userAgent);
-      if ( _trustAllSsl ) {
-         clientBuilder.setSSLHostnameVerifier(new NoopHostnameVerifier());
-      }
       if ( _neverRetryHttpRequests ) {
          clientBuilder.disableAutomaticRetries();
       }
@@ -277,7 +289,30 @@ public class HttpClientFactory {
          clientBuilder.setRoutePlanner(new DefaultProxyRoutePlanner(_proxyHost));
       }
 
-      PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+      PoolingHttpClientConnectionManager connectionManager;
+      if ( _trustAllSsl ) {
+         Registry<ConnectionSocketFactory> socketFactoryRegistry = null;
+         try {
+            SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(null, new TrustStrategy() {
+
+               @Override
+               public boolean isTrusted( X509Certificate[] chain, String authType ) throws CertificateException {
+                  return true;
+               }
+            }).build();
+            SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
+            socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory> create()//
+                  .register("http", PlainConnectionSocketFactory.getSocketFactory())//
+                  .register("https", sslSocketFactory)//
+                  .build();
+         }
+         catch ( Exception argh ) {
+            _log.error("Failed to build ssl context", argh);
+         }
+         connectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+      } else {
+         connectionManager = new PoolingHttpClientConnectionManager();
+      }
       connectionManager.setMaxTotal(_maxConnections * 10);
       connectionManager.setDefaultMaxPerRoute(_maxConnections);
       clientBuilder.setConnectionManager(connectionManager);
