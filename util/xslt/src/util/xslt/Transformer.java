@@ -51,9 +51,9 @@ public class Transformer {
    private static Logger                          _log               = LoggerFactory.getLogger(Transformer.class);
 
    private static final Pattern                   NON_BREAKING_SPACE = Pattern.compile("\\xa0");
-   private static final Pattern                   SCRIPT_BLOCK       = Pattern.compile("(?s)<script>(.*?)</script>");
+   private static final Pattern                   SCRIPT_BLOCK       = Pattern.compile("(?s)<c24script>(.*?)</c24script>");
 
-   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                                                                                                                                                                                                       //
+   private static final ThreadLocal<ScriptEngine> JAVASCRIPT_ENGINE  = ThreadLocal.withInitial(                                                                                                                                                                                                                                                               //
       () -> new ScriptEngineManager().getEngineByMimeType("text/javascript"));
 
 
@@ -143,6 +143,8 @@ public class Transformer {
          if ( isNotHtml(page) ) {
             // script tag preserves the text as text in the DOM, i.e. it doesn't try to parse any html elements which might occur in the text 
             page = "<script>" + page + "</script>";
+         } else {
+            page = SCRIPT_BLOCK.matcher(page).replaceAll("");
          }
          CleanerProperties prop = new CleanerProperties();
          prop.setNamespacesAware(false);
