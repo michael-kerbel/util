@@ -1,7 +1,5 @@
 package util.dump;
 
-import gnu.trove.list.TLongList;
-
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.DataInputStream;
@@ -19,6 +17,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import gnu.trove.list.TLongList;
 import util.dump.Dump.DumpAccessFlag;
 import util.dump.stream.ExternalizableObjectOutputStream;
 import util.dump.stream.SingleTypeObjectOutputStream;
@@ -375,6 +374,15 @@ public abstract class DumpIndex<E> implements Closeable {
             createOrLoad();
             _dump.addIndex(this);
          }
+         catch ( Exception argh ) {
+            try {
+               close();
+            }
+            catch ( IOException arghargh ) {
+               LOG.error("Failed to close dump index after exception during init", arghargh);
+            }
+            throw new RuntimeException(argh);
+         }
          finally {
             if ( locked ) {
                _dump.releaseFileLock();
@@ -384,16 +392,20 @@ public abstract class DumpIndex<E> implements Closeable {
    }
 
    protected void initFromDump() {
-      DumpIterator<E> iterator = _dump.iterator();
-      while ( iterator.hasNext() ) {
-         add(iterator.next(), iterator.getPosition());
-      }
+      try (DumpIterator<E> iterator = _dump.iterator()) {
+         while ( iterator.hasNext() ) {
+            add(iterator.next(), iterator.getPosition());
+         }
 
-      try {
-         writeMeta();
+         try {
+            writeMeta();
+         }
+         catch ( IOException argh ) {
+            throw new RuntimeException("failed to write meta data", argh);
+         }
       }
       catch ( IOException argh ) {
-         throw new RuntimeException("failed to write meta data", argh);
+         LOG.warn("failed to add close dump iterator", argh);
       }
    }
 
@@ -406,8 +418,8 @@ public abstract class DumpIndex<E> implements Closeable {
                _lookupOutputStream = new SingleTypeObjectOutputStream(new BufferedOutputStream(new FileOutputStream(_lookupFile, true)),
                   _fieldAccessor.getType());
             } else {
-               _lookupOutputStream = new ExternalizableObjectOutputStream(new DataOutputStream(
-                  new BufferedOutputStream(new FileOutputStream(_lookupFile, true))));
+               _lookupOutputStream = new ExternalizableObjectOutputStream(
+                  new DataOutputStream(new BufferedOutputStream(new FileOutputStream(_lookupFile, true))));
             }
          } else {
             _lookupOutputStream = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(_lookupFile, true)));

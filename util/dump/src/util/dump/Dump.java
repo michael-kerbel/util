@@ -1,10 +1,5 @@
 package util.dump;
 
-import gnu.trove.list.TByteList;
-import gnu.trove.list.array.TByteArrayList;
-import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.TLongHashSet;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,6 +41,10 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import gnu.trove.list.TByteList;
+import gnu.trove.list.array.TByteArrayList;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
 import util.collections.SoftLRUCache;
 import util.dump.UniqueIndex.DuplicateKeyException;
 import util.dump.sort.InfiniteSorter;
@@ -82,10 +81,10 @@ public class Dump<E> implements DumpInput<E> {
 
    public static final int              DEFAULT_CACHE_SIZE               = 10000;
    public static final int              DEFAULT_SORT_MAX_ITEMS_IN_MEMORY = 10000;
-   public static final DumpAccessFlag[] DEFAULT_MODE                     = EnumSet.complementOf(EnumSet.of(DumpAccessFlag.shared)).toArray(
-                                                                            new DumpAccessFlag[DumpAccessFlag.values().length - 1]);
-   public static final DumpAccessFlag[] SHARED_MODE                      = EnumSet.allOf(DumpAccessFlag.class).toArray(
-                                                                            new DumpAccessFlag[DumpAccessFlag.values().length]);
+   public static final DumpAccessFlag[] DEFAULT_MODE                     = EnumSet.complementOf(EnumSet.of(DumpAccessFlag.shared))
+         .toArray(new DumpAccessFlag[DumpAccessFlag.values().length - 1]);
+   public static final DumpAccessFlag[] SHARED_MODE                      = EnumSet.allOf(DumpAccessFlag.class)
+         .toArray(new DumpAccessFlag[DumpAccessFlag.values().length]);
 
    /** if the number of deleted elements exceeds the value of PRUNE_THRESHOLD, the dump is pruned during construction */
    public static final int              PRUNE_THRESHOLD                  = 25000;
@@ -115,53 +114,53 @@ public class Dump<E> implements DumpInput<E> {
       });
    }
 
-   final Class                          _beanClass;
-   ObjectStreamProvider                 _streamProvider;
-   final File                           _dumpFile;
-   File                                 _deletionsFile;
-   File                                 _metaFile;
-   Set<DumpIndex<E>>                    _indexes                         = new HashSet<DumpIndex<E>>();
+   final Class                   _beanClass;
+   ObjectStreamProvider          _streamProvider;
+   final File                    _dumpFile;
+   File                          _deletionsFile;
+   File                          _metaFile;
+   Set<DumpIndex<E>>             _indexes                    = new HashSet<DumpIndex<E>>();
 
-   DumpWriter<E>                        _writer;
-   DumpReader<E>                        _reader;
-   PositionAwareOutputStream            _outputStream;
-   RandomAccessFile                     _raf;
-   ResetableBufferedInputStream         _resetableBufferedInputStream;
-   DataOutputStream                     _deletionsOutput;
-   TLongSet                             _deletedPositions                = new TLongHashSet();
+   DumpWriter<E>                 _writer;
+   DumpReader<E>                 _reader;
+   PositionAwareOutputStream     _outputStream;
+   RandomAccessFile              _raf;
+   ResetableBufferedInputStream  _resetableBufferedInputStream;
+   DataOutputStream              _deletionsOutput;
+   TLongSet                      _deletedPositions           = new TLongHashSet();
 
    /** The keys are positions in the dump file and the values are the bytes of the serialized item stored there.
     * Appended to these bytes is a space efficient encoding (see <code>longToBytes(long)</code>) of the next
     * item's position. */
-   Map<Long, byte[]>                    _cache;
-   int                                  _cacheSize;
-   ObjectInput                          _cacheObjectInput;
-   ResetableBufferedInputStream         _cacheByteInput;
-   Map<Long, byte[]>                    _singleItemCache                 = new HashMap<Long, byte[]>();
-   AtomicInteger                        _cacheLookups                    = new AtomicInteger(0);
-   AtomicInteger                        _cacheHits                       = new AtomicInteger(0);
+   Map<Long, byte[]>             _cache;
+   int                           _cacheSize;
+   ObjectInput                   _cacheObjectInput;
+   ResetableBufferedInputStream  _cacheByteInput;
+   Map<Long, byte[]>             _singleItemCache            = new HashMap<Long, byte[]>();
+   AtomicInteger                 _cacheLookups               = new AtomicInteger(0);
+   AtomicInteger                 _cacheHits                  = new AtomicInteger(0);
 
-   ByteArrayOutputStream                _updateByteOutput;
-   ObjectOutput                         _updateOut;
-   RandomAccessFile                     _updateRaf;
-   long                                 _updateRafPosition;
+   ByteArrayOutputStream         _updateByteOutput;
+   ObjectOutput                  _updateOut;
+   RandomAccessFile              _updateRaf;
+   long                          _updateRafPosition;
 
-   boolean                              _isClosed;
+   boolean                       _isClosed;
 
-   ThreadLocal<Long>                    _nextItemPos                     = new LongThreadLocal();
-   ThreadLocal<Long>                    _lastItemPos                     = new LongThreadLocal();
+   ThreadLocal<Long>             _nextItemPos                = new LongThreadLocal();
+   ThreadLocal<Long>             _lastItemPos                = new LongThreadLocal();
 
    /** incremented on each write operation */
-   long                                 _sequence                        = (long)(Math.random() * 1000000);
+   long                          _sequence                   = (long)(Math.random() * 1000000);
 
-   final EnumSet<DumpAccessFlag>        _mode;
+   final EnumSet<DumpAccessFlag> _mode;
 
-   RandomAccessFile                     _metaRaf;
-   FileLock                             _dumpLock;
+   RandomAccessFile              _metaRaf;
+   FileLock                      _dumpLock;
 
-   boolean                              _willBeClosedDuringShutdown      = false;
+   boolean                       _willBeClosedDuringShutdown = false;
 
-   String                               _instantiationDetails;
+   String                        _instantiationDetails;
 
 
    /**
@@ -245,6 +244,12 @@ public class Dump<E> implements DumpInput<E> {
          _updateOut = _streamProvider.createObjectOutput(_updateByteOutput);
       }
       catch ( IOException argh ) {
+         try {
+            close();
+         }
+         catch ( IOException arghargh ) {
+            LOG.warn("Failed to close dump after failure in initialization.", arghargh);
+         }
          throw new RuntimeException("Failed to initialize dump using dump file " + _dumpFile, argh);
       }
       if ( cacheSize > 0 ) {
@@ -417,7 +422,7 @@ public class Dump<E> implements DumpInput<E> {
    /**
     * Flush any bytes in the buffer, just in case - this is cheap, if the buffer is empty.
     * If you want to ensure, that the dump files on disk are in a valid state without closing the dump, 
-    * call {@link #flushMeta()} too. Indexes are not flushed.
+    * call {@link #flushMeta()} too. Indexes are also flushed.
     */
    public void flush() throws IOException {
       _outputStream.flush();
@@ -429,6 +434,7 @@ public class Dump<E> implements DumpInput<E> {
    /**
     * Flushes deletions to disk and writes meta file. By calling this and {@link #flush()}, 
     * you can ensure a valid state on disk, without closing the dump. Of course this costs IO.
+    * Indes metas are also flushed.
     */
    public void flushMeta() throws IOException {
       if ( _deletionsOutput != null ) {
@@ -564,6 +570,7 @@ public class Dump<E> implements DumpInput<E> {
    /**
     * Yields a DumpIterator with all (undeleted) elements in this dump.
     */
+   @SuppressWarnings("resource")
    @Override
    public DumpIterator<E> iterator() {
       assertOpen();
@@ -655,8 +662,8 @@ public class Dump<E> implements DumpInput<E> {
             }
             E oldItem = get(pos);
             if ( oldItem == null ) {
-               throw new RuntimeException("Failed to delete item on position " + pos
-                  + ". There was no instance on that position - maybe it was already deleted?");
+               throw new RuntimeException(
+                  "Failed to delete item on position " + pos + ". There was no instance on that position - maybe it was already deleted?");
             }
             byte[] oldBytes = _cache.get(pos);
 

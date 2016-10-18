@@ -1,11 +1,5 @@
 package util.dump;
 
-import gnu.trove.iterator.TLongIterator;
-import gnu.trove.list.TLongList;
-import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.procedure.TIntObjectProcedure;
-import gnu.trove.procedure.TLongObjectProcedure;
-
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -26,6 +20,11 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.list.TLongList;
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.procedure.TIntObjectProcedure;
+import gnu.trove.procedure.TLongObjectProcedure;
 import util.collections.SoftLRUCache;
 import util.dump.GroupIndex.Positions;
 import util.dump.sort.InfiniteSorter;
@@ -48,7 +47,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
    /* TODO [MKR 08.06.2009] add following two methods for efficient lookup of many keys at once:
       public IntKeyMap fullIndexScan(IntSet keys);
       public LongKeyMap fullIndexScan(LongSet keys);
-
+   
       Check if it is possible to add
       public Map<Object, E> fullIndexScan(Set keys);
     */
@@ -96,7 +95,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
    private long                            _lookupFileLength;
 
-   private Map<Object, long[]>             _cache = null;         // default is to have no cache
+   private Map<Object, long[]>             _cache = null;                                             // default is to have no cache
 
 
    public InfiniteGroupIndex( Dump<E> dump, FieldAccessor fieldAccessor, int maxLookupSizeInMemory ) {
@@ -343,8 +342,8 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
       _overflowIndex = new MyGroupIndex(_dump, _fieldAccessor);
 
-      _currentLookupSize = _fieldIsInt ? _overflowIndex._lookupInt.size() : (_fieldIsLong ? _overflowIndex._lookupLong.size() : _overflowIndex._lookupObject
-            .size());
+      _currentLookupSize = _fieldIsInt ? _overflowIndex._lookupInt.size()
+            : (_fieldIsLong ? _overflowIndex._lookupLong.size() : _overflowIndex._lookupObject.size());
    }
 
    @Override
@@ -354,8 +353,8 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
    protected long[] getPositions( int key ) {
       if ( !(_fieldIsInt || _fieldIsExternalizable || _fieldIsString) ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
+         throw new IllegalArgumentException(
+            "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate lookup(.) method.");
       }
 
       long[] cachedPositions = getPositionsFromCache(key);
@@ -387,8 +386,8 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
 
    protected long[] getPositions( long key ) {
       if ( !_fieldIsLong ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
+         throw new IllegalArgumentException(
+            "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate lookup(.) method.");
       }
 
       long[] cachedPositions = getPositionsFromCache(key);
@@ -426,8 +425,8 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          return getPositions(((Integer)key).intValue());
       }
       if ( _fieldIsLong || _fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
+         throw new IllegalArgumentException(
+            "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate lookup(.) method.");
       }
       if ( (_fieldIsExternalizable && !(key instanceof Externalizable)) || (_fieldIsString && !(key instanceof String)) ) {
          throw new IllegalArgumentException("Incompatible key type. The type of the used key class of this index is " + _fieldAccessor.getType()
@@ -478,8 +477,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          if ( _fieldIsInt ) {
             final InfiniteSorter<IntKeyPosition> sorter = new InfiniteSorter<IntKeyPosition>(_maxLookupSizeInMemory, _dump.getDumpFile().getParentFile(),
                new SingleTypeObjectStreamProvider<Externalizable>(IntKeyPosition.class));
-            DumpIterator<E> iterator = _dump.iterator();
-            try {
+            try (DumpIterator<E> iterator = _dump.iterator()) {
                while ( iterator.hasNext() ) {
                   sorter.add(new IntKeyPosition(getIntKey(iterator.next()), iterator.getPosition()));
                }
@@ -494,8 +492,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
          } else if ( _fieldIsLong ) {
             final InfiniteSorter<LongKeyPosition> sorter = new InfiniteSorter<LongKeyPosition>(_maxLookupSizeInMemory, _dump.getDumpFile().getParentFile(),
                new SingleTypeObjectStreamProvider<Externalizable>(LongKeyPosition.class));
-            DumpIterator<E> iterator = _dump.iterator();
-            try {
+            try (DumpIterator<E> iterator = _dump.iterator()) {
                while ( iterator.hasNext() ) {
                   sorter.add(new LongKeyPosition(getLongKey(iterator.next()), iterator.getPosition()));
                }
@@ -515,8 +512,7 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
             }
             final InfiniteSorter<IntKeyPosition> sorter = new InfiniteSorter<IntKeyPosition>(_maxLookupSizeInMemory, _dump.getDumpFile().getParentFile(),
                new SingleTypeObjectStreamProvider<Externalizable>(IntKeyPosition.class));
-            DumpIterator<E> iterator = _dump.iterator();
-            try {
+            try (DumpIterator<E> iterator = _dump.iterator()) {
                while ( iterator.hasNext() ) {
                   long keyPos = -1;
                   Object objectKey = getObjectKey(iterator.next());
@@ -722,8 +718,8 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
       }
 
       try {
-         long[] overflowPositions = _fieldIsInt ? _overflowIndex.getPositions(getIntKey(oldItem)) : (_fieldIsLong ? _overflowIndex
-               .getPositions(getLongKey(oldItem)) : _overflowIndex.getPositions(getObjectKey(oldItem)));
+         long[] overflowPositions = _fieldIsInt ? _overflowIndex.getPositions(getIntKey(oldItem))
+               : (_fieldIsLong ? _overflowIndex.getPositions(getLongKey(oldItem)) : _overflowIndex.getPositions(getObjectKey(oldItem)));
          for ( long p : overflowPositions ) {
             if ( p == pos ) {
                // only update overflow index if the pos exists there
@@ -911,12 +907,12 @@ public class InfiniteGroupIndex<E> extends DumpIndex<E> implements NonUniqueInde
             Object o1 = _fieldAccessor.getType().newInstance();
             Object o2 = _fieldAccessor.getType().newInstance();
             if ( o1.hashCode() == System.identityHashCode(o1) && o2.hashCode() == System.identityHashCode(o2) ) {
-               throw new IllegalArgumentException("For usage in an InfiniteGroupIndex a key type must provide a hashCode() implementation! "
-                  + _fieldAccessor.getType() + " doesn't.");
+               throw new IllegalArgumentException(
+                  "For usage in an InfiniteGroupIndex a key type must provide a hashCode() implementation! " + _fieldAccessor.getType() + " doesn't.");
             }
             if ( !o1.equals(o2) ) {
-               throw new IllegalArgumentException("For usage in an InfiniteGroupIndex a key type must provide an equals() implementation! "
-                  + _fieldAccessor.getType() + " doesn't.");
+               throw new IllegalArgumentException(
+                  "For usage in an InfiniteGroupIndex a key type must provide an equals() implementation! " + _fieldAccessor.getType() + " doesn't.");
             }
          }
          catch ( Exception argh ) {
