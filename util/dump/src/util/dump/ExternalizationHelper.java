@@ -181,8 +181,8 @@ class ExternalizationHelper {
       return d;
    }
 
-   static final Externalizable readExternalizable( ObjectInput in, Class<? extends Externalizable> defaultType, Class[] lastNonDefaultClass, ClassConfig config )
-         throws Exception {
+   static final Externalizable readExternalizable( ObjectInput in, Class<? extends Externalizable> defaultType, Class[] lastNonDefaultClass,
+         ClassConfig config ) throws Exception {
       Externalizable instance = null;
       boolean isNotNull = in.readBoolean();
       if ( isNotNull ) {
@@ -387,8 +387,8 @@ class ExternalizationHelper {
       }
    }
 
-   static final void writeListOfExternalizables( ObjectOutput out, FieldAccessor f, Class defaultType, Class defaultGenericType, ExternalizableBean thisInstance )
-         throws Exception, IOException {
+   static final void writeListOfExternalizables( ObjectOutput out, FieldAccessor f, Class defaultType, Class defaultGenericType,
+         ExternalizableBean thisInstance ) throws Exception, IOException {
       List d = (List)f.get(thisInstance);
       out.writeBoolean(d != null);
       if ( d != null ) {
@@ -427,8 +427,8 @@ class ExternalizationHelper {
       }
    }
 
-   static final void writeSetOfExternalizables( ObjectOutput out, FieldAccessor f, Class defaultType, Class defaultGenericType, ExternalizableBean thisInstance )
-         throws Exception {
+   static final void writeSetOfExternalizables( ObjectOutput out, FieldAccessor f, Class defaultType, Class defaultGenericType,
+         ExternalizableBean thisInstance ) throws Exception {
       Set<Externalizable> d = (Set)f.get(thisInstance);
       out.writeBoolean(d != null);
       if ( d != null ) {
@@ -521,11 +521,13 @@ class ExternalizationHelper {
       pDoubleArrayArray(double[][].class, 35), //
       pFloatArrayArray(float[][].class, 36), //
       pLongArrayArray(long[][].class, 37), //      
-      Enum(Enum.class, 38), // 
-      EnumSet(EnumSet.class, 39), //
+      EnumOld(Void.class, 38), // Void is just a placeholder - this FieldType is deprecated
+      EnumSetOld(Override.class, 39), // Ovcrride is just a placeholder - this FieldType is deprecated
       ListOfStrings(System.class, 40, true), // System is just a placeholder - this FieldType is handled specially 
       SetOfExternalizables(Set.class, 41, true), // 
       SetOfStrings(Runtime.class, 42, true), // Runtime is just a placeholder - this FieldType is handled specially 
+      Enum(Enum.class, 43, true), // 
+      EnumSet(EnumSet.class, 44, true), //
       // TODO add Map (beware of Collections.*Map or Treemaps using custom Comparators!)
       ;
 
@@ -732,10 +734,11 @@ class ExternalizationHelper {
          }
          if ( ft == null ) {
             ft = FieldType.Object;
-            LoggerFactory.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
-               " is not of a supported type, thus falling back to Object serialization." + //
-               " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
-               " Please check, whether this is really what you wanted!");
+            LoggerFactory.getLogger(_class)
+                  .warn("The field type of index " + fi._fieldIndex + //
+                     " is not of a supported type, thus falling back to Object serialization." + //
+                     " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
+                     " Please check, whether this is really what you wanted!");
          }
          if ( (ft == FieldType.ListOfExternalizables || ft == FieldType.SetOfExternalizables) //
             && (fi._fieldAccessor.getGenericTypes().length != 1 || !Externalizable.class.isAssignableFrom(fi._fieldAccessor.getGenericTypes()[0])) ) {
@@ -743,10 +746,11 @@ class ExternalizationHelper {
                ft = (ft == FieldType.ListOfExternalizables) ? FieldType.ListOfStrings : FieldType.SetOfStrings;
             } else {
                ft = FieldType.Object;
-               LoggerFactory.getLogger(_class).warn("The field type of index " + fi._fieldIndex + //
-                  " has a Collection with an unsupported type as generic parameter, thus falling back to Object serialization." + //
-                  " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
-                  " Please check, whether this is really what you wanted!");
+               LoggerFactory.getLogger(_class)
+                     .warn("The field type of index " + fi._fieldIndex + //
+                        " has a Collection with an unsupported type as generic parameter, thus falling back to Object serialization." + //
+                        " This might be very slow of even fail, dependant on your ObjectStreamProvider." + //
+                        " Please check, whether this is really what you wanted!");
             }
          }
 
@@ -786,7 +790,8 @@ class ExternalizationHelper {
             }
 
             Method getter = null, setter = null;
-            if ( m.getName().startsWith("get") || (m.getName().startsWith("is") && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)) ) {
+            if ( m.getName().startsWith("get")
+               || (m.getName().startsWith("is") && (m.getReturnType() == boolean.class || m.getReturnType() == Boolean.class)) ) {
                getter = m;
             } else if ( m.getName().startsWith("set") ) {
                setter = m;
@@ -808,8 +813,8 @@ class ExternalizationHelper {
                if ( getter.getParameterTypes().length > 0 ) {
                   externalize getterAnnotation = getter.getAnnotation(externalize.class);
                   if ( getterAnnotation != null ) {
-                     throw new RuntimeException(_class + " extends ExternalizableBean, but the annotated getter method " + getter.getName()
-                        + " has a parameter.");
+                     throw new RuntimeException(
+                        _class + " extends ExternalizableBean, but the annotated getter method " + getter.getName() + " has a parameter.");
                   } else {
                      continue;
                   }
@@ -842,8 +847,8 @@ class ExternalizationHelper {
                if ( setter.getParameterTypes().length != 1 ) {
                   externalize setterAnnotation = setter.getAnnotation(externalize.class);
                   if ( setterAnnotation != null ) {
-                     throw new RuntimeException(_class + " extends ExternalizableBean, but the annotated setter method " + setter.getName()
-                        + " does not have a single parameter.");
+                     throw new RuntimeException(
+                        _class + " extends ExternalizableBean, but the annotated setter method " + setter.getName() + " does not have a single parameter.");
                   } else {
                      continue;
                   }
@@ -857,8 +862,8 @@ class ExternalizationHelper {
                catch ( NoSuchMethodException e ) {
                   externalize setterAnnotation = setter.getAnnotation(externalize.class);
                   if ( setterAnnotation != null ) {
-                     throw new RuntimeException(_class + " extends ExternalizableBean, but the annotated setter method " + setter.getName()
-                        + " has no appropriate getter.");
+                     throw new RuntimeException(
+                        _class + " extends ExternalizableBean, but the annotated setter method " + setter.getName() + " has no appropriate getter.");
                   } else {
                      continue;
                   }

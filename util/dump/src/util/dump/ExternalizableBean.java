@@ -45,6 +45,7 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Array;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.UUID;
 
 import org.slf4j.LoggerFactory;
@@ -74,11 +75,11 @@ import util.reflection.FieldAccessor;
  * happen too often. In most cases, you can work around this issue, by not externalizing such fields multiple times
  * and wiring them by hand, after externalization. Overwrite <code>readExternal()</code> to do so. 
  * </li><li>
+ * Downward and upward compatibility means, that while the externalization does not fail, unknown fields are ignored, 
+ * and unknown Enum values are set to null or left out in EnumSets. 
+ * </li><li>
  * Downward and upward compatibility will not work, if you reuse indexes between different revisions of your bean,
  * i.e. you may never change the field type or any of the externalize.default*Types of a field annotated with a given index.
- * </li><li>
- * Enums and {@link EnumSet}s are not really downward and upward compatible: you can only add enum values at the end. 
- * Reordering or deleting values breaks downward and upward compatibility!
  * </li><li>
  * While externalization with this method is about 3-6 times faster than serialization (depending on the amount
  * of non-primitive or array members), hand written externalization is still about 40% faster, because no reflection
@@ -104,8 +105,6 @@ import util.reflection.FieldAccessor;
  * <code>Set&lt;Externalizable&gt;</code>
  * </li><li>
  * generic Lists or Sets of <code>String</code> type, i.e. <code>List&lt;String&gt;</code> or <code>Set&lt;String&gt;</code>
- * </li><li>
- * Enums and {@link EnumSet}s, as long as the enum has less than 64 values. 
  * </li>
  * </ul>
  * Currently unsupported (i.e. slow and not compatible with {@link util.dump.stream.SingleTypeObjectStreamProvider})
@@ -196,13 +195,18 @@ public interface ExternalizableBean extends Externalizable {
                ft = fieldTypes[j];
                defaultType = defaultTypes[j];
                if ( fieldTypeId != ft._id ) {
-                  if ( CLASS_CHANGED_INCOMPATIBLY.get(getClass()) == null ) {
-                     LoggerFactory.getLogger(getClass()).error("The field type of index " + fieldIndex + // 
-                        " in " + getClass().getSimpleName() + //
-                        " appears to have changed from " + FieldType.forId(fieldTypeId) + //
-                        " (version in dump) to " + ft + " (current class version)." + //
-                        " This change breaks downward compatibility, see JavaDoc for details." + //
-                        " This warning will appear only once.");
+                  if ( fieldTypeId == FieldType.EnumOld._id && ft._id == FieldType.Enum._id ) {
+                     ft = FieldType.EnumOld;
+                  } else if ( fieldTypeId == FieldType.EnumSetOld._id && ft._id == FieldType.EnumSet._id ) {
+                     ft = FieldType.EnumSetOld;
+                  } else if ( CLASS_CHANGED_INCOMPATIBLY.get(getClass()) == null ) {
+                     LoggerFactory.getLogger(getClass())
+                           .error("The field type of index " + fieldIndex + // 
+                              " in " + getClass().getSimpleName() + //
+                              " appears to have changed from " + FieldType.forId(fieldTypeId) + //
+                              " (version in dump) to " + ft + " (current class version)." + //
+                              " This change breaks downward compatibility, see JavaDoc for details." + //
+                              " This warning will appear only once.");
                      CLASS_CHANGED_INCOMPATIBLY.put(getClass(), Boolean.TRUE);
 
                      // read it without exception, but ignore the data
@@ -588,7 +592,7 @@ public interface ExternalizableBean extends Externalizable {
                f.set(this, d);
                break;
             }
-            case Enum: {
+            case EnumOld: {
                Enum e = null;
                boolean isNotNull = in.readBoolean();
                if ( isNotNull ) {
@@ -608,7 +612,7 @@ public interface ExternalizableBean extends Externalizable {
                }
                break;
             }
-            case EnumSet: {
+            case EnumSetOld: {
                EnumSet enumSet = null;
                boolean isNotNull = in.readBoolean();
                if ( isNotNull ) {
@@ -624,6 +628,53 @@ public interface ExternalizableBean extends Externalizable {
                      }
                   } else {
                      in.readLong();
+                  }
+               }
+               if ( f != null ) {
+                  f.set(this, enumSet);
+               }
+               break;
+            }
+            case Enum: {
+               Enum e = null;
+               boolean isNotNull = in.readBoolean();
+               if ( isNotNull ) {
+                  String enumName = DumpUtils.readUTF(in);
+                  if ( f != null ) {
+                     try {
+                        Class<? extends Enum> c = f.getType();
+                        e = Enum.valueOf(c, enumName);
+                     }
+                     catch ( IllegalArgumentException unknownEnumConstantException ) {
+                        // an enum constant was added or removed and our class is not compatible - as always in this class, we silently ignore the unknown value
+                     }
+                  }
+               }
+               if ( f != null ) {
+                  f.set(this, e);
+               }
+               break;
+            }
+            case EnumSet: {
+               EnumSet enumSet = null;
+               boolean isNotNull = in.readBoolean();
+               if ( isNotNull ) {
+                  int size = in.readInt();
+                  if ( f != null ) {
+                     Class<? extends Enum> c = f.getGenericTypes()[0];
+                     enumSet = EnumSet.noneOf(c);
+                     for ( int k = 0; k < size; k++ ) {
+                        try {
+                           enumSet.add(Enum.valueOf(c, DumpUtils.readUTF(in)));
+                        }
+                        catch ( IllegalArgumentException unknownEnumConstantException ) {
+                           // an enum constant was added or removed and our class is not compatible - as always in this class, we silently ignore the unknown value
+                        }
+                     }
+                  } else {
+                     for ( int k = 0; k < size; k++ ) {
+                        DumpUtils.readUTF(in);
+                     }
                   }
                }
                if ( f != null ) {
@@ -966,15 +1017,7 @@ public interface ExternalizableBean extends Externalizable {
                Enum e = (Enum)f.get(this);
                out.writeBoolean(e != null);
                if ( e != null ) {
-                  Class<? extends Enum> c = f.getType();
-                  Enum[] values = c.getEnumConstants();
-                  int b = -1;
-                  for ( int j = 0, llength = values.length; j < llength; j++ ) {
-                     if ( e == values[j] ) {
-                        b = j;
-                     }
-                  }
-                  out.writeInt(b);
+                  DumpUtils.writeUTF(e.name(), out);
                }
                break;
             }
@@ -982,18 +1025,10 @@ public interface ExternalizableBean extends Externalizable {
                EnumSet enumSet = (EnumSet)f.get(this);
                out.writeBoolean(enumSet != null);
                if ( enumSet != null ) {
-                  Class<? extends Enum> c = f.getGenericTypes()[0];
-                  Enum[] values = c.getEnumConstants();
-                  if ( values.length > 64 ) {
-                     throw new IllegalArgumentException("Enum " + c + " has more than 64 values. This is unsupported by ExternalizableBean.");
+                  out.writeInt(enumSet.size());
+                  for ( Enum e : (Set<Enum>)enumSet ) {
+                     DumpUtils.writeUTF(e.name(), out); // not writeString(), since the value cannot be null  
                   }
-                  long l = 0;
-                  for ( int j = 0, llength = values.length; j < llength; j++ ) {
-                     if ( enumSet.contains(values[j]) ) {
-                        l |= 1 << j;
-                     }
-                  }
-                  out.writeLong(l);
                }
                break;
             }

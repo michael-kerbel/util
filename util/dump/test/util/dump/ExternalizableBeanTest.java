@@ -33,6 +33,7 @@ import java.util.UUID;
 import org.junit.Test;
 
 import util.dump.ExternalizableBean.externalize;
+import util.reflection.Reflection;
 
 
 public class ExternalizableBeanTest {
@@ -385,6 +386,8 @@ public class ExternalizableBeanTest {
    public void testCompatibility() throws Exception {
       testCompatibility(TestBean3.class, TestBean4.class);
       testCompatibility(TestBean4.class, TestBean3.class);
+      testCompatibility(TestBean5.class, TestBean6.class);
+      testCompatibility(TestBean6.class, TestBean5.class);
    }
 
    @Test(expected = StackOverflowError.class)
@@ -484,6 +487,40 @@ public class ExternalizableBeanTest {
    private boolean equals( Object ft, Object ftt ) throws Exception {
       Class c = ft.getClass();
       Class cc = ftt.getClass();
+      if ( Enum.class.isAssignableFrom(c) || EnumSet.class.isAssignableFrom(c) ) {
+         Set<String> ec = new HashSet<>();
+         Class eClass = Enum.class.isAssignableFrom(c) ? c : (Class)Reflection.getFieldQuietly(EnumSet.class, "elementType").get(ft);
+         Class eeClass = Enum.class.isAssignableFrom(c) ? c : (Class)Reflection.getFieldQuietly(EnumSet.class, "elementType").get(ftt);
+         for ( Object e : eClass.getEnumConstants() ) {
+            ec.add(((Enum)e).name());
+         }
+         Set<String> ecc = new HashSet<>();
+         for ( Object e : eeClass.getEnumConstants() ) {
+            ecc.add(((Enum)e).name());
+         }
+         ec.retainAll(ecc);
+         if ( Enum.class.isAssignableFrom(c) ) {
+            String nc = ((Enum)ft).name();
+            String ncc = ((Enum)ftt).name();
+            return !ec.contains(nc) || nc.equals(ncc);
+         } else {
+            EnumSet es = (EnumSet)ft;
+            EnumSet ess = (EnumSet)ftt;
+            for ( Object e : es ) {
+               String n = ((Enum)e).name();
+               if ( ec.contains(n) && !ess.contains(Enum.valueOf(eeClass, n)) ) {
+                  return false;
+               }
+            }
+            for ( Object e : ess ) {
+               String n = ((Enum)e).name();
+               if ( ec.contains(n) && !es.contains(Enum.valueOf(eClass, n)) ) {
+                  return false;
+               }
+            }
+            return true;
+         }
+      }
       if ( !c.equals(cc) ) {
          return false;
       }
@@ -520,7 +557,7 @@ public class ExternalizableBeanTest {
          }
          return true;
       }
-      if ( Set.class.isAssignableFrom(c) && !EnumSet.class.isAssignableFrom(c) ) {
+      if ( Set.class.isAssignableFrom(c) ) {
          Set l1 = (Set)ft;
          Set l2 = (Set)ftt;
 
@@ -660,7 +697,11 @@ public class ExternalizableBeanTest {
             continue;
          }
          Object ftt = ff.get(tt);
-         if ( (ft == null && ftt != null) || (ft != null && ftt == null) || (ft != null && ftt != null && !equals(ft, ftt)) ) {
+         if ( Enum.class.isAssignableFrom(f.getType()) ) {
+            if ( ft != null && ftt != null && !equals(ft, ftt) ) {
+               System.err.println("Enum-Field " + f.getName() + " is not equal after de-externalization: " + ft + "!=" + ftt);
+            }
+         } else if ( (ft == null && ftt != null) || (ft != null && ftt == null) || (ft != null && ftt != null && !equals(ft, ftt)) ) {
             System.err.println("Field " + f.getName() + " is not equal after de-externalization: " + ft + "!=" + ftt);
             return false;
          } else {
@@ -687,7 +728,11 @@ public class ExternalizableBeanTest {
          }
          Object ft = g.invoke(t);
          Object ftt = gg.invoke(tt);
-         if ( (ft == null && ftt != null) || (ft != null && ftt == null) || (ft != null && ftt != null && !equals(ft, ftt)) ) {
+         if ( Enum.class.isAssignableFrom(g.getReturnType()) ) {
+            if ( (ft != null && ftt != null && !equals(ft, ftt)) ) {
+               System.err.println("Enum-Field " + g.getName() + " is not equal after de-externalization: " + ft + "!=" + ftt);
+            }
+         } else if ( (ft == null && ftt != null) || (ft != null && ftt == null) || (ft != null && ftt != null && !equals(ft, ftt)) ) {
             System.err.println("Method " + g.getName() + " is not equal after de-externalization: " + ft + "!=" + ftt);
             return false;
          } else {
@@ -805,7 +850,7 @@ public class ExternalizableBeanTest {
       @externalize(37)
       public Set<String>          _setOfStrings;
 
-      public int                  _i;                       // this member var gets initialized randomly only if the field is public - a limitation of this testcase
+      public int                  _i;                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // this member var gets initialized randomly only if the field is public - a limitation of this testcase
 
 
       @externalize(25)
@@ -1234,6 +1279,70 @@ public class ExternalizableBeanTest {
       }
    }
 
+   public static class TestBean5 implements ExternalizableBean, Comparable<TestBean5> {
+
+      // the member vars get initialized randomly only if the field is public - a limitation of this testcase
+
+      public EnumSet<TestEnum> _enumSet;
+      public TestEnum          _enum;
+
+
+      @externalize(20)
+      public TestEnum getEnum() {
+         return _enum;
+      }
+
+      @externalize(19)
+      public EnumSet<TestEnum> getEnumSet() {
+         return _enumSet;
+      }
+
+      public void setEnum( TestEnum enum1 ) {
+         _enum = enum1;
+      }
+
+      public void setEnumSet( EnumSet<TestEnum> enumSet ) {
+         _enumSet = enumSet;
+      }
+
+      @Override
+      public int compareTo( TestBean5 o ) {
+         return 0;
+      }
+   }
+
+   public static class TestBean6 implements ExternalizableBean, Comparable<TestBean6> {
+
+      // the member vars get initialized randomly only if the field is public - a limitation of this testcase
+
+      public EnumSet<TestEnum2> _enumSet;
+      public TestEnum2          _enum;
+
+
+      @externalize(20)
+      public TestEnum2 getEnum() {
+         return _enum;
+      }
+
+      @externalize(19)
+      public EnumSet<TestEnum2> getEnumSet() {
+         return _enumSet;
+      }
+
+      public void setEnum( TestEnum2 enum1 ) {
+         _enum = enum1;
+      }
+
+      public void setEnumSet( EnumSet<TestEnum2> enumSet ) {
+         _enumSet = enumSet;
+      }
+
+      @Override
+      public int compareTo( TestBean6 o ) {
+         return 0;
+      }
+   }
+
    public static class TestBeanCyclic implements ExternalizableBean {
 
       @externalize(1)
@@ -1254,5 +1363,9 @@ public class ExternalizableBeanTest {
 
    public enum TestEnum {
       EnumValue1, EnumValue2, EnumValue3, EnumValue4, EnumValue5;
+   }
+
+   public enum TestEnum2 {
+      EnumValue1, EnumValue5, EnumValue3, EnumValue6, EnumValue7;
    }
 }
