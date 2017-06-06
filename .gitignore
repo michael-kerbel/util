@@ -1,7 +1,4 @@
 /*/target/
 /*/*/target/
 /*/*/*/target/
-.project
-.metadata
-.classpath
-.settings/
+/.idea/
