@@ -11,10 +11,10 @@
     	<loadfile property="pom" srcFile="pom.xml"/>
       <propertyregex property="util.version"
                   input="${pom}"
-                  regexp="&lt;version&gt;(1.0.20\d+-\d)&lt;/version&gt;&lt;!--util.version--&gt;"
+                  regexp="&lt;version&gt;(1\.20\d+\.\d)&lt;/version&gt;&lt;!--util.version--&gt;"
                   select="\1"/>
     	<echo message="current version: ${util.version}"/>
-      <replaceregexp match="&lt;version&gt;1.0.20\d+-\d&lt;/version&gt;"
+      <replaceregexp match="&lt;version&gt;1\.20\d+\.\d&lt;/version&gt;"
                      replace="&lt;version&gt;${util.version}&lt;/version&gt;">
         <fileset dir=".">
           <include name="**/pom.xml"/>
