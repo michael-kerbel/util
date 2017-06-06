@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.security.Permission;
 import java.security.PermissionCollection;
 import java.util.Map;
@@ -21,14 +22,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import util.string.StringListener;
-import util.time.StopWatch;
-import util.time.TimeUtils;
-
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
+
+import util.string.StringListener;
+import util.time.StopWatch;
+import util.time.TimeUtils;
 
 
 /**
@@ -65,6 +66,11 @@ public class SshHelper {
          final Class<?> cryptoAllPermission = Class.forName("javax.crypto.CryptoAllPermission");
 
          final Field isRestrictedField = jceSecurity.getDeclaredField("isRestricted");
+         if ( Modifier.isFinal(isRestrictedField.getModifiers()) ) {
+            Field modifiers = Field.class.getDeclaredField("modifiers");
+            modifiers.setAccessible(true);
+            modifiers.setInt(isRestrictedField, isRestrictedField.getModifiers() & ~Modifier.FINAL);
+         }
          isRestrictedField.setAccessible(true);
          isRestrictedField.set(null, false);
 
