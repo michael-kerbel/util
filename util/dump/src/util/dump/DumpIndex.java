@@ -453,7 +453,15 @@ public abstract class DumpIndex<E> implements Closeable {
    abstract void delete( E o, long pos );
 
    boolean isUpdatable( E oldItem, E newItem ) {
-      return getObjectKey(oldItem).equals(getObjectKey(newItem));
+      Object oldKey = getObjectKey(oldItem);
+      if ( oldKey == null ) {
+         return false;
+      }
+      Object newKey = getObjectKey(newItem);
+      if ( newKey == null ) {
+         return false;
+      }
+      return oldKey.equals(newKey);
    }
 
    abstract void update( long pos, E oldItem, E newItem );
