@@ -107,6 +107,10 @@ public class SingleTypeObjectOutputStream<E extends Externalizable> extends Data
             out.write(bytes, 0, bytesLength);
          }
          _originalOut = null;
+
+         if ( _reusableCompressBytesArray != null && _reusableCompressBytesArray.length > 128 * 1024 ) {
+            _reusableCompressBytesArray = new byte[8192];
+         }
       }
    }
 

@@ -200,7 +200,7 @@ public class Dump<E> implements DumpInput<E> {
    public Dump( Class beanClass, ObjectStreamProvider streamProvider, File dumpFile, int cacheSize, @Nullable DumpAccessFlag... mode ) {
       _beanClass = beanClass;
       _streamProvider = streamProvider;
-      _mode = EnumSet.copyOf(Arrays.asList(mode == null ? DEFAULT_MODE : mode));
+      _mode = EnumSet.copyOf(Arrays.asList(mode == null || mode.length == 0 ? DEFAULT_MODE : mode));
       _dumpFile = IOUtils.getCanonicalFileQuietly(dumpFile);
       _deletionsFile = new File(dumpFile.getPath() + ".deletions");
       _metaFile = new File(dumpFile.getPath() + ".meta");
@@ -278,7 +278,8 @@ public class Dump<E> implements DumpInput<E> {
          }
          assertOpen();
          for ( DumpIndex<E> index : _indexes ) {
-            if ( index instanceof UniqueIndex && index.contains(((UniqueIndex)index).getKey(o)) ) {
+            if ( index instanceof UniqueIndex && index.contains(((UniqueIndex)index).getKey(o))
+               && !index.getIndexType().equals(GroupedIndex.class.getSimpleName()) ) {
                // check this before actually adding anything
                throw new DuplicateKeyException("Dump already contains an instance with the key " + ((UniqueIndex)index).getKey(o));
             }
@@ -504,6 +505,9 @@ public class Dump<E> implements DumpInput<E> {
                      _resetableBufferedInputStream._lastElementBytesLength);
                   appendNextItemPos(lastElementBytes, nextItemPos);
                   _cache.put(Long.valueOf(pos), lastElementBytes); // ugly boxing of pos necessary here, since _cache is a regular Map - the cost of beauty is ugliness
+               }
+               if ( _resetableBufferedInputStream._lastElementBytes.length > 64 * 1024 ) {
+                  _resetableBufferedInputStream._lastElementBytes = new byte[1024];
                }
                _resetableBufferedInputStream._lastElementBytesLength = 0;
                _lastItemPos.set(pos);
@@ -1271,6 +1275,11 @@ public class Dump<E> implements DumpInput<E> {
        */
       @Override
       public void close() throws IOException {
+         if ( _lastElementBytes.length > 64 * 1024 ) {
+            _lastElementBytes = new byte[1024];
+         }
+         _lastElementBytesLength = 0;
+
          if ( _suppressClose ) {
             return;
          }
