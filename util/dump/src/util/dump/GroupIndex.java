@@ -1,14 +1,5 @@
 package util.dump;
 
-import gnu.trove.list.TLongList;
-import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.TLongObjectMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.map.hash.TLongObjectHashMap;
-import gnu.trove.procedure.TIntObjectProcedure;
-import gnu.trove.procedure.TLongObjectProcedure;
-
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -24,11 +15,24 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import gnu.trove.list.TLongList;
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.TLongObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
+import gnu.trove.procedure.TIntObjectProcedure;
+import gnu.trove.procedure.TLongObjectProcedure;
 import util.dump.stream.ExternalizableObjectInputStream;
 import util.dump.stream.SingleTypeObjectInputStream;
 import util.reflection.FieldAccessor;
 
 
+/**
+ * Allows lookup of non-unique keys, i.e. a lookup returns an Iterable instead of a single element.
+ * If the key is null, the value is not stored in the index, so null is not treated as key. This 
+ * behaviour allows sparse indexes.  
+ */
 public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
 
    protected static Positions removePosition( Positions positions, long pos ) {
@@ -100,6 +104,9 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
             _lookupOutputStream.writeLong(key);
          } else {
             Object key = getObjectKey(o);
+            if ( key == null ) {
+               return;
+            }
             Positions positions = _lookupObject.get(key);
             positions = addPosition(positions, pos);
             _lookupObject.put(key, positions);
@@ -121,8 +128,8 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
    public boolean contains( int key ) {
       synchronized ( _dump ) {
          if ( !_fieldIsInt ) {
-            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-               + ". Please use the appropriate contains(.) method.");
+            throw new IllegalArgumentException(
+               "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate contains(.) method.");
          }
          Positions pos = _lookupInt.get(key);
          ensureSorting(pos);
@@ -134,8 +141,8 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
    public boolean contains( long key ) {
       synchronized ( _dump ) {
          if ( !_fieldIsLong ) {
-            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-               + ". Please use the appropriate contains(.) method.");
+            throw new IllegalArgumentException(
+               "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate contains(.) method.");
          }
          Positions pos = _lookupLong.get(key);
          ensureSorting(pos);
@@ -153,8 +160,8 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
             return contains(((Integer)key).intValue());
          }
          if ( _fieldIsLong || _fieldIsInt ) {
-            throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-               + ". Please use the appropriate contains(.) method.");
+            throw new IllegalArgumentException(
+               "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate contains(.) method.");
          }
          Positions pos = _lookupObject.get(key);
          ensureSorting(pos);
@@ -227,8 +234,8 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
     */
    protected long[] getPositions( int key ) {
       if ( !_fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
+         throw new IllegalArgumentException(
+            "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate lookup(.) method.");
       }
       Positions pos = _lookupInt.get(key);
       if ( pos == null ) {
@@ -243,8 +250,8 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
     */
    protected long[] getPositions( long key ) {
       if ( !_fieldIsLong ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
+         throw new IllegalArgumentException(
+            "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate lookup(.) method.");
       }
       Positions pos = _lookupLong.get(key);
       if ( pos == null ) {
@@ -265,8 +272,8 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          return getPositions(((Integer)key).intValue());
       }
       if ( _fieldIsLong || _fieldIsInt ) {
-         throw new IllegalArgumentException("The type of the used key class of this index is " + _fieldAccessor.getType()
-            + ". Please use the appropriate lookup(.) method.");
+         throw new IllegalArgumentException(
+            "The type of the used key class of this index is " + _fieldAccessor.getType() + ". Please use the appropriate lookup(.) method.");
       }
       Positions pos = _lookupObject.get(key);
       if ( pos == null ) {
@@ -594,6 +601,9 @@ public class GroupIndex<E> extends DumpIndex<E> implements NonUniqueIndex<E> {
          }
       } else {
          Object key = getObjectKey(o);
+         if ( key == null ) {
+            return;
+         }
          Positions positions = _lookupObject.get(key);
          positions = removePosition(positions, pos);
          if ( positions.size() == 0 ) {
