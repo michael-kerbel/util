@@ -54,8 +54,8 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
       this(sourceFile, false, DEFAULT_BUFFER_SIZE, null);
    }
 
-   public DumpReader( File sourceFile, boolean deleteFileOnEOF, int buffersize, ObjectStreamProvider objectStreamProvider ) throws FileNotFoundException,
-         IOException {
+   public DumpReader( File sourceFile, boolean deleteFileOnEOF, int buffersize, ObjectStreamProvider objectStreamProvider )
+         throws FileNotFoundException, IOException {
       initFile(sourceFile, deleteFileOnEOF, buffersize, objectStreamProvider);
    }
 
@@ -164,9 +164,16 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
          return false;
       }
       catch ( Exception e ) {
+         boolean kryoEofException = e.getMessage() != null && e.getMessage().contains("Buffer underflow");
+
          _nextObject = (E)null;
          closeStreams(true);
-         throw new RuntimeException(e);
+         if ( kryoEofException ) {
+            _nextPrepared = true;
+            return false;
+         } else {
+            throw new RuntimeException(e);
+         }
       }
    }
 
@@ -175,14 +182,15 @@ public class DumpReader<E> implements DumpInput<E>, Iterator<E> {
       return this;
    }
 
-   public E lastRead() {
-      return _nextObject;
-   }
-
    @Override
+   /** BEWARE: only the first call of next() after a successful hasNext() returns the element! Consecutive
+    * calls yield null. The reference to the read object is not kept, in order to keep memory usage low.
+    * (huge objects would stay on the heap otherwise) */
    public E next() {
       _nextPrepared = false;
-      return _nextObject;
+      E nextObject = _nextObject;
+      _nextObject = null; // don't keep reference to potentially huge object
+      return nextObject;
    }
 
    @Override
