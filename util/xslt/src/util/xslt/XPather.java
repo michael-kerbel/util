@@ -1,13 +1,17 @@
 package util.xslt;
 
+import java.io.StringReader;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.dom.DOMSource;
 
 import org.htmlcleaner.CleanerProperties;
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.TagNode;
 import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.XPathCompiler;
@@ -26,15 +30,24 @@ public class XPather {
 
 
    public static String eval( String page, String xpath ) throws Exception {
+      return eval(page, xpath, true);
+   }
+
+   public static String eval( String page, String xpath, boolean normalizeHtml ) throws Exception {
 
       XdmNode source = DOCUMENT_CACHE.get(page);
       if ( source == null ) {
-         CleanerProperties prop = new CleanerProperties();
-         prop.setNamespacesAware(false);
-         prop.setAllowHtmlInsideAttributes(true);
-         HtmlCleaner cleaner = new HtmlCleaner(prop);
-         TagNode clean = cleaner.clean(page);
-         Document document = new LenientDomSerializer(prop).createDOM(clean);
+         Document document;
+         if ( normalizeHtml ) {
+            CleanerProperties prop = new CleanerProperties();
+            prop.setNamespacesAware(false);
+            prop.setAllowHtmlInsideAttributes(true);
+            HtmlCleaner cleaner = new HtmlCleaner(prop);
+            TagNode clean = cleaner.clean(page);
+            document = new LenientDomSerializer(prop).createDOM(clean);
+         } else {
+            document = loadXMLFromString(page);
+         }
          source = PROC.newDocumentBuilder().build(new DOMSource(document));
          DOCUMENT_CACHE.put(page, source);
       }
@@ -60,5 +73,14 @@ public class XPather {
          s.append(s.length() == 0 ? "" : "\n").append(value.itemAt(i).getStringValue());
       }
       return s.toString();
+   }
+
+   private static Document loadXMLFromString( String xml ) throws Exception {
+      DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+
+      factory.setNamespaceAware(true);
+      DocumentBuilder builder = factory.newDocumentBuilder();
+
+      return builder.parse(new InputSource(new StringReader(xml)));
    }
 }
