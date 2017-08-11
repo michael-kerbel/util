@@ -20,9 +20,11 @@ import util.crawler.Crawler;
 
 public class ProxyCrawler {
 
-   private static Logger      _log          = LoggerFactory.getLogger(ProxyCrawler.class);
+   private static Logger _log = LoggerFactory.getLogger(ProxyCrawler.class);
 
    private static CrawlParams SAMAIR_PARAMS = new CrawlParamsWithXsltFromClasspath("proxies-samair.xsl");
+   private static CrawlParams HIDEMYASS_PARAMS = new CrawlParamsWithXsltFromClasspath("proxies-hidemyass.xsl");
+
    static {
       SAMAIR_PARAMS.setDontFollowRegexes(Collections.EMPTY_LIST);
       SAMAIR_PARAMS.setFollowRegexes(Arrays.asList("/proxy/proxy-\\d+\\.htm"));
@@ -32,7 +34,6 @@ public class ProxyCrawler {
       SAMAIR_PARAMS.setStartURLs(Arrays.asList("/proxy/proxy-02.htm"));
    }
 
-   private static CrawlParams HIDEMYASS_PARAMS = new CrawlParamsWithXsltFromClasspath("proxies-hidemyass.xsl");
    static {
       HIDEMYASS_PARAMS.setDontFollowRegexes(Collections.EMPTY_LIST);
       HIDEMYASS_PARAMS.setFollowRegexes(Arrays.asList("/proxy-list/\\d+"));
@@ -43,7 +44,6 @@ public class ProxyCrawler {
       HIDEMYASS_PARAMS.setUserAgent("Mozilla/5.0 (Windows NT 5.1; rv:15.0) Gecko/20100101 Firefox/15.0");
       HIDEMYASS_PARAMS.setStartURLs(Arrays.asList("http://hidemyass.com/proxy-list/"));
    }
-
 
    public static void main( String[] args ) {
       refreshProxyList(null, null, null, 120, 3000);
@@ -56,7 +56,7 @@ public class ProxyCrawler {
 
       HttpHost latencyTestHost = testHost != null ? new HttpHost(testHost) : null;
       ProxyPool proxyPool = new ProxyPool(proxyCrawler._proxyList, latencyTestHost, sanePatterns, insanePatterns, null, null, null, maxResponseTimeInMillis,
-         maxResponseTimeInMillis);
+         maxResponseTimeInMillis, "http");
       ProxyList fastProxies = proxyPool.measureLatency(maxTimeToMeasureLatency, maxResponseTimeInMillis);
 
       ProxyList.storeProxyList(fastProxies);
@@ -65,7 +65,7 @@ public class ProxyCrawler {
 
    Set<String> _proxyAdresses = new HashSet<String>();
 
-   ProxyList   _proxyList     = new ProxyList();
+   ProxyList _proxyList = new ProxyList();
 
 
    public void crawl() {

@@ -23,7 +23,7 @@ import util.string.StringTable.Alignment;
 
 public class ProxyPool {
 
-   private static Logger        _log  = LoggerFactory.getLogger(ProxyPool.class);
+   private static Logger _log = LoggerFactory.getLogger(ProxyPool.class);
 
    private ProxyList            _proxyList;
    private List<Proxy>          _allProxies;
@@ -32,12 +32,16 @@ public class ProxyPool {
 
 
    public ProxyPool( ProxyList proxyList ) {
-      init(proxyList, null, null, null, null, null, null, 60000, 60000);
+      init(proxyList, null, null, null, null, null, null, 60000, 60000, "http");
    }
 
+   /**
+    * @param scheme either "http" or "https"
+    */
    public ProxyPool( ProxyList proxyList, HttpHost latencyTestHost, List<Pattern> sanePatterns, List<Pattern> insanePatterns, String userAgent,
-         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout ) {
-      init(proxyList, latencyTestHost, sanePatterns, insanePatterns, userAgent, authenticationUser, authenticationPassword, socketTimeout, connectionTimeout);
+         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout, String scheme ) {
+      init(proxyList, latencyTestHost, sanePatterns, insanePatterns, userAgent, authenticationUser, authenticationPassword, socketTimeout, connectionTimeout,
+         scheme);
    }
 
    public Proxy checkoutProxy() {
@@ -148,12 +152,12 @@ public class ProxyPool {
    }
 
    protected void init( ProxyList proxyList, HttpHost latencyTestHost, List<Pattern> sanePatterns, List<Pattern> insanePatterns, String userAgent,
-         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout ) {
+         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout, String scheme ) {
       _proxyList = proxyList;
       _allProxies = new ArrayList<Proxy>();
       _proxies = new PriorityBlockingQueue<Proxy>();
       for ( ProxyAddress a : _proxyList.getProxies() ) {
-         Proxy proxy = new Proxy(a);
+         Proxy proxy = new Proxy(a, scheme);
          proxy.setLatencyTestHost(latencyTestHost);
          proxy.setSanePatterns(sanePatterns);
          proxy.setInsanePatterns(insanePatterns);
