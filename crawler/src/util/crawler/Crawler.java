@@ -39,13 +39,13 @@ import util.http.HttpClientFactory;
 
 public class Crawler {
 
-   public static final String   RESULT_KEY_CRAWLITEM_DEPTH = "crawlItem.depth";
-   public static final String   RESULT_KEY_DEEPLINK        = "deeplink";
-   public static final String   RESULT_KEY_ORIGINAL_PAGE   = "originalPage";
+   public static final String RESULT_KEY_CRAWLITEM_DEPTH = "crawlItem.depth";
+   public static final String RESULT_KEY_DEEPLINK        = "deeplink";
+   public static final String RESULT_KEY_ORIGINAL_PAGE   = "originalPage";
 
-   private static final Pattern PATTERN_RE_ENCODE_URL      = Pattern.compile("([/?&=]*)([^/?&=]+)");
+   private static final Pattern PATTERN_RE_ENCODE_URL = Pattern.compile("([/?&=]*)([^/?&=]+)");
 
-   private static Logger        _log                       = LoggerFactory.getLogger(Crawler.class);
+   private static Logger _log = LoggerFactory.getLogger(Crawler.class);
 
 
    public static void main( String[] args ) {
@@ -106,13 +106,13 @@ public class Crawler {
 
    protected CrawlParams        _params;
    protected ThreadPoolExecutor _executor;
-   protected Set<CrawlItem>     _crawlItems     = new LinkedHashSet<CrawlItem>();
+   protected Set<CrawlItem>     _crawlItems = new LinkedHashSet<CrawlItem>();
    protected Proxy              _proxy;
    protected ProxyPool          _proxyPool;
-   protected List<CrawlItem>    _errorPaths     = new ArrayList<CrawlItem>();
-   protected int                _pathNumber     = 0;
+   protected List<CrawlItem>    _errorPaths = new ArrayList<CrawlItem>();
+   protected int                _pathNumber = 0;
 
-   protected AtomicInteger      _crawlTaskIndex = new AtomicInteger(0);
+   protected AtomicInteger _crawlTaskIndex = new AtomicInteger(0);
 
 
    public Crawler( CrawlParams params ) {
@@ -253,7 +253,7 @@ public class Crawler {
       }
       HttpHost latencyTestHost = new HttpHost(_params.getHost());
       _proxyPool = new ProxyPool(proxyList, latencyTestHost, _params.getSanePatterns(), _params.getInsanePatterns(), _params.getUserAgent(),
-         _params.getAuthenticationUser(), _params.getAuthenticationPassword(), _params.getSocketTimeout(), _params.getConnectionTimeout());
+         _params.getAuthenticationUser(), _params.getAuthenticationPassword(), _params.getSocketTimeout(), _params.getConnectionTimeout(), "http");
       _log.info("using proxy pool with " + _proxyPool.size() + " proxies");
    }
 
@@ -326,11 +326,6 @@ public class Crawler {
       }
    }
 
-
-   public static abstract class CrawlerFactory {
-
-      public abstract Crawler newCrawler( CrawlParams params );
-   }
 
    public static class CrawlItem {
 
@@ -412,8 +407,8 @@ public class Crawler {
 
       public void requestFinished() {
          if ( _httpContext != null ) {
-            // we don't want to keep all historic httpContexts and their data structures in memory, 
-            // so we replace it with something lean 
+            // we don't want to keep all historic httpContexts and their data structures in memory,
+            // so we replace it with something lean
             _httpContext = new CookieOnlyHttpContext(_httpContext);
          }
       }
@@ -423,6 +418,13 @@ public class Crawler {
          return (_host == null ? "" : _host) + _path;
       }
    }
+
+
+   public static abstract class CrawlerFactory {
+
+      public abstract Crawler newCrawler( CrawlParams params );
+   }
+
 
    private static class CookieOnlyHttpContext implements HttpContext {
 
