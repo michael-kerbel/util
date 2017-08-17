@@ -21,22 +21,23 @@ import util.http.HttpClientFactory;
 public class Proxy implements Comparable<Proxy> {
 
    public static final HttpHost      DEFAULT_LATENCY_TEST_HOST = new HttpHost("www.chrono24.com");
-   public static final List<Pattern> DEFAULT_SANE_PATTERNS     = Arrays.asList(new Pattern[] { Pattern.compile("chrono24"),                    //
-                                                                 });
-   public static final List<Pattern> DEFAULT_INSANE_PATTERNS   = Arrays.asList(new Pattern[] { Pattern.compile("Page Not Responding"),         //
-                                                                                               Pattern.compile("unimed"),                      //
-                                                                                               Pattern.compile("samair"),                      //
-                                                                                               Pattern.compile("404 Not Found"),               //
-                                                                                               Pattern.compile("Hickory Orchards"),            //
-                                                                                               Pattern.compile("<![CDATA[<body></body>]]>"),   //
-                                                                                               Pattern.compile("Acceso denegado"),             //
-                                                                                               Pattern.compile("CoDeeN CAPTCHA"),              //
-                                                                                               Pattern.compile("Access denied"),               //
-                                                                                               Pattern.compile("Barracuda Web Filter"),        //
-                                                                                               Pattern.compile("Barracuda410"),                //
-                                                                                               Pattern.compile("Now go away."),                //
-                                                                                               Pattern.compile("www.caalbor.adv.br"),          //
-                                                                 });
+   public static final List<Pattern> DEFAULT_SANE_PATTERNS     = Arrays.asList(Pattern.compile("chrono24"));
+   public static final List<Pattern> DEFAULT_INSANE_PATTERNS   = Arrays.asList(Pattern.compile("Page Not Responding"),   //
+      Pattern.compile("unimed"),                                                                                         //
+      Pattern.compile("samair"),                                                                                         //
+      Pattern.compile("404 Not Found"),                                                                                  //
+      Pattern.compile("Hickory Orchards"),                                                                               //
+      Pattern.compile("<![CDATA[<body></body>]]>"),                                                                      //
+      Pattern.compile("Acceso denegado"),                                                                                //
+      Pattern.compile("CoDeeN CAPTCHA"),                                                                                 //
+      Pattern.compile("Access denied"),                                                                                  //
+      Pattern.compile("Barracuda Web Filter"),                                                                           //
+      Pattern.compile("Barracuda410"),                                                                                   //
+      Pattern.compile("Now go away."),                                                                                   //
+      Pattern.compile("www.caalbor.adv.br")                                                                              //
+                                                                 );
+
+   private static Logger _log = LoggerFactory.getLogger(Proxy.class);
 
 
    public static void main( String[] args ) {
@@ -54,8 +55,6 @@ public class Proxy implements Comparable<Proxy> {
       }
    }
 
-
-   Logger _log = LoggerFactory.getLogger(getClass());
 
    private final ProxyAddress _address;
    private HttpHost           _proxyHost;
@@ -278,8 +277,8 @@ public class Proxy implements Comparable<Proxy> {
 
    private CloseableHttpClient createHttpClient( int socketTimeout, int connectionTimeout ) {
       HttpClientFactory httpClientFactory = new HttpClientFactory();
-      httpClientFactory.setConnectionTimeout(socketTimeout);
-      httpClientFactory.setSoTimeout(connectionTimeout);
+      httpClientFactory.setConnectionTimeout(connectionTimeout);
+      httpClientFactory.setSoTimeout(socketTimeout);
       if ( _userAgent != null ) {
          httpClientFactory.setUserAgent(_userAgent);
       }
@@ -289,9 +288,8 @@ public class Proxy implements Comparable<Proxy> {
       }
       httpClientFactory.setNeverRetryHttpRequests(true);
       httpClientFactory.setProxy(_proxyHost);
-      CloseableHttpClient httpClient = httpClientFactory.create();
 
-      return httpClient;
+      return httpClientFactory.create();
    }
 
 
