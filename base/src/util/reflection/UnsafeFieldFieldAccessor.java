@@ -28,7 +28,7 @@ public class UnsafeFieldFieldAccessor extends FieldFieldAccessor {
 
    public UnsafeFieldFieldAccessor( Field field ) {
       super(field);
-      _fieldOffset = UNSAFE.fieldOffset(field);
+      _fieldOffset = UNSAFE.objectFieldOffset(field);
    }
 
    @Override
