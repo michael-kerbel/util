@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -11,6 +12,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.HttpRequestBase;
 
+import util.crawler.proxy.Proxy;
 import util.http.HttpClientFactory;
 
 
@@ -47,8 +49,9 @@ public class CrawlParams {
    boolean                  _LIFO               = false;
    boolean                  _reEncodeUrls       = false;
    List<String>             _additionalHeaders;
+   Comparator<Proxy>        _proxyComparator;
 
-   transient String         _xslContents;
+   transient String _xslContents;
 
 
    public void applyAdditionalHeaders( HttpRequestBase req ) {
@@ -130,6 +133,10 @@ public class CrawlParams {
 
    public List<SearchReplaceParam> getPageReplacements() {
       return _pageReplacements;
+   }
+
+   public Comparator<Proxy> getProxyComparator() {
+      return _proxyComparator;
    }
 
    public List<Pattern> getRetryPatterns() {
@@ -280,6 +287,10 @@ public class CrawlParams {
       if ( !new File(_parentFile, _xsl).exists() ) {
          throw new RuntimeException("xsl " + new File(_parentFile, _xsl) + " does not exist");
       }
+   }
+
+   public void setProxyComparator( Comparator<Proxy> proxyComparator ) {
+      _proxyComparator = proxyComparator;
    }
 
    public void setReEncodeUrls( boolean reEncodeUrls ) {
