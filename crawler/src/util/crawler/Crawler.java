@@ -253,7 +253,7 @@ public class Crawler {
       }
       HttpHost latencyTestHost = new HttpHost(_params.getHost());
       _proxyPool = new ProxyPool(proxyList, latencyTestHost, _params.getSanePatterns(), _params.getInsanePatterns(), _params.getUserAgent(),
-         _params.getAuthenticationUser(), _params.getAuthenticationPassword(), _params.getSocketTimeout(), _params.getConnectionTimeout(), "http");
+         _params.getAuthenticationUser(), _params.getAuthenticationPassword(), _params.getSocketTimeout(), _params.getConnectionTimeout(), "http", _params.getProxyComparator());
       _log.info("using proxy pool with " + _proxyPool.size() + " proxies");
    }
 

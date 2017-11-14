@@ -3,6 +3,7 @@ package util.crawler.proxy;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -32,16 +33,17 @@ public class ProxyPool {
 
 
    public ProxyPool( ProxyList proxyList ) {
-      init(proxyList, null, null, null, null, null, null, 60000, 60000, "http");
+      init(proxyList, null, null, null, null, null, null, 60000, 60000, "http", null);
    }
 
    /**
     * @param scheme either "http" or "https"
     */
    public ProxyPool( ProxyList proxyList, HttpHost latencyTestHost, List<Pattern> sanePatterns, List<Pattern> insanePatterns, String userAgent,
-         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout, String scheme ) {
+         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout, String scheme,
+         Comparator<Proxy> proxyComparator ) {
       init(proxyList, latencyTestHost, sanePatterns, insanePatterns, userAgent, authenticationUser, authenticationPassword, socketTimeout, connectionTimeout,
-         scheme);
+         scheme, proxyComparator);
    }
 
    public Proxy checkoutProxy() {
@@ -152,10 +154,11 @@ public class ProxyPool {
    }
 
    protected void init( ProxyList proxyList, HttpHost latencyTestHost, List<Pattern> sanePatterns, List<Pattern> insanePatterns, String userAgent,
-         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout, String scheme ) {
+         String authenticationUser, String authenticationPassword, int socketTimeout, int connectionTimeout, String scheme,
+         Comparator<Proxy> proxyComparator ) {
       _proxyList = proxyList;
-      _allProxies = new ArrayList<Proxy>();
-      _proxies = new PriorityBlockingQueue<Proxy>();
+      _allProxies = new ArrayList<>();
+      _proxies = new PriorityBlockingQueue<>(proxyList._proxies.size(), proxyComparator == null ? Proxy.FASTEST_FIRST_COMPARATOR : proxyComparator);
       for ( ProxyAddress a : _proxyList.getProxies() ) {
          Proxy proxy = new Proxy(a, scheme);
          proxy.setLatencyTestHost(latencyTestHost);

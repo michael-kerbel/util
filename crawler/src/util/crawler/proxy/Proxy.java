@@ -2,6 +2,7 @@ package util.crawler.proxy;
 
 import java.text.NumberFormat;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -36,6 +37,38 @@ public class Proxy implements Comparable<Proxy> {
       Pattern.compile("Now go away."),                                                                                   //
       Pattern.compile("www.caalbor.adv.br")                                                                              //
                                                                  );
+
+   public static final Comparator<Proxy> FASTEST_FIRST_COMPARATOR = ( p1, p2 ) -> {
+      int errors1 = p1._stats.getFaultyGets();
+      int errors2 = p2._stats.getFaultyGets();
+      //      if ( errors1 != errors2 ) return errors1 < errors2 ? -1 : 1;
+
+      // weird sorting: if no successful gets yet, put a proxy to the front
+      int gets1 = p1._stats.getSuccessfulGets();
+      int gets2 = p2._stats.getSuccessfulGets();
+      if ( gets1 == 0 && errors1 == 0 && gets2 > 0 ) {
+         return -1;
+      }
+      if ( gets2 == 0 && errors2 == 0 && gets1 > 0 ) {
+         return 1;
+      }
+
+      float s1 = (float)(p1._stats.getAverageSuccessfulRequestTime() / Math.log10(gets1 + 9) * (1f + (errors1 / 2f)));
+      float s2 = (float)(p2._stats.getAverageSuccessfulRequestTime() / Math.log10(gets2 + 9) * (1f + (errors2 / 2f)));
+      return Float.compare(s1, s2);
+   };
+
+   public static final Comparator<Proxy> LOAD_DISTRIBUTING_COMPARATOR = ( p1, p2 ) -> {
+      int errors1 = p1._stats.getFaultyGets();
+      int errors2 = p2._stats.getFaultyGets();
+
+      int gets1 = p1._stats.getSuccessfulGets();
+      int gets2 = p2._stats.getSuccessfulGets();
+
+      int score1 = gets1+errors1*50;
+      int score2 = gets2+errors2*50;
+      return Integer.compare(score1, score2);
+   };
 
    private static Logger _log = LoggerFactory.getLogger(Proxy.class);
 
@@ -111,26 +144,7 @@ public class Proxy implements Comparable<Proxy> {
 
    @Override
    public int compareTo( Proxy o ) {
-      int errors1 = _stats.getFaultyGets();
-      int errors2 = o._stats.getFaultyGets();
-      //      if ( errors1 != errors2 ) return errors1 < errors2 ? -1 : 1;
-
-      // weird sorting: if no successful gets yet, put a proxy to the front
-      int gets1 = _stats.getSuccessfulGets();
-      int gets2 = o._stats.getSuccessfulGets();
-      if ( gets1 == 0 && errors1 == 0 && gets2 > 0 ) {
-         return -1;
-      }
-      if ( gets2 == 0 && errors2 == 0 && gets1 > 0 ) {
-         return 1;
-      }
-
-      float s1 = (float)(_stats.getAverageSuccessfulRequestTime() / Math.log10(gets1 + 9) * (1f + (errors1 / 2f)));
-      float s2 = (float)(_stats.getAverageSuccessfulRequestTime() / Math.log10(gets2 + 9) * (1f + (errors2 / 2f)));
-      return Float.compare(s1, s2);
-
-      // otherwise sort by number of successful gets descending 
-      //      return gets1 < gets2 ? 1 : (gets1 == gets2 ? 0 : -1);
+      return FASTEST_FIRST_COMPARATOR.compare(this, o);
    }
 
    @Override

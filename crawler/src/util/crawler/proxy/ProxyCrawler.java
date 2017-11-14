@@ -56,7 +56,7 @@ public class ProxyCrawler {
 
       HttpHost latencyTestHost = testHost != null ? new HttpHost(testHost) : null;
       ProxyPool proxyPool = new ProxyPool(proxyCrawler._proxyList, latencyTestHost, sanePatterns, insanePatterns, null, null, null, maxResponseTimeInMillis,
-         maxResponseTimeInMillis, "http");
+         maxResponseTimeInMillis, "http", null);
       ProxyList fastProxies = proxyPool.measureLatency(maxTimeToMeasureLatency, maxResponseTimeInMillis);
 
       ProxyList.storeProxyList(fastProxies);
