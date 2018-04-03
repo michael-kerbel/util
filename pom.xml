@@ -4,13 +4,14 @@
 	<groupId>mkr</groupId>
 	<artifactId>util-pom</artifactId>
 	<name>mkr util pom</name>
-	<version>1.20170928.1</version><!--util.version-->
+	<version>1.20180403.2</version><!--util.version-->
 	<packaging>pom</packaging>
 
 	<modules>
 		<module>base</module>
 		<module>crawler</module>
 		<module>dump</module>
+		<module>dumpsearch</module>
 		<module>dumpass</module>
 		<module>swt</module>
 		<module>xml</module>
@@ -146,6 +147,11 @@
 			<dependency>
 				<groupId>mkr</groupId>
 				<artifactId>util-dump</artifactId>
+				<version>${pom.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>mkr</groupId>
+				<artifactId>util-dumpsearch</artifactId>
 				<version>${pom.version}</version>
 			</dependency>
 			<dependency>

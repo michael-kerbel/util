@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>mkr</groupId>
 		<artifactId>util-pom</artifactId>
-		<version>1.20170928.1</version>            
+		<version>1.20180403.2</version>            
 	</parent>
 
   <profiles>
@@ -104,7 +104,7 @@
 		<dependency>
 			<groupId>org.objenesis</groupId>
 			<artifactId>objenesis</artifactId>
-			<version>[1.0,]</version>
+			<version>[2.6,]</version>
 		</dependency>
 		<dependency>
 			<groupId>cglib</groupId>

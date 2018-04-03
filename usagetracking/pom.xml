@@ -10,7 +10,7 @@
 	<parent>
 		<groupId>mkr</groupId>
 		<artifactId>util-pom</artifactId>
-		<version>1.20170928.1</version>            
+		<version>1.20180403.2</version>            
 	</parent>
 
 	<dependencies>
