@@ -19,15 +19,21 @@ package util.time;
  *  2.003 s
  * </pre>
  *
- * @see org.apache.commons.lang.time.StopWatch
  * @see TimeUtils
  */
 public class StopWatch {
 
-   private long _start;
+   private long    _start;
+   private boolean _resetOnToString = false;
+
 
    public StopWatch() {
       reset();
+   }
+
+   /** returns the current interval in milliseconds */
+   public long getInterval() {
+      return System.currentTimeMillis() - _start;
    }
 
    /**
@@ -37,14 +43,19 @@ public class StopWatch {
       _start = System.currentTimeMillis();
    }
 
-   /** returns the current interval in milliseconds */
-   public long getInterval() {
-      return System.currentTimeMillis() - _start;
+   /** resets the timer every time the toString() method is called.
+    * @return returns this, to enable fluent usage
+    */
+   public StopWatch setResetOnToString( boolean resetOnToString ) {
+      _resetOnToString = resetOnToString;
+      return this;
    }
 
    @Override
    public String toString() {
       long milliseconds = System.currentTimeMillis() - _start;
+      if ( _resetOnToString )
+         reset();
       return TimeUtils.toHumanReadableFormat(milliseconds);
    }
 }
