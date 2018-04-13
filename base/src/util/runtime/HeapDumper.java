@@ -10,14 +10,13 @@ import com.sun.management.HotSpotDiagnosticMXBean;
 public class HeapDumper {
 
    // This is the name of the HotSpot Diagnostic MBean
-   private static final String                     HOTSPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
+   private static final String HOTSPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
 
    // field to store the hotspot diagnostic MBean 
    private static volatile HotSpotDiagnosticMXBean _hotspotMBean;
 
-
    /**
-    * Call this method from your application whenever you 
+    * Call this method from your application whenever you
     * want to dump the heap snapshot into a file.
     *
     * @param fileName name of the heap dump file
@@ -38,13 +37,20 @@ public class HeapDumper {
       }
    }
 
+   public static String getMemoryUsage( boolean forceGc ) {
+      if ( forceGc ) {
+         System.gc();
+      }
+      long mem = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+      return mem / (1024 * 1024) + " MB";
+   }
+
    // get the hotspot diagnostic MBean from the
    // platform MBean server
    private static HotSpotDiagnosticMXBean getHotspotMBean() {
       try {
          MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-         HotSpotDiagnosticMXBean bean = ManagementFactory.newPlatformMXBeanProxy(server, HOTSPOT_BEAN_NAME, HotSpotDiagnosticMXBean.class);
-         return bean;
+         return ManagementFactory.newPlatformMXBeanProxy(server, HOTSPOT_BEAN_NAME, HotSpotDiagnosticMXBean.class);
       }
       catch ( RuntimeException re ) {
          throw re;
