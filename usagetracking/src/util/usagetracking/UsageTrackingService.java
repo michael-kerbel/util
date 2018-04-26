@@ -1,13 +1,5 @@
 package util.usagetracking;
 
-import gnu.trove.list.TIntList;
-import gnu.trove.list.TLongList;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.list.array.TLongArrayList;
-import gnu.trove.map.TIntObjectMap;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.procedure.TIntObjectProcedure;
-
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -28,6 +20,13 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import gnu.trove.list.TIntList;
+import gnu.trove.list.TLongList;
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.list.array.TLongArrayList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.procedure.TIntObjectProcedure;
 import util.dump.Dump;
 import util.dump.DumpUtils;
 import util.dump.ExternalizableBean;
@@ -36,13 +35,13 @@ import util.time.TimeUtils;
 
 public class UsageTrackingService {
 
-   private static Logger                                        _log      = LoggerFactory.getLogger(UsageTrackingService.class);
-   private static final DateFormat                              DAY       = new SimpleDateFormat("yyyy-MM-dd");
+   private static Logger           _log = LoggerFactory.getLogger(UsageTrackingService.class);
+   private static final DateFormat DAY  = new SimpleDateFormat("yyyy-MM-dd");
 
-   private static UsageTrackingService                          INSTANCE;
+   private static UsageTrackingService INSTANCE;
 
-   private static boolean                                       TRACKDATA = false;
-   private static int                                           MAX_ID;
+   private static boolean TRACKDATA = false;
+   private static int     MAX_ID;
 
    /* if multiple Actions are executed in a Request, all of them get the same request time - all Actions executed during a single Request are collected here */
    private static ThreadLocal<EnumSet<? extends Enum>>          SAME_TIMEMEASUREMENT_GROUP;
@@ -160,40 +159,40 @@ public class UsageTrackingService {
    }
 
 
-   private TrackingId              _exampleTrackingIdInstance;
+   private TrackingId _exampleTrackingIdInstance;
 
-   private long                    _timeResolution    = 1 * TimeUtils.MINUTE_IN_MILLIS;
+   private long _timeResolution = 1 * TimeUtils.MINUTE_IN_MILLIS;
 
-   private String                  _dumpFolder;
+   private String _dumpFolder;
 
-   private TLongList               _keys              = new TLongArrayList();
+   private TLongList _keys = new TLongArrayList();
 
-   private List<int[]>             _data              = new ArrayList<int[]>();
+   private List<int[]> _data = new ArrayList<int[]>();
 
-   private TIntObjectMap<TIntList> _percentileData    = new TIntObjectHashMap<TIntList>();
+   private TIntObjectMap<TIntList> _percentileData = new TIntObjectHashMap<TIntList>();
 
-   private long[]                  _startupTimestamps = new long[0];
+   private long[] _startupTimestamps = new long[0];
 
-   private DataCollectionThread    _dataCollectionThread;
+   private DataCollectionThread _dataCollectionThread;
 
-   private DumpWriteThread         _dumpWriteThread;
+   private DumpWriteThread _dumpWriteThread;
 
-   private boolean                 _destroyed;
+   private boolean _destroyed;
 
-   private int                     _dayOfMonth        = -1;
+   private int _dayOfMonth = -1;
 
-   private Thread                  _shutdownThread    = new Thread() {
+   private Thread _shutdownThread = new Thread() {
 
-                                                         @Override
-                                                         public void run() {
-                                                            try {
-                                                               _dumpWriteThread.writeNewStats(_keys.size());
-                                                            }
-                                                            catch ( IOException argh ) {
-                                                               _log.error("Failed to write stats to dump", argh);
-                                                            }
-                                                         }
-                                                      };
+      @Override
+      public void run() {
+         try {
+            _dumpWriteThread.writeNewStats(_keys.size());
+         }
+         catch ( IOException argh ) {
+            _log.error("Failed to write stats to dump", argh);
+         }
+      }
+   };
 
 
    public void add( TrackingId id, int value ) {
@@ -378,7 +377,7 @@ public class UsageTrackingService {
       // rare case, only once per minute: add element to key/data, aggregate percentiles, collect   
       synchronized ( _keys ) {
          int ssize = _keys.size();
-         if ( ssize == size ) {
+         if ( ssize == size && (ssize == 0 || _keys.get(ssize - 1) != t) ) {
             int[] data = new int[MAX_ID + 1];
             _data.add(data);
             _keys.add(t);
@@ -489,15 +488,20 @@ public class UsageTrackingService {
    }
 
 
+   public interface MyConsumer<T> {
+
+      void accept( T t, int i, int j );
+   }
+
    public static class StatData implements ExternalizableBean {
 
       private static final long serialVersionUID = -1816997029156670474L;
 
       @externalize(1)
-      long                      _t;
+      long _t;
 
       @externalize(2)
-      int[]                     _data;
+      int[] _data;
 
 
       public StatData() {}
@@ -506,14 +510,14 @@ public class UsageTrackingService {
    public static class UsageTrackingData implements Serializable {
 
       /** timestamps */
-      public TLongList     _keys;
+      public TLongList _keys;
 
-      /** 
-       * _data[i] and _keys[i] belong together. 
-       * For each timestamp in keys there is an array of values. 
-       * The index of these int[] corresponds with the TrackingId.getId() value  
+      /**
+       * _data[i] and _keys[i] belong together.
+       * For each timestamp in keys there is an array of values.
+       * The index of these int[] corresponds with the TrackingId.getId() value
        */
-      public List<int[]>   _data;
+      public List<int[]> _data;
 
       transient TrackingId _exampleTrackingIdInstance;
 
@@ -597,11 +601,6 @@ public class UsageTrackingService {
             }
          }
       }
-   }
-
-   public interface MyConsumer<T> {
-
-      void accept( T t, int i, int j );
    }
 
    private class DataCollectionThread extends Thread {
