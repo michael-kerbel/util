@@ -8,10 +8,39 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import javax.annotation.Nullable;
+
+import net.sf.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.MethodInterceptor;
+import net.sf.cglib.proxy.MethodProxy;
 
 
 public class Reflection {
+
+   private static Map<Class, Object> _defaults = new HashMap<>();
+
+
+   static {
+      _defaults.put(String.class, "");
+      _defaults.put(int.class, 0);
+      _defaults.put(long.class, 0L);
+      _defaults.put(float.class, 0f);
+      _defaults.put(double.class, 0d);
+      _defaults.put(byte.class, (byte)0);
+      _defaults.put(char.class, 'a');
+      _defaults.put(Integer.class, 0);
+      _defaults.put(Long.class, 0L);
+      _defaults.put(Float.class, 0f);
+      _defaults.put(Double.class, 0d);
+      _defaults.put(Byte.class, (byte)0);
+      _defaults.put(Character.class, 'a');
+   }
 
    /**
     * Scans all classes accessible from the context class loader which belong to the given package and subpackages.<p/>
@@ -42,8 +71,8 @@ public class Reflection {
 
    /**
     * Get a <code>Field</code> instance for any the combination of class and field name.
-    * This utility method allows accessing protected, package protected and private fields - at least if the 
-    * <code>SecurityManager</code> allows this hack, which it does in practically all runtimes...       
+    * This utility method allows accessing protected, package protected and private fields - at least if the
+    * <code>SecurityManager</code> allows this hack, which it does in practically all runtimes...
     */
    public static Field getField( Class c, String fieldName ) throws NoSuchFieldException {
       try {
@@ -72,8 +101,8 @@ public class Reflection {
 
    /**
     * Get a <code>Field</code> instance for any the combination of class and field name.
-    * This utility method allows accessing protected, package protected and private fields - at least if the 
-    * <code>SecurityManager</code> allows this hack, which it does in practically all runtimes...       
+    * This utility method allows accessing protected, package protected and private fields - at least if the
+    * <code>SecurityManager</code> allows this hack, which it does in practically all runtimes...
     */
    public static Field getFieldQuietly( Class c, String fieldName ) {
       try {
@@ -86,8 +115,8 @@ public class Reflection {
 
    /**
     * Get a <code>Method</code> instance for any the combination of class, method name and parameter signature.
-    * This utility method allows accessing protected, package protected and private methods - at least if the 
-    * <code>SecurityManager</code> allows this hack, which it does in practically all runtimes...       
+    * This utility method allows accessing protected, package protected and private methods - at least if the
+    * <code>SecurityManager</code> allows this hack, which it does in practically all runtimes...
     */
    public static Method getMethod( Class c, String methodName, Class... argumentClasses ) throws NoSuchMethodException {
       try {
@@ -118,6 +147,26 @@ public class Reflection {
          // search not successful -> throw original NoSuchMethodException
          throw e;
       }
+   }
+
+   /**
+    * Returns the method that is being called by a lambda, but you need to know the Class that the lambda is calling.
+    * That allows creating type-safe APIs in some cases, by using method references, which can then be passed around.
+    */
+   public static @Nullable <T, U, V> Method getMethodCalledByLambda( Class<T> c, BiFunction<T, U, V> methodLambda ) {
+      CallRecorder<T> callRecorder = CallRecorder.create(c);
+      methodLambda.apply(callRecorder.getObject(), null);
+      return callRecorder.getCurrentMethod();
+   }
+
+   /**
+    * Returns the method that is being called by a lambda, but you need to know the Class that the lambda is calling.
+    * That allows creating type-safe APIs in some cases, by using method references, which can then be passed around.
+    */
+   public static @Nullable <T, U> Method getMethodCalledByLambda( Class<T> c, Function<T, U> methodLambda ) {
+      CallRecorder<T> callRecorder = CallRecorder.create(c);
+      methodLambda.apply(callRecorder.getObject());
+      return callRecorder.getCurrentMethod();
    }
 
    /**
@@ -161,7 +210,7 @@ public class Reflection {
       for ( File file : files ) {
          String fileName = file.getName();
          if ( file.isDirectory() ) {
-            assert !fileName.contains(".");
+            assert!fileName.contains(".");
             classes.addAll(findClasses(file, packageName + "." + fileName));
          } else if ( fileName.endsWith(".class") && !fileName.contains("$") ) {
             Class _class;
@@ -178,6 +227,52 @@ public class Reflection {
          }
       }
       return classes;
+   }
+
+
+   private static class CallRecorder<T> {
+
+      @SuppressWarnings("unchecked")
+      public static <T> CallRecorder<T> create( Class<T> c ) {
+         Enhancer enhancer = new Enhancer();
+         enhancer.setSuperclass(c);
+         RecordingProxy recordingProxy = new RecordingProxy();
+         enhancer.setCallback(recordingProxy);
+         return new CallRecorder(enhancer.create(), recordingProxy);
+      }
+
+
+      private T              _t;
+      private RecordingProxy _recordingProxy;
+
+
+      public CallRecorder( T t, RecordingProxy _recordingProxy ) {
+         this._t = t;
+         this._recordingProxy = _recordingProxy;
+      }
+
+      public Method getCurrentMethod() {
+         return _recordingProxy.getCurrentMethod();
+      }
+
+      public T getObject() {
+         return _t;
+      }
+   }
+
+   private static class RecordingProxy implements MethodInterceptor {
+
+      private Method _currentMethod;
+
+
+      public Method getCurrentMethod() {
+         return _currentMethod;
+      }
+
+      public Object intercept( Object o, Method method, Object[] os, MethodProxy mp ) {
+         _currentMethod = method;
+         return _defaults.get(method.getReturnType());
+      }
    }
 
 }
