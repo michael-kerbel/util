@@ -7,10 +7,13 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -40,6 +43,20 @@ public class Reflection {
       _defaults.put(Double.class, 0d);
       _defaults.put(Byte.class, (byte)0);
       _defaults.put(Character.class, 'a');
+   }
+
+   /**
+    * @return all fields of this class, including non-public and inherited fields */
+   public static Set<Field> getAllFields( Class<?> c ) {
+      Set<Field> fields = new HashSet<>();
+
+      do {
+         fields.addAll(Arrays.asList(c.getDeclaredFields()));
+         c = c.getSuperclass();
+      }
+      while ( c != null );
+      fields.forEach(f -> f.setAccessible(true));
+      return fields;
    }
 
    /**
