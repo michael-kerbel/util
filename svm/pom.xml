@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>mkr</groupId>
 		<artifactId>util-pom</artifactId>
-		<version>1.20180403.2</version>            
+		<version>1.20180625.1</version>            
 	</parent>
 
 	<build>
@@ -38,7 +38,7 @@
 		<dependency>
 			<groupId>libsvm</groupId>
 			<artifactId>libsvm</artifactId>
-			<version>[2.9, 3.0)</version>
+			<version>3.22</version>
 		</dependency>
 		    
 		<dependency>
