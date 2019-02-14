@@ -98,7 +98,7 @@ public class Reflection {
       catch ( NoSuchFieldException e ) {
          try {
             // search protected, package protected and private methods
-            while ( c != Object.class ) {
+            while ( c != null && c != Object.class ) {
                for ( Field f : c.getDeclaredFields() ) {
                   if ( f.getName().equals(fieldName) ) {
                      f.setAccessible(true); // enable access to the method - ...hackity hack
@@ -142,7 +142,7 @@ public class Reflection {
       catch ( NoSuchMethodException e ) {
          try {
             // search protected, package protected and private methods
-            while ( c != Object.class ) {
+            while ( c != null && c != Object.class ) {
                out: for ( Method m : c.getDeclaredMethods() ) {
                   Class[] parameterTypes = m.getParameterTypes();
                   if ( m.getName().equals(methodName) && argumentClasses.length == parameterTypes.length ) {
