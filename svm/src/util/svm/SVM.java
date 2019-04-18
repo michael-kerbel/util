@@ -69,7 +69,7 @@ public class SVM {
    public static Features loadFeatures( File dumpFile ) throws IOException {
       Dump<Features> featuresDump = null;
       try {
-         featuresDump = new Dump<Features>(Features.class, new ExternalizableObjectStreamProvider(), dumpFile, 0, Dump.DEFAULT_MODE);
+         featuresDump = new Dump<Features>(Features.class, new ExternalizableObjectStreamProvider(), dumpFile, 0, false, Dump.DEFAULT_MODE);
          Features features = featuresDump.get(0);
          return features;
       }
@@ -212,7 +212,7 @@ public class SVM {
       Dump<Features> featuresDump = null;
       try {
          dumpFile.delete();
-         featuresDump = new Dump<Features>(Features.class, new ExternalizableObjectStreamProvider(), dumpFile, 0, Dump.DEFAULT_MODE);
+         featuresDump = new Dump<Features>(Features.class, new ExternalizableObjectStreamProvider(), dumpFile, 0, false, Dump.DEFAULT_MODE);
          featuresDump.add(features);
       }
       finally {
