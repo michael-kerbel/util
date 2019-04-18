@@ -30,6 +30,7 @@ import gnu.trove.procedure.TIntObjectProcedure;
 import util.dump.Dump;
 import util.dump.DumpUtils;
 import util.dump.ExternalizableBean;
+import util.dump.stream.SingleTypeObjectStreamProvider;
 import util.time.TimeUtils;
 
 
@@ -123,7 +124,7 @@ public class UsageTrackingService {
       if ( INSTANCE != null ) {
          UsageTrackingData ret = INSTANCE.createUsageTrackingData();
          ret._keys = new TLongArrayList();
-         ret._data = new ArrayList<int[]>();
+         ret._data = new ArrayList<>();
          for ( StatData dd : d ) {
             if ( dd._data != null ) {
                ret._keys.add(dd._t);
@@ -167,9 +168,9 @@ public class UsageTrackingService {
 
    private TLongList _keys = new TLongArrayList();
 
-   private List<int[]> _data = new ArrayList<int[]>();
+   private List<int[]> _data = new ArrayList<>();
 
-   private TIntObjectMap<TIntList> _percentileData = new TIntObjectHashMap<TIntList>();
+   private TIntObjectMap<TIntList> _percentileData = new TIntObjectHashMap<>();
 
    private long[] _startupTimestamps = new long[0];
 
@@ -253,7 +254,7 @@ public class UsageTrackingService {
             return name.startsWith("stats-") && name.endsWith(".dmp");
          }
       });
-      List<String> filenames = new ArrayList<String>();
+      List<String> filenames = new ArrayList<>();
       for ( File f : files ) {
          filenames.add(f.getName());
       }
@@ -298,9 +299,9 @@ public class UsageTrackingService {
    }
 
    public synchronized List<StatData> readFromDump( String filename ) {
-      List<StatData> data = new ArrayList<StatData>();
+      List<StatData> data = new ArrayList<>();
       File dumpFile = new File(_dumpFolder, filename);
-      try (Dump<StatData> dump = new Dump<StatData>(StatData.class, dumpFile, Dump.SHARED_MODE)) {
+      try (Dump<StatData> dump = new Dump<>(StatData.class, dumpFile, Dump.SHARED_MODE)) {
          for ( StatData d : dump ) {
             data.add(d);
          }
@@ -420,8 +421,7 @@ public class UsageTrackingService {
       File dumpFile = new File(_dumpFolder, getDumpFileName(data._t));
       Dump<StatData> dump = null;
       try {
-         dump = new Dump<StatData>(StatData.class, dumpFile);
-         dump.setWillBeClosedDuringShutdown(true);
+         dump = new Dump<>(StatData.class, new SingleTypeObjectStreamProvider<>(StatData.class), dumpFile, Dump.DEFAULT_CACHE_SIZE, false, Dump.DEFAULT_MODE);
          dump.add(data);
       }
       finally {
@@ -464,7 +464,7 @@ public class UsageTrackingService {
          int dayOfMonth = TimeUtils.getCalendarFieldValue(new Date(t), Calendar.DAY_OF_MONTH);
          if ( dayOfMonth != _dayOfMonth ) {
             TLongList keys = new TLongArrayList();
-            List<int[]> data = new ArrayList<int[]>();
+            List<int[]> data = new ArrayList<>();
             for ( int j = i + 1, length = _keys.size(); j < length; j++ ) {
                keys.add(_keys.get(j));
                data.add(_data.get(j));
@@ -682,7 +682,7 @@ public class UsageTrackingService {
          if ( dumpFile.exists() ) {
             Dump<StatData> dump = null;
             try {
-               dump = new Dump<StatData>(StatData.class, dumpFile, Dump.SHARED_MODE);
+               dump = new Dump<>(StatData.class, dumpFile, Dump.SHARED_MODE);
                for ( StatData data : dump ) {
                   lastWrittenT = data._t;
                }
