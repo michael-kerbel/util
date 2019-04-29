@@ -225,6 +225,9 @@ public class UsageTrackingService {
    }
 
    public void destroy() {
+      if( _destroyed ) {
+         return;
+      }
       _destroyed = true;
       _dataCollectionThread.interrupt();
       _dumpWriteThread.interrupt();
@@ -273,6 +276,13 @@ public class UsageTrackingService {
    }
 
    public void init() {
+      if(INSTANCE != null){
+         _log.warn("duplicate call to UsageTrackingService.init()");
+         if(INSTANCE != this) {
+            _log.warn("got more than one UsageTrackingService instances, will shut down the older one.");
+            INSTANCE.destroy();
+         }
+      }
       INSTANCE = this;
 
       // read today's data from dump
