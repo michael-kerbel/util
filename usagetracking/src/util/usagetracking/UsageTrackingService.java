@@ -186,12 +186,7 @@ public class UsageTrackingService {
 
       @Override
       public void run() {
-         try {
-            _dumpWriteThread.writeNewStats(_keys.size());
-         }
-         catch ( IOException argh ) {
-            _log.error("Failed to write stats to dump", argh);
-         }
+         UsageTrackingService.this.destroy();
       }
    };
 
@@ -232,10 +227,10 @@ public class UsageTrackingService {
       _dataCollectionThread.interrupt();
       _dumpWriteThread.interrupt();
       try {
-         Runtime.getRuntime().removeShutdownHook(_shutdownThread);
+         _dumpWriteThread.writeNewStats(_keys.size());
       }
-      catch ( IllegalStateException argh ) {
-         _log.debug("JVM shutdown in progress", argh);
+      catch ( IOException argh ) {
+         _log.error("Failed to write stats to dump", argh);
       }
    }
 
@@ -670,6 +665,7 @@ public class UsageTrackingService {
             }
             catch ( InterruptedException argh ) {
                Thread.interrupted(); // reset interrupted state
+               continue;
             }
 
             try {
