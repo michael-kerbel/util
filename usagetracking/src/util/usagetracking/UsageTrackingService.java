@@ -220,7 +220,7 @@ public class UsageTrackingService {
    }
 
    public void destroy() {
-      if( _destroyed ) {
+      if ( _destroyed ) {
          return;
       }
       _destroyed = true;
@@ -271,9 +271,9 @@ public class UsageTrackingService {
    }
 
    public void init() {
-      if(INSTANCE != null){
+      if ( INSTANCE != null ) {
          _log.warn("duplicate call to UsageTrackingService.init()");
-         if(INSTANCE != this) {
+         if ( INSTANCE != this ) {
             _log.warn("got more than one UsageTrackingService instances, will shut down the older one.");
             INSTANCE.destroy();
          }
@@ -306,6 +306,10 @@ public class UsageTrackingService {
    public synchronized List<StatData> readFromDump( String filename ) {
       List<StatData> data = new ArrayList<>();
       File dumpFile = new File(_dumpFolder, filename);
+      if ( !dumpFile.exists() ) {
+         return Collections.emptyList();
+      }
+
       try (Dump<StatData> dump = new Dump<>(StatData.class, dumpFile, Dump.SHARED_MODE)) {
          for ( StatData d : dump ) {
             data.add(d);
@@ -632,7 +636,7 @@ public class UsageTrackingService {
             }
             try {
                synchronized ( this ) {
-                  this.wait(_timeResolution / 2);
+                  wait(_timeResolution / 2);
                }
             }
             catch ( InterruptedException argh ) {
@@ -660,7 +664,7 @@ public class UsageTrackingService {
 
             try {
                synchronized ( this ) {
-                  this.wait();
+                  wait();
                }
             }
             catch ( InterruptedException argh ) {
