@@ -14,12 +14,11 @@ import java.util.Map;
  * Beispiel: \"eng\" findet nicht 'englisch', \"engl. Version\" findet nicht 'Version engl.'.
  * Für eine Oder-Suche die einzelnen Tokens mit '|' getrennt schreiben.
  * Beispiel: 'gebraucht|b-ware' findet sowohl 'gebrauchte Socken' als auch 'Socken B-ware'.
- * Eine Oder-Suche ist nur als Substring-Suche möglich, nicht als Phrasensuche.
  * Vor oder-verknüpfte Substrings ein '-' zu schreiben liefert nichts Sinnvolles.
  */
 public class StringFilter {
 
-   protected Map<String, String[]> _orSearchCache = new HashMap<String, String[]>();
+   protected Map<String, String[]> _orSearchCache = new HashMap<>();
    private String                  _filterString;
    private String[]                _filterTokens;
 
@@ -47,11 +46,12 @@ public class StringFilter {
                if ( containsWord(element, filterToken.substring(2, filterToken.length() - 1)) ) {
                   return true;
                }
-            } else if ( filterToken.length() > 1 && element.indexOf(filterToken.substring(1)) >= 0 ) {
+            } else if ( filterToken.length() > 1 && element.contains(filterToken.substring(1)) ) {
                return true;
             }
          } else {
-            if ( filterToken.length() > 2 && filterToken.charAt(0) == '"' && filterToken.charAt(filterToken.length() - 1) == '"' ) { // wortsuche
+            if ( filterToken.length() > 2 && filterToken.charAt(0) == '"' && filterToken.charAt(filterToken.length() - 1) == '"'
+               && filterToken.indexOf('|') < 0 ) { // wortsuche
                if ( !containsWord(element, filterToken.substring(1, filterToken.length() - 1)) ) {
                   return true;
                }
@@ -60,7 +60,7 @@ public class StringFilter {
                if ( orSearch ) {
                   return true;
                }
-            } else if ( element.indexOf(filterToken) < 0 ) {
+            } else if ( !element.contains(filterToken) ) {
                return true;
             }
          }
@@ -73,38 +73,34 @@ public class StringFilter {
          return;
       }
 
-      _filterString = filterString;
+      _filterString = filterString.toLowerCase();
       _orSearchCache.clear();
-      _filterTokens = coalescePhrases(StringTool.split(_filterString, ' '));
+      _filterTokens = coalescePhrases(_filterString);
    }
 
-   protected String[] coalescePhrases( String[] tokens ) {
-      List<String> filterTokens = new ArrayList<String>(tokens.length);
-      for ( int i = 0, length = tokens.length; i < length; i++ ) {
-         if ( tokens[i].length() > 0 && (tokens[i].startsWith("-\"") || tokens[i].charAt(0) == '"') && tokens[i].charAt(tokens[i].length() - 1) != '"' ) {
-            // phrasenende suchen
-            int endPhraseIndex = -1;
-            for ( int j = i + 1; j < length && endPhraseIndex < 0; j++ ) {
-               if ( tokens[j].length() > 0 && tokens[j].charAt(tokens[j].length() - 1) == '"' ) {
-                  endPhraseIndex = j;
-               }
-            }
-            if ( endPhraseIndex > 0 ) {
-               StringBuilder sb = new StringBuilder();
-               for ( int j = i; j <= endPhraseIndex; j++ ) {
-                  if ( j != i ) {
-                     sb.append(" ");
-                  }
-                  sb.append(tokens[j]);
-               }
-               filterTokens.add(sb.toString());
-               i = endPhraseIndex;
-               continue;
-            }
+   protected String[] coalescePhrases( String filterString ) {
+      List<String> filterTokens = new ArrayList<>();
+
+      StringBuilder s = new StringBuilder();
+      boolean openQuote = false;
+      for ( int i = 0, length = filterString.length(); i < length; i++ ) {
+         char c = filterString.charAt(i);
+         if ( c == '"' ) {
+            openQuote = !openQuote;
          }
-         filterTokens.add(tokens[i]);
+
+         if ( c == ' ' && !openQuote ) {
+            if ( s.length() > 0 ) {
+               filterTokens.add(s.toString());
+               s.setLength(0);
+            }
+         } else {
+            s.append(c);
+         }
       }
-      return filterTokens.toArray(new String[filterTokens.size()]);
+      filterTokens.add(s.toString());
+
+      return filterTokens.toArray(new String[0]);
    }
 
    private boolean containsWord( String element, String word ) {
@@ -133,7 +129,11 @@ public class StringFilter {
          if ( !atLeastOneToken && ss.length() > 0 ) {
             atLeastOneToken = true;
          }
-         if ( element.indexOf(ss) >= 0 ) {
+         if ( ss.charAt(0) == '"' && ss.charAt(ss.length() - 1) == '"' ) {
+            if ( containsWord(element, ss.substring(1, ss.length() - 1)) ) {
+               return false;
+            }
+         } else if ( element.contains(ss) ) {
             return false;
          }
       }
