@@ -9,11 +9,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.security.Permission;
-import java.security.PermissionCollection;
-import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
@@ -37,60 +32,12 @@ import util.time.TimeUtils;
  */
 public class SshHelper {
 
-   public static int            TIMEOUT_IN_SECONDS               = 10;
+   public static int TIMEOUT_IN_SECONDS = 10;
 
-   private static Logger        _log                             = LoggerFactory.getLogger(SshHelper.class);
+   private static Logger _log = LoggerFactory.getLogger(SshHelper.class);
 
    private static final Pattern TERMINAL_EMULATION_CHARS_PATTERN = Pattern.compile("\u001b\\[[0-9;?]*[^0-9;]");
 
-   static {
-      enableStrongCryptography();
-   }
-
-
-   /** Hack um SSH mit sicheren Verfahren auf JVMs hinzukriegen, selbst wenn kein JCE installiert ist.
-    *  s. http://suhothayan.blogspot.fr/2012/05/how-to-install-java-cryptography.html
-    *  s. https://stackoverflow.com/questions/1179672/how-to-avoid-installing-unlimited-strength-jce-policy-files-when-deploying-an/22492582#22492582
-    */
-   public static void enableStrongCryptography() {
-      try {
-         /*
-          * Do the following, but with reflection to bypass access checks:
-          *
-          * JceSecurity.isRestricted = false;
-          * JceSecurity.defaultPolicy.perms.clear();
-          * JceSecurity.defaultPolicy.add(CryptoAllPermission.INSTANCE);
-          */
-         final Class<?> jceSecurity = Class.forName("javax.crypto.JceSecurity");
-         final Class<?> cryptoPermissions = Class.forName("javax.crypto.CryptoPermissions");
-         final Class<?> cryptoAllPermission = Class.forName("javax.crypto.CryptoAllPermission");
-
-         final Field isRestrictedField = jceSecurity.getDeclaredField("isRestricted");
-         if ( Modifier.isFinal(isRestrictedField.getModifiers()) ) {
-            Field modifiers = Field.class.getDeclaredField("modifiers");
-            modifiers.setAccessible(true);
-            modifiers.setInt(isRestrictedField, isRestrictedField.getModifiers() & ~Modifier.FINAL);
-         }
-         isRestrictedField.setAccessible(true);
-         isRestrictedField.set(null, false);
-
-         final Field defaultPolicyField = jceSecurity.getDeclaredField("defaultPolicy");
-         defaultPolicyField.setAccessible(true);
-         final PermissionCollection defaultPolicy = (PermissionCollection)defaultPolicyField.get(null);
-
-         final Field perms = cryptoPermissions.getDeclaredField("perms");
-         perms.setAccessible(true);
-         ((Map<?, ?>)perms.get(defaultPolicy)).clear();
-
-         final Field instance = cryptoAllPermission.getDeclaredField("INSTANCE");
-         instance.setAccessible(true);
-         defaultPolicy.add((Permission)instance.get(null));
-         _log.info("Enabled strong cryptography on JVM");
-      }
-      catch ( Exception ex ) {
-         _log.error("Failed to enable strong cryptography", ex);
-      }
-   }
 
    public static String cleanFromTerminalEmulationChars( String s ) {
       s = s.replace("\u001b(B\u001b)0", "");
