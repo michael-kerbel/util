@@ -19,7 +19,7 @@ public class HeapDumper {
     * Call this method from your application whenever you
     * want to dump the heap snapshot into a file.
     *
-    * @param fileName name of the heap dump file
+    * @param fileName name of the heap dump file, must end with .hprof, the suffix will be added if missing.
     * @param live flag that tells whether to dump
     *             only the live objects
     */
@@ -27,6 +27,9 @@ public class HeapDumper {
       // initialize hotspot diagnostic MBean
       initHotspotMBean();
       try {
+         if ( !fileName.endsWith(".hprof") ) {
+            fileName += ".hprof";
+         }
          _hotspotMBean.dumpHeap(fileName, live);
       }
       catch ( RuntimeException re ) {
