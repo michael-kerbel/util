@@ -43,30 +43,42 @@ import util.xslt.Transformer.TransformationResult;
 public class CrawlTask implements Runnable {
 
    private static final String  FOLLOWURL         = "$followurl$";
-   private static final Pattern HREF              = Pattern.compile("(?i)<a.+?href=\"(.*?)\"[^>]*?(?:>(?s)(.*?)</a|/>)");
+   private static final Pattern HREF              = Pattern.compile("(?i)<a .*?href=\"(.*?)\"[^>]*?(?:>(?s)(.{0,2500}?)</a|/>)");
    private static final Pattern BASE              = Pattern.compile("(?i)<base.+?href=\"(.*?)\".*?>");
    private static final Pattern LINEBREAKS        = Pattern.compile("(\\n|\\r\\n)");
    private static final Pattern SPACE             = Pattern.compile(" ");
    private static final Pattern PIPE              = Pattern.compile("\\|");
    private static final Pattern AMP_ENTITY        = Pattern.compile("&amp;");
    private static final Pattern XML_CHAR_ENTITY   = Pattern.compile("&#(\\d+);");
-   private static final String  FOLLOW_XPATHS_XSL = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +                                                          // 
-      "<xsl:transform xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\r\n" +                                                                                                                               //
-      "               xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\r\n" +                                                                                                                                              //
-      "               xmlns:f=\"http://localhost/functions\"\r\n" +                                                                                                                                                                   //
-      "               exclude-result-prefixes=\"xs f\"\r\n" +                                                                                                                                                                                     //
-      "               version=\"2.0\">\r\n" +                                                                                                                                                                                                                                     //
-      "  \r\n" +                                                                                                                                                                                                                                                                                                                            //
-      "  <xsl:output method=\"xml\" indent=\"yes\"/>\r\n" +                                                                                                                                                                                           //
-      "  \r\n" +                                                                                                                                                                                                                                                                                                                            //
-      "  <xsl:template match=\"/\">\r\n" +                                                                                                                                                                                                                                              //
-      "    @@@" +                                                                                                                                                                                                                                                                                                                         //
-      "  </xsl:template>\r\n" +                                                                                                                                                                                                                                                                               //
-      "  \r\n" +                                                                                                                                                                                                                                                                                                                            //
-      "</xsl:transform>";
+   private static final String  FOLLOW_XPATHS_XSL =
+         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +                                                          //
+               "<xsl:transform xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\r\n" +
+               //
+               "               xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"\r\n" +
+               //
+               "               xmlns:f=\"http://localhost/functions\"\r\n" +
+               //
+               "               exclude-result-prefixes=\"xs f\"\r\n" +
+               //
+               "               version=\"2.0\">\r\n" +
+               //
+               "  \r\n" +
+               //
+               "  <xsl:output method=\"xml\" indent=\"yes\"/>\r\n" +
+               //
+               "  \r\n" +
+               //
+               "  <xsl:template match=\"/\">\r\n" +
+               //
+               "    @@@" +
+               //
+               "  </xsl:template>\r\n" +
+               //
+               "  \r\n" +
+               //
+               "</xsl:transform>";
 
-   private static Logger        _log              = LoggerFactory.getLogger(CrawlTask.class);
-
+   private static Logger _log = LoggerFactory.getLogger(CrawlTask.class);
 
    public static String applyPageReplacements( CrawlParams params, String page ) {
       if ( params == null ) {
@@ -152,17 +164,15 @@ public class CrawlTask implements Runnable {
       return url;
    }
 
-
-   private final Crawler   _crawler;
+   private final Crawler _crawler;
 
    private final CrawlItem _crawlItem;
 
-   private String          _pathDir;
+   private String _pathDir;
 
-   private CrawlParams     _params;
+   private CrawlParams _params;
 
-   int                     _index;
-
+   int _index;
 
    public CrawlTask( Crawler crawler, CrawlItem crawlItem ) {
       _crawler = crawler;
@@ -355,7 +365,7 @@ public class CrawlTask implements Runnable {
       if ( url.endsWith(":POST") ) {
          url = url.substring(0, url.length() - 5);
       }
-      List<String> params = new ArrayList<String>();
+      List<String> params = new ArrayList<>();
       int indexOfQuestionmark = url.lastIndexOf('?');
       if ( indexOfQuestionmark > 0 ) {
          for ( String p : StringUtils.split(url.substring(indexOfQuestionmark + 1), '&') ) {
@@ -374,7 +384,7 @@ public class CrawlTask implements Runnable {
       }
 
       HttpPost post = new HttpPost(url);
-      List<NameValuePair> formparams = new ArrayList<NameValuePair>();
+      List<NameValuePair> formparams = new ArrayList<>();
       for ( int i = 0, length = params.size(); i < length; i += 2 ) {
          formparams.add(new BasicNameValuePair(params.get(i), params.get(i + 1)));
       }
@@ -384,7 +394,7 @@ public class CrawlTask implements Runnable {
    }
 
    private Set<CrawlItem> extractCrawlItems( String page ) {
-      Set<CrawlItem> paths = new HashSet<CrawlItem>();
+      Set<CrawlItem> paths = new HashSet<>();
 
       page = applyFollowXPaths(page);
       page = applyFollowXSLT(page);
@@ -525,7 +535,7 @@ public class CrawlTask implements Runnable {
          String transformed = Transformer.transform(page, _params.getXslContents(), _crawlItem._variablesForXSLT)._result;
          Map<String, String>[] maps = Transformer.toMap(transformed);
          for ( Map<String, String> map : maps ) {
-            for ( Map.Entry<String, String> e : new HashMap<String, String>(map).entrySet() ) {
+            for ( Map.Entry<String, String> e : new HashMap<>(map).entrySet() ) {
                String key = e.getKey();
                String value = e.getValue();
                if ( value.contains(FOLLOWURL) ) {
@@ -553,11 +563,9 @@ public class CrawlTask implements Runnable {
       }
    }
 
-
    public static class UnexceptedStatuscodeException extends IOException {
 
       private final int _statuscode;
-
 
       public UnexceptedStatuscodeException( int statuscode ) {
          super("Unexpected status code - " + statuscode);
