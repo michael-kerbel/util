@@ -42,15 +42,17 @@ import util.xslt.Transformer.TransformationResult;
 
 public class CrawlTask implements Runnable {
 
-   private static final String  FOLLOWURL         = "$followurl$";
-   private static final Pattern HREF              = Pattern.compile("(?i)<a .*?href=\"(.*?)\"[^>]*?(?:>(?s)(.{0,2500}?)</a|/>)");
-   private static final Pattern BASE              = Pattern.compile("(?i)<base.+?href=\"(.*?)\".*?>");
-   private static final Pattern LINEBREAKS        = Pattern.compile("(\\n|\\r\\n)");
-   private static final Pattern SPACE             = Pattern.compile(" ");
-   private static final Pattern PIPE              = Pattern.compile("\\|");
-   private static final Pattern AMP_ENTITY        = Pattern.compile("&amp;");
-   private static final Pattern XML_CHAR_ENTITY   = Pattern.compile("&#(\\d+);");
-   private static final String  FOLLOW_XPATHS_XSL =
+   private static final String  FOLLOWURL       = "$followurl$";
+   private static final Pattern HREF            = Pattern.compile("(?i)<a .*?href=\"(.*?)\"[^>]*?(?:>(?s)(.{0,2500}?)</a|/>)");
+   private static final Pattern BASE            = Pattern.compile("(?i)<base.+?href=\"(.*?)\".*?>");
+   private static final Pattern LINEBREAKS      = Pattern.compile("(\\n|\\r\\n)");
+   private static final Pattern SPACE           = Pattern.compile(" ");
+   private static final Pattern PIPE            = Pattern.compile("\\|");
+   private static final Pattern AMP_ENTITY      = Pattern.compile("&amp;");
+   private static final Pattern XML_CHAR_ENTITY = Pattern.compile("&#(\\d+);");
+   private static final Pattern PORT_EXTRACTOR  = Pattern.compile("^(.+):(\\d+)");
+
+   private static final String FOLLOW_XPATHS_XSL =
          "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +                                                          //
                "<xsl:transform xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\"\r\n" +
                //
@@ -193,7 +195,14 @@ public class CrawlTask implements Runnable {
          try {
             proxy = _crawler.checkoutProxy();
             HttpClient httpClient = proxy.getHttpClient();
-            HttpHost host = new HttpHost(_crawlItem._host != null ? _crawlItem._host : _params.getHost(), -1, _crawlItem._scheme);
+            String urlHost = _crawlItem._host != null ? _crawlItem._host : _params.getHost();
+            int port = -1;
+            Matcher matcher = PORT_EXTRACTOR.matcher(urlHost);
+            if ( matcher.find() ) {
+               urlHost = matcher.group(1);
+               port = Integer.parseInt(matcher.group(2));
+            }
+            HttpHost host = new HttpHost(urlHost, port, _crawlItem._scheme);
             HttpRequestBase request = new HttpGet(url);
             if ( url.endsWith(":POST") ) {
                request = createPost(url);
