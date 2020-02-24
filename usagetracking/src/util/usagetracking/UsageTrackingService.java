@@ -16,6 +16,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +38,7 @@ import util.time.TimeUtils;
 
 public class UsageTrackingService {
 
-   private static Logger           _log = LoggerFactory.getLogger(UsageTrackingService.class);
+   private static       Logger     _log = LoggerFactory.getLogger(UsageTrackingService.class);
    private static final DateFormat DAY  = new SimpleDateFormat("yyyy-MM-dd");
 
    private static UsageTrackingService INSTANCE;
@@ -48,7 +50,6 @@ public class UsageTrackingService {
    private static ThreadLocal<EnumSet<? extends Enum>>          SAME_TIMEMEASUREMENT_GROUP;
    private static ThreadLocal<EnumMap<? extends Enum, Long>>    PENDING_TIME_MEASUREMENTS;
    private static ThreadLocal<EnumMap<? extends Enum, Integer>> PENDING_MEASUREMENTS;
-
 
    /** Registers a TrackingId for later measurement, finished by a call to <code>finishGroupTimeMeasurements(.)</code> */
    public static void addForGroupTimeMeasurement( TrackingId id ) {
@@ -137,8 +138,8 @@ public class UsageTrackingService {
    }
 
    /**
-     * Turn usage data tracking on or off. Default state is off!
-     */
+    * Turn usage data tracking on or off. Default state is off!
+    */
    public static void setTrackData( boolean trackData ) {
       TRACKDATA = trackData;
    }
@@ -158,7 +159,6 @@ public class UsageTrackingService {
       }
       return data;
    }
-
 
    private TrackingId _exampleTrackingIdInstance;
 
@@ -182,14 +182,15 @@ public class UsageTrackingService {
 
    private int _dayOfMonth = -1;
 
+   private Collection<Consumer<StatData>> _listeners = new CopyOnWriteArrayList<>();
+
    private Thread _shutdownThread = new Thread() {
 
       @Override
       public void run() {
-         UsageTrackingService.this.destroy();
+         destroy();
       }
    };
-
 
    public void add( TrackingId id, int value ) {
       long t = System.currentTimeMillis();
@@ -213,6 +214,10 @@ public class UsageTrackingService {
          }
          break;
       }
+   }
+
+   public void addNewStatsListener( Consumer<StatData> listener ) {
+      _listeners.add(listener);
    }
 
    public UsageTrackingData createUsageTrackingData() {
@@ -335,21 +340,21 @@ public class UsageTrackingService {
       _exampleTrackingIdInstance = exampleTrackingIdInstance;
       MAX_ID = _exampleTrackingIdInstance.getMaxId();
 
-      SAME_TIMEMEASUREMENT_GROUP = new ThreadLocal<EnumSet<? extends Enum>>() {
+      SAME_TIMEMEASUREMENT_GROUP = new ThreadLocal<>() {
 
          @Override
          protected EnumSet<? extends Enum> initialValue() {
             return EnumSet.noneOf((Class<? extends Enum>)_exampleTrackingIdInstance.getClass());
          }
       };
-      PENDING_TIME_MEASUREMENTS = new ThreadLocal<EnumMap<? extends Enum, Long>>() {
+      PENDING_TIME_MEASUREMENTS = new ThreadLocal<>() {
 
          @Override
          protected EnumMap<? extends Enum, Long> initialValue() {
             return new EnumMap(_exampleTrackingIdInstance.getClass());
          }
       };
-      PENDING_MEASUREMENTS = new ThreadLocal<EnumMap<? extends Enum, Integer>>() {
+      PENDING_MEASUREMENTS = new ThreadLocal<>() {
 
          @Override
          protected EnumMap<? extends Enum, Integer> initialValue() {
@@ -439,7 +444,7 @@ public class UsageTrackingService {
    }
 
    private void calcPercentiles( final int[] data ) {
-      _percentileData.forEachEntry(new TIntObjectProcedure<TIntList>() {
+      _percentileData.forEachEntry(new TIntObjectProcedure<>() {
 
          @Override
          public boolean execute( int id, TIntList percentileData ) {
@@ -496,11 +501,11 @@ public class UsageTrackingService {
       return timestamps.toArray();
    }
 
-
    public interface MyConsumer<T> {
 
       void accept( T t, int i, int j );
    }
+
 
    public static class StatData implements ExternalizableBean {
 
@@ -512,9 +517,9 @@ public class UsageTrackingService {
       @externalize(2)
       int[] _data;
 
-
       public StatData() {}
    }
+
 
    public static class UsageTrackingData implements Serializable {
 
@@ -529,7 +534,6 @@ public class UsageTrackingService {
       public List<int[]> _data;
 
       transient TrackingId _exampleTrackingIdInstance;
-
 
       UsageTrackingData( TrackingId exampleTrackingIdInstance ) {
          _exampleTrackingIdInstance = exampleTrackingIdInstance;
@@ -612,6 +616,7 @@ public class UsageTrackingService {
       }
    }
 
+
    private class DataCollectionThread extends Thread {
 
       public DataCollectionThread() {
@@ -648,10 +653,10 @@ public class UsageTrackingService {
 
    }
 
+
    private class DumpWriteThread extends Thread {
 
       long _lastWrittenT = 0;
-
 
       public DumpWriteThread() {
          setName(UsageTrackingService.class.getSimpleName() + "-" + getClass().getSimpleName());
@@ -718,6 +723,8 @@ public class UsageTrackingService {
                data._data = _data.get(i);
 
                addToDump(data);
+
+               _listeners.forEach(l -> l.accept(data));
 
                _lastWrittenT = data._t;
             }
