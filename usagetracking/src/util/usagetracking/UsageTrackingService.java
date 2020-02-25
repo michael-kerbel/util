@@ -16,8 +16,10 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,19 +53,23 @@ public class UsageTrackingService {
    private static ThreadLocal<EnumMap<? extends Enum, Long>>    PENDING_TIME_MEASUREMENTS;
    private static ThreadLocal<EnumMap<? extends Enum, Integer>> PENDING_MEASUREMENTS;
 
+   private static ConcurrentHashMap<Class<? extends TrackingId>, Function<? extends TrackingId, TrackingId>> MAPPERS = new ConcurrentHashMap<>();
+
    /** Registers a TrackingId for later measurement, finished by a call to <code>finishGroupTimeMeasurements(.)</code> */
    public static void addForGroupTimeMeasurement( TrackingId id ) {
       UsageTrackingService instance = getInstance();
+      id = map(id);
       if ( instance != null && id != null && id.getClass().equals(instance._exampleTrackingIdInstance.getClass()) ) {
          ((Set)SAME_TIMEMEASUREMENT_GROUP.get()).add(id);
       }
    }
 
    /** Adds the value for the TrackingId immediately, unless it has a slave. In that case it is added
-    * only on the mandatory call to <code>finishSlaveTimeMeasurement(sameId)</code>, which also adds 
+    * only on the mandatory call to <code>finishSlaveTimeMeasurement(sameId)</code>, which also adds
     * the time measurement for the slave id. */
    public static void addMeasurement( TrackingId id, int value ) {
       UsageTrackingService instance = getInstance();
+      id = map(id);
       if ( instance != null && id != null && id.getClass().equals(instance._exampleTrackingIdInstance.getClass()) ) {
          if ( id.getSlave() != null ) {
             ((Map)PENDING_MEASUREMENTS.get()).put(id, value);
@@ -77,8 +83,8 @@ public class UsageTrackingService {
    /**
     * Adds +1 to all TrackingIds previously registered with addForGroupTimeMeasurement(.) if they have a
     * slave, for which a measurement with <code>t</code> is added, too. If the registered TrackingId has
-    * no slave, the time is added directly to the id.  
-    * @param t the time to be added 
+    * no slave, the time is added directly to the id.
+    * @param t the time to be added
     */
    public static void finishGroupTimeMeasurements( int t ) {
       UsageTrackingService instance = getInstance();
@@ -95,7 +101,7 @@ public class UsageTrackingService {
       SAME_TIMEMEASUREMENT_GROUP.get().clear();
    }
 
-   /** A call to this method is mandatory, in order to finalize the addMeasurement for any TrackingId which 
+   /** A call to this method is mandatory, in order to finalize the addMeasurement for any TrackingId which
     * has a slave! */
    public static void finishSlaveTimeMeasurement( TrackingId id ) {
       UsageTrackingService instance = getInstance();
@@ -137,6 +143,10 @@ public class UsageTrackingService {
       return null;
    }
 
+   public static <T extends TrackingId> void setMapper( Class<T> trackingIdClass, Function<T, TrackingId> mapper ) {
+      MAPPERS.put(trackingIdClass, mapper);
+   }
+
    /**
     * Turn usage data tracking on or off. Default state is off!
     */
@@ -158,6 +168,23 @@ public class UsageTrackingService {
          data = d;
       }
       return data;
+   }
+
+   private static TrackingId map( TrackingId id ) {
+      UsageTrackingService instance = getInstance();
+      if ( id == null || instance == null ) {
+         return null;
+      }
+      Class<? extends TrackingId> targetClass = instance._exampleTrackingIdInstance.getClass();
+      if ( targetClass.equals(id.getClass()) ) {
+         return id;
+      }
+      Function mapper = MAPPERS.get(id.getClass());
+      if ( mapper == null ) {
+         return id;
+      }
+      //noinspection unchecked
+      return (TrackingId)mapper.apply(id);
    }
 
    private TrackingId _exampleTrackingIdInstance;
@@ -184,13 +211,7 @@ public class UsageTrackingService {
 
    private Collection<Consumer<StatData>> _listeners = new CopyOnWriteArrayList<>();
 
-   private Thread _shutdownThread = new Thread() {
-
-      @Override
-      public void run() {
-         destroy();
-      }
-   };
+   private Thread _shutdownThread = new Thread(() -> destroy());
 
    public void add( TrackingId id, int value ) {
       long t = System.currentTimeMillis();
