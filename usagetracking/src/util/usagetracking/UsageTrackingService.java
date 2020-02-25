@@ -539,6 +539,22 @@ public class UsageTrackingService {
       int[] _data;
 
       public StatData() {}
+
+      public int[] getData() {
+         return _data;
+      }
+
+      public long getT() {
+         return _t;
+      }
+
+      public void setData( int[] data ) {
+         _data = data;
+      }
+
+      public void setT( long t ) {
+         _t = t;
+      }
    }
 
 
