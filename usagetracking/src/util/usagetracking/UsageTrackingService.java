@@ -90,11 +90,14 @@ public class UsageTrackingService {
       UsageTrackingService instance = getInstance();
       if ( instance != null ) {
          for ( TrackingId id : (Set<? extends TrackingId>)SAME_TIMEMEASUREMENT_GROUP.get() ) {
-            if ( id.getSlave() != null ) {
-               instance.add(id, 1);
-               instance.add(id.getSlave(), Math.max(t, 0));
-            } else {
-               instance.add(id, Math.max(t, 0));
+            id = map(id);
+            if ( id != null ) {
+               if ( id.getSlave() != null ) {
+                  instance.add(id, 1);
+                  instance.add(id.getSlave(), Math.max(t, 0));
+               } else {
+                  instance.add(id, Math.max(t, 0));
+               }
             }
          }
       }
@@ -105,6 +108,7 @@ public class UsageTrackingService {
     * has a slave! */
    public static void finishSlaveTimeMeasurement( TrackingId id ) {
       UsageTrackingService instance = getInstance();
+      id = map(id);
       if ( instance != null && id != null && id.getClass().equals(instance._exampleTrackingIdInstance.getClass()) ) {
          Integer v = PENDING_MEASUREMENTS.get().remove(id);
          if ( v != null ) {
