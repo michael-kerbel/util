@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -36,7 +37,6 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -84,21 +84,15 @@ import util.time.TimeUtils;
 
 public class HttpClientFactory {
 
-   public static final int                    DEFAULT_VALUE_SOCKET_TIMEOUT     = 31000;
-   public static final int                    DEFAULT_VALUE_CONNECTION_TIMEOUT = 31000;
-   public static final String                 DEFAULT_VALUE_USER_AGENT         = "Googlebot/2.1 (+http://www.google.com/bot.html)";
+   public static final int    DEFAULT_VALUE_SOCKET_TIMEOUT     = 31000;
+   public static final int    DEFAULT_VALUE_CONNECTION_TIMEOUT = 31000;
+   public static final String DEFAULT_VALUE_USER_AGENT         = "Googlebot/2.1 (+http://www.google.com/bot.html)";
 
-   private static Logger                      _log                             = LoggerFactory.getLogger(HttpClientFactory.class);
+   private static Logger _log = LoggerFactory.getLogger(HttpClientFactory.class);
 
-   private static final Pattern               HTML_CHARSET_DECLARATION         = Pattern.compile("(?i)(?:charset|encoding)=[\"']?(.*?)[\"'/>]");
+   private static final Pattern HTML_CHARSET_DECLARATION = Pattern.compile("(?i)(?:charset|encoding)=[\"']?(.*?)[\"'/>]");
 
    private static IdleConnectionMonitorThread _idleConnectionMonitorThread;
-
-
-   public static void main( String[] args ) throws Exception {
-      CloseableHttpResponse response = new HttpClientFactory().create().execute(new HttpGet("https://www.ikan.trade/uhren/"));
-      System.err.println(readPage(response));
-   }
 
    public static void close( HttpClient httpClient ) {
       if ( httpClient instanceof CloseableHttpClient ) {
@@ -114,7 +108,7 @@ public class HttpClientFactory {
    }
 
    public static HttpGet createGet( String url, String... queryParams ) throws UnsupportedEncodingException {
-      List<NameValuePair> params = new ArrayList<NameValuePair>();
+      List<NameValuePair> params = new ArrayList<>();
       for ( int i = 0, length = queryParams.length; i < length; i += 2 ) {
          params.add(new BasicNameValuePair(queryParams[i], queryParams[i + 1]));
       }
@@ -187,7 +181,7 @@ public class HttpClientFactory {
 
       String charset = EntityUtils.getContentCharSet(entity);
       if ( charset == null ) {
-         charset = HTTP.DEFAULT_CONTENT_CHARSET;
+         charset = StandardCharsets.UTF_8.name();
       }
       String page = new String(bytes, charset);
 
@@ -229,7 +223,6 @@ public class HttpClientFactory {
       return charset;
    }
 
-
    int                         _soTimeout               = DEFAULT_VALUE_SOCKET_TIMEOUT;
    int                         _connectionTimeout       = DEFAULT_VALUE_CONNECTION_TIMEOUT;
    boolean                     _useExpectContinue       = true;
@@ -246,14 +239,12 @@ public class HttpClientFactory {
    Consumer<HttpClientBuilder> _clientBuilderConfigurer = null;
    HttpHost                    _proxyHost;
 
-
    public CloseableHttpClient create() {
 
       /* we need to allow broken cookie expire headers, so we have to tune the CookieSpecs.DEFAULT config */
       PublicSuffixMatcher publicSuffixMatcher = PublicSuffixMatcherLoader.getDefault();
-      Registry<CookieSpecProvider> cookieSpecRegistry = RegistryBuilder.<CookieSpecProvider> create() //
-            .register(CookieSpecs.DEFAULT,
-               new DefaultCookieSpecProvider(CompatibilityLevel.DEFAULT, publicSuffixMatcher,
+      Registry<CookieSpecProvider> cookieSpecRegistry = RegistryBuilder.<CookieSpecProvider>create() //
+            .register(CookieSpecs.DEFAULT, new DefaultCookieSpecProvider(CompatibilityLevel.DEFAULT, publicSuffixMatcher,
                   new String[] { "EEE, dd-MMM-yy HH:mm:ss z", "EEE, dd MMM yy HH:mm:ss z" }, false)) //
             .register(CookieSpecs.IGNORE_COOKIES, new IgnoreSpecProvider())//
             .build();
@@ -261,7 +252,8 @@ public class HttpClientFactory {
       RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
       requestConfigBuilder.setConnectTimeout(_connectionTimeout); // the time to establish the connection with the remote host
       requestConfigBuilder.setConnectionRequestTimeout(_connectionTimeout); // the time to wait for a connection from the connection manager/pool
-      requestConfigBuilder.setSocketTimeout(_soTimeout); // the time waiting for data – after the connection was established; maximum time of inactivity between two data packets
+      requestConfigBuilder.setSocketTimeout(
+            _soTimeout); // the time waiting for data – after the connection was established; maximum time of inactivity between two data packets
       requestConfigBuilder.setContentCompressionEnabled(_gzipSupport);
       requestConfigBuilder.setRedirectsEnabled(_executeRedirects);
       requestConfigBuilder.setExpectContinueEnabled(_useExpectContinue);
@@ -301,7 +293,7 @@ public class HttpClientFactory {
                }
             }).build();
             SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
-            socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory> create()//
+            socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()//
                   .register("http", PlainConnectionSocketFactory.getSocketFactory())//
                   .register("https", sslSocketFactory)//
                   .build();
@@ -331,16 +323,6 @@ public class HttpClientFactory {
       }
       return clientBuilder.build();
 
-   }
-
-   public HttpClientFactory setProxy( String proxyIP, int proxyPort ) {
-      _proxyHost = new HttpHost(proxyIP, proxyPort);
-      return this;
-   }
-
-   public HttpClientFactory setProxy( HttpHost proxyHost ) {
-      _proxyHost = proxyHost;
-      return this;
    }
 
    /** use this to configure anything in the HttpClientBuilder that is not provided here */
@@ -377,6 +359,16 @@ public class HttpClientFactory {
 
    public HttpClientFactory setPassword( String password ) {
       _password = password;
+      return this;
+   }
+
+   public HttpClientFactory setProxy( String proxyIP, int proxyPort ) {
+      _proxyHost = new HttpHost(proxyIP, proxyPort);
+      return this;
+   }
+
+   public HttpClientFactory setProxy( HttpHost proxyHost ) {
+      _proxyHost = proxyHost;
       return this;
    }
 
@@ -417,20 +409,18 @@ public class HttpClientFactory {
       return this;
    }
 
-
    /**
     * One of the major shortcomings of the classic blocking I/O model is that the network socket can react to I/O events only when blocked in an I/O operation. When a connection is released back to the manager, it can be kept alive however it is unable to monitor the status of the socket and react to any I/O events. If the connection gets closed on the server side, the client side connection is unable to detect the change in the connection state (and react appropriately by closing the socket on its end).
     *
     * HttpClient tries to mitigate the problem by testing whether the connection is 'stale', that is no longer valid because it was closed on the server side, prior to using the connection for executing an HTTP request. The stale connection check is not 100% reliable. The only feasible solution that does not involve a one thread per socket model for idle connections is a dedicated monitor thread used to evict connections that are considered expired due to a long period of inactivity. The monitor thread can periodically call ClientConnectionManager#closeExpiredConnections() method to close all expired connections and evict closed connections from the pool. It can also optionally call ClientConnectionManager#closeIdleConnections() method to close all connections that have been idle over a given period of time.
-   * @see https://hc.apache.org/httpcomponents-client-ga/tutorial/html/connmgmt.html
+    * @see https://hc.apache.org/httpcomponents-client-ga/tutorial/html/connmgmt.html
     */
    static class IdleConnectionMonitorThread extends Thread {
 
-      Logger                                                    _log     = LoggerFactory.getLogger(IdleConnectionMonitorThread.class);
+      Logger _log = LoggerFactory.getLogger(IdleConnectionMonitorThread.class);
 
-      private WeakHashMap<HttpClientConnectionManager, Boolean> _conMans = new WeakHashMap<HttpClientConnectionManager, Boolean>();
-      private volatile boolean                                  _shutdown;
-
+      private          WeakHashMap<HttpClientConnectionManager, Boolean> _conMans = new WeakHashMap<>();
+      private volatile boolean                                           _shutdown;
 
       public IdleConnectionMonitorThread() {
          super(IdleConnectionMonitorThread.class.getSimpleName());
@@ -472,11 +462,12 @@ public class HttpClientFactory {
 
    }
 
+
    /**
     * Quoting the HttpClient 4.3.3. reference: “If the Keep-Alive header is not present in the response, HttpClient assumes the connection can be kept alive indefinitely.” (See the HttpClient Reference).
     *
     * To get around this, and be able to manage dead connections we need a customized strategy implementation and build it into the HttpClient.
-    * 
+    *
     * @see https://hc.apache.org/httpcomponents-client-ga/tutorial/html/connmgmt.html
     */
    static class MyConnectionKeepAliveStrategy implements ConnectionKeepAliveStrategy {
@@ -495,6 +486,7 @@ public class HttpClientFactory {
          return 5 * 1000;
       }
    }
+
 
    static class Redirector extends DefaultRedirectStrategy {
 
