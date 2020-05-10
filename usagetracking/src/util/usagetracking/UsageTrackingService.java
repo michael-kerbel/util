@@ -346,7 +346,7 @@ public class UsageTrackingService {
          }
          return data;
       }
-      catch ( IOException argh ) {
+      catch ( Throwable argh ) {
          _log.error("failed to read from dump " + filename, argh);
          return Collections.emptyList();
       }
