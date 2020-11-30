@@ -11,8 +11,8 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.EnumMap;
-import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,9 +49,9 @@ public class UsageTrackingService {
    private static int     MAX_ID;
 
    /* if multiple Actions are executed in a Request, all of them get the same request time - all Actions executed during a single Request are collected here */
-   private static ThreadLocal<EnumSet<? extends Enum>>          SAME_TIMEMEASUREMENT_GROUP;
-   private static ThreadLocal<EnumMap<? extends Enum, Long>>    PENDING_TIME_MEASUREMENTS;
-   private static ThreadLocal<EnumMap<? extends Enum, Integer>> PENDING_MEASUREMENTS;
+   private static ThreadLocal<Set<TrackingId>>          SAME_TIMEMEASUREMENT_GROUP;
+   private static ThreadLocal<Map<TrackingId, Long>>    PENDING_TIME_MEASUREMENTS;
+   private static ThreadLocal<Map<TrackingId, Integer>> PENDING_MEASUREMENTS;
 
    private static ConcurrentHashMap<Class<? extends TrackingId>, Function<? extends TrackingId, TrackingId>> MAPPERS = new ConcurrentHashMap<>();
 
@@ -60,7 +60,7 @@ public class UsageTrackingService {
       UsageTrackingService instance = getInstance();
       id = map(id);
       if ( instance != null && id != null && id.getClass().equals(instance._exampleTrackingIdInstance.getClass()) ) {
-         ((Set)SAME_TIMEMEASUREMENT_GROUP.get()).add(id);
+         SAME_TIMEMEASUREMENT_GROUP.get().add(id);
       }
    }
 
@@ -72,8 +72,8 @@ public class UsageTrackingService {
       id = map(id);
       if ( instance != null && id != null && id.getClass().equals(instance._exampleTrackingIdInstance.getClass()) ) {
          if ( id.getSlave() != null ) {
-            ((Map)PENDING_MEASUREMENTS.get()).put(id, value);
-            ((Map)PENDING_TIME_MEASUREMENTS.get()).put(id.getSlave(), System.currentTimeMillis());
+            PENDING_MEASUREMENTS.get().put(id, value);
+            PENDING_TIME_MEASUREMENTS.get().put(id.getSlave(), System.currentTimeMillis());
          } else {
             instance.add(id, value);
          }
@@ -183,6 +183,7 @@ public class UsageTrackingService {
       if ( targetClass.equals(id.getClass()) ) {
          return id;
       }
+      //noinspection rawtypes
       Function mapper = MAPPERS.get(id.getClass());
       if ( mapper == null ) {
          return id;
@@ -290,7 +291,7 @@ public class UsageTrackingService {
       return filenames;
    }
 
-   /** Data structure for collected data: the keys contain timestamps rounded by {@link #round(long)}, in ascending order. 
+   /** Data structure for collected data: the keys contain timestamps rounded by {@link #round(long)}, in ascending order.
     * The corresponding values for each timestamp are to be found in the List from {@link #getData()}, using the same index. */
    public TLongList getKeys() {
       return _keys;
@@ -365,27 +366,9 @@ public class UsageTrackingService {
       _exampleTrackingIdInstance = exampleTrackingIdInstance;
       MAX_ID = _exampleTrackingIdInstance.getMaxId();
 
-      SAME_TIMEMEASUREMENT_GROUP = new ThreadLocal<>() {
-
-         @Override
-         protected EnumSet<? extends Enum> initialValue() {
-            return EnumSet.noneOf((Class<? extends Enum>)_exampleTrackingIdInstance.getClass());
-         }
-      };
-      PENDING_TIME_MEASUREMENTS = new ThreadLocal<>() {
-
-         @Override
-         protected EnumMap<? extends Enum, Long> initialValue() {
-            return new EnumMap(_exampleTrackingIdInstance.getClass());
-         }
-      };
-      PENDING_MEASUREMENTS = new ThreadLocal<>() {
-
-         @Override
-         protected EnumMap<? extends Enum, Integer> initialValue() {
-            return new EnumMap(_exampleTrackingIdInstance.getClass());
-         }
-      };
+      SAME_TIMEMEASUREMENT_GROUP = ThreadLocal.withInitial(HashSet::new);
+      PENDING_TIME_MEASUREMENTS = ThreadLocal.withInitial(HashMap::new);
+      PENDING_MEASUREMENTS = ThreadLocal.withInitial(HashMap::new);
    }
 
    String getDay( long t ) {
