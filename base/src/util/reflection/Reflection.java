@@ -28,7 +28,6 @@ public class Reflection {
 
    private static Map<Class, Object> _defaults = new HashMap<>();
 
-
    static {
       _defaults.put(String.class, "");
       _defaults.put(int.class, 0);
@@ -72,14 +71,14 @@ public class Reflection {
       assert classLoader != null;
       String path = packageName.replace('.', '/');
       Enumeration<URL> resources = classLoader.getResources(path);
-      List<File> dirs = new ArrayList<File>();
+      List<File> dirs = new ArrayList<>();
       while ( resources.hasMoreElements() ) {
          URL resource = resources.nextElement();
          String fileName = resource.getFile();
          String fileNameDecoded = URLDecoder.decode(fileName, "UTF-8");
          dirs.add(new File(fileNameDecoded));
       }
-      ArrayList<Class> classes = new ArrayList<Class>();
+      ArrayList<Class> classes = new ArrayList<>();
       for ( File directory : dirs ) {
          classes.addAll(findClasses(directory, packageName));
       }
@@ -130,6 +129,17 @@ public class Reflection {
       }
    }
 
+   @Nullable
+   public static <T> T getFieldValueQuietly( Field field, @Nullable Object instance ) {
+      try {
+         //noinspection unchecked
+         return (T)field.get(instance);
+      }
+      catch ( IllegalAccessException e ) {
+         return null;
+      }
+   }
+
    /**
     * Get a <code>Method</code> instance for any the combination of class, method name and parameter signature.
     * This utility method allows accessing protected, package protected and private methods - at least if the
@@ -143,7 +153,8 @@ public class Reflection {
          try {
             // search protected, package protected and private methods
             while ( c != null && c != Object.class ) {
-               out: for ( Method m : c.getDeclaredMethods() ) {
+               out:
+               for ( Method m : c.getDeclaredMethods() ) {
                   Class[] parameterTypes = m.getParameterTypes();
                   if ( m.getName().equals(methodName) && argumentClasses.length == parameterTypes.length ) {
                      for ( int j = 0, length = argumentClasses.length; j < length; j++ ) {
@@ -170,7 +181,8 @@ public class Reflection {
     * Returns the method that is being called by a lambda, but you need to know the Class that the lambda is calling.
     * That allows creating type-safe APIs in some cases, by using method references, which can then be passed around.
     */
-   public static @Nullable <T, U, V> Method getMethodCalledByLambda( Class<T> c, BiFunction<T, U, V> methodLambda ) {
+   @Nullable
+   public static <T, U, V> Method getMethodCalledByLambda( Class<T> c, BiFunction<T, U, V> methodLambda ) {
       CallRecorder<T> callRecorder = CallRecorder.create(c);
       methodLambda.apply(callRecorder.getObject(), null);
       return callRecorder.getCurrentMethod();
@@ -180,7 +192,8 @@ public class Reflection {
     * Returns the method that is being called by a lambda, but you need to know the Class that the lambda is calling.
     * That allows creating type-safe APIs in some cases, by using method references, which can then be passed around.
     */
-   public static @Nullable <T, U> Method getMethodCalledByLambda( Class<T> c, Function<T, U> methodLambda ) {
+   @Nullable
+   public static <T, U> Method getMethodCalledByLambda( Class<T> c, Function<T, U> methodLambda ) {
       CallRecorder<T> callRecorder = CallRecorder.create(c);
       methodLambda.apply(callRecorder.getObject());
       return callRecorder.getCurrentMethod();
@@ -219,7 +232,7 @@ public class Reflection {
     */
    @SuppressWarnings("unchecked")
    private static List<Class> findClasses( File directory, String packageName ) throws ClassNotFoundException {
-      List<Class> classes = new ArrayList<Class>();
+      List<Class> classes = new ArrayList<>();
       if ( !directory.exists() ) {
          return classes;
       }
@@ -227,7 +240,7 @@ public class Reflection {
       for ( File file : files ) {
          String fileName = file.getName();
          if ( file.isDirectory() ) {
-            assert!fileName.contains(".");
+            assert !fileName.contains(".");
             classes.addAll(findClasses(file, packageName + "." + fileName));
          } else if ( fileName.endsWith(".class") && !fileName.contains("$") ) {
             Class _class;
@@ -246,7 +259,6 @@ public class Reflection {
       return classes;
    }
 
-
    private static class CallRecorder<T> {
 
       @SuppressWarnings("unchecked")
@@ -258,13 +270,11 @@ public class Reflection {
          return new CallRecorder(enhancer.create(), recordingProxy);
       }
 
-
       private T              _t;
       private RecordingProxy _recordingProxy;
 
-
       public CallRecorder( T t, RecordingProxy _recordingProxy ) {
-         this._t = t;
+         _t = t;
          this._recordingProxy = _recordingProxy;
       }
 
@@ -277,15 +287,16 @@ public class Reflection {
       }
    }
 
+
    private static class RecordingProxy implements MethodInterceptor {
 
       private Method _currentMethod;
-
 
       public Method getCurrentMethod() {
          return _currentMethod;
       }
 
+      @Override
       public Object intercept( Object o, Method method, Object[] os, MethodProxy mp ) {
          _currentMethod = method;
          return _defaults.get(method.getReturnType());
