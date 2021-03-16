@@ -90,9 +90,8 @@ public class HttpClientFactory {
 
    private static Logger _log = LoggerFactory.getLogger(HttpClientFactory.class);
 
-   private static final Pattern HTML_CHARSET_DECLARATION = Pattern.compile("(?i)(?:charset|encoding)=[\"']?(.*?)[\"'/>]");
-
-   private static IdleConnectionMonitorThread _idleConnectionMonitorThread;
+   private static final Pattern                     HTML_CHARSET_DECLARATION = Pattern.compile("(?i)[ ;](?:charset|encoding)=[\"']?(.*?)[\"'/>]");
+   private static       IdleConnectionMonitorThread _idleConnectionMonitorThread;
 
    public static void close( HttpClient httpClient ) {
       if ( httpClient instanceof CloseableHttpClient ) {
@@ -189,15 +188,17 @@ public class HttpClientFactory {
       if ( matcher.find() ) {
          charset = matcher.group(1);
          charset = sanitizeCharset(charset);
-         try {
-            page = new String(bytes, charset);
-            if ( page.length() > 0 && page.charAt(0) == 0xfeff ) {
-               // remove BOM
-               page = page.substring(1);
+         if ( charset.length() < 20 ) {
+            try {
+               page = new String(bytes, charset);
+               if ( page.length() > 0 && page.charAt(0) == 0xfeff ) {
+                  // remove BOM
+                  page = page.substring(1);
+               }
             }
-         }
-         catch ( UnsupportedEncodingException argh ) {
-            _log.warn("Failed to decode encoding " + charset, argh);
+            catch ( UnsupportedEncodingException argh ) {
+               _log.warn("Failed to decode encoding " + charset, argh);
+            }
          }
       }
 
