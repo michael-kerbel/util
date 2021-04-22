@@ -9,7 +9,7 @@
 	<parent>
 		<groupId>mkr</groupId>
 		<artifactId>util-pom</artifactId>
-		<version>1.20180403.2</version>            
+		<version>1.20210422.1</version>            
 	</parent>
 
   <profiles>
@@ -22,11 +22,10 @@
         </os>
       </activation>
       <dependencies>
-        <!-- Folgende dependency ist ein kopiertes JAR aus dem Eclipse plugin Ordner eines Mac Users und manuell deployed ins Artifactory. Sollte für alle modernen Macs (Cocoa statt Carbon) funktionieren. -->
         <dependency>
-          <groupId>org.eclipse.swt</groupId>
-          <artifactId>org.eclipse.swt.cocoa.macosx.x86_64</artifactId>
-          <version>3.102.1.v20140206</version>
+			  <groupId>org.eclipse.platform</groupId>
+			  <artifactId>org.eclipse.swt.cocoa.macosx.x86_64</artifactId>
+			  <version>3.116.0</version>
         </dependency>
       </dependencies>
     </profile>
@@ -40,11 +39,10 @@
         </os>
       </activation>
       <dependencies>
-        <!-- Folgende dependency wurde manuell delployed ins Firmen Maven Repo Artifactory -->
         <dependency>
-          <groupId>org.eclipse.swt</groupId>
-          <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
-          <version>4.3.2</version>
+			  <groupId>org.eclipse.platform</groupId>
+			  <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
+			  <version>3.116.0</version>
         </dependency>
       </dependencies>
     </profile>
@@ -57,11 +55,11 @@
         </os>
       </activation>
       <dependencies>
-        <dependency>
-          <groupId>org.eclipse.swt</groupId>
+       <dependency>
+          <groupId>org.eclipse.platform</groupId>
           <artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
-          <version>4.3</version>
-        </dependency>
+          <version>3.116.0</version>
+       </dependency>
       </dependencies>
     </profile>
   </profiles>
@@ -76,23 +74,18 @@
 			<artifactId>util-xml</artifactId>
 		</dependency>
 
+
+      <dependency>
+         <groupId>org.eclipse.jface</groupId>
+         <artifactId>org.eclipse.jface</artifactId>
+         <version>3.22.100</version>
+      </dependency>
 		<dependency>
-			<groupId>org.eclipse.jface</groupId>
-			<artifactId>org.eclipse.jface</artifactId>
-			<version>3.4.1</version>
+         <groupId>org.eclipse.jface</groupId>
+         <artifactId>org.eclipse.jface.text</artifactId>
+         <version>3.17.0</version>
 		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jface</groupId>
-			<artifactId>org.eclipse.jface.text</artifactId>
-			<version>3.4.1</version>
-		</dependency>
-		<!-- this transitive dependency is missing in jface pom - might be a bug of
-			3.4.1 or eclipse artifact generation -->
-		<dependency>
-			<groupId>org.eclipse.osgi</groupId>
-			<artifactId>org.eclipse.osgi</artifactId>
-			<version>3.4.2</version>
-		</dependency>
+
 
 		<dependency>
 			<groupId>com.miglayout</groupId>
@@ -105,12 +98,6 @@
 			<groupId>org.objenesis</groupId>
 			<artifactId>objenesis</artifactId>
 			<version>[2.6,]</version>
-		</dependency>
-		<dependency>
-			<groupId>cglib</groupId>
-			<artifactId>cglib-nodep</artifactId>
-			<version>[2.2,3.0)</version>
-			<!--  2.1 has a bug with signing! -->
 		</dependency>
 
 	</dependencies>

@@ -2,7 +2,6 @@ package util.swt;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
-import org.eclipse.swt.custom.TableTree;
 import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.graphics.Color;
@@ -18,16 +17,16 @@ import org.eclipse.swt.widgets.Tree;
 
 public class BorderPainter implements PaintListener {
 
-   public static final String         KEY_DRAW_BORDER = "FormWidgetFactory.drawBorder"; //$NON-NLS-1$
-   public static final String         TREE_BORDER     = "treeBorder";                  //$NON-NLS-1$
-   public static final String         TEXT_BORDER     = "textBorder";                  //$NON-NLS-1$
+   public static final String KEY_DRAW_BORDER = "FormWidgetFactory.drawBorder"; //$NON-NLS-1$
+   public static final String TREE_BORDER     = "treeBorder";                  //$NON-NLS-1$
+   public static final String TEXT_BORDER     = "textBorder";                  //$NON-NLS-1$
 
-   public static final Color          BORDER_COLOR    = ResourceManager.getColor(blend( //
-                                                         ResourceManager.getColor(SWT.COLOR_TITLE_INACTIVE_BACKGROUND_GRADIENT).getRGB(), // 
-                                                         ResourceManager.getColor(SWT.COLOR_BLACK).getRGB() //
-                                                         , 80));
+   public static final Color BORDER_COLOR = ResourceManager.getColor(blend( //
+         ResourceManager.getColor(SWT.COLOR_TITLE_INACTIVE_BACKGROUND_GRADIENT).getRGB(), //
+         ResourceManager.getColor(SWT.COLOR_BLACK).getRGB() //
+         , 80));
 
-   private static final BorderPainter INSTANCE        = new BorderPainter();
+   private static final BorderPainter INSTANCE = new BorderPainter();
 
    public static void paintBordersFor( Composite parent ) {
       parent.addPaintListener(INSTANCE);
@@ -47,6 +46,7 @@ public class BorderPainter implements PaintListener {
 
    private BorderPainter() {}
 
+   @Override
    public void paintControl( PaintEvent event ) {
       Composite composite = (Composite)event.widget;
       Control[] children = composite.getChildren();
@@ -68,8 +68,7 @@ public class BorderPainter implements PaintListener {
             }
             if ( flag.equals(TREE_BORDER) ) {
                inactiveBorder = true;
-            }
-            else if ( flag.equals(TEXT_BORDER) ) {
+            } else if ( flag.equals(TEXT_BORDER) ) {
                textBorder = true;
             }
          }
@@ -81,12 +80,10 @@ public class BorderPainter implements PaintListener {
             gc.setForeground(BORDER_COLOR);
             if ( c instanceof CCombo ) {
                gc.drawRectangle(b.x - 1, b.y - 1, b.width + 1, b.height + 1);
-            }
-            else {
+            } else {
                gc.drawRectangle(b.x - 1, b.y - 2, b.width + 1, b.height + 3);
             }
-         }
-         else if ( inactiveBorder || c instanceof Table || c instanceof Tree || c instanceof TableTree ) {
+         } else if ( inactiveBorder || c instanceof Table || c instanceof Tree ) {
             Rectangle b = c.getBounds();
             GC gc = event.gc;
             gc.setForeground(BORDER_COLOR);
