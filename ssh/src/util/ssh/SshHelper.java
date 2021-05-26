@@ -38,7 +38,6 @@ public class SshHelper {
 
    private static final Pattern TERMINAL_EMULATION_CHARS_PATTERN = Pattern.compile("\u001b\\[[0-9;?]*[^0-9;]");
 
-
    public static String cleanFromTerminalEmulationChars( String s ) {
       s = s.replace("\u001b(B\u001b)0", "");
       s = TERMINAL_EMULATION_CHARS_PATTERN.matcher(s).replaceAll("");
@@ -78,6 +77,17 @@ public class SshHelper {
       finally {
          channel.disconnect();
       }
+   }
+
+   public static Session openSshSession( String host, String user, byte[] prvKey, byte[] pubKey ) throws Exception {
+      JSch jsch = new JSch();
+      Session session = jsch.getSession(user, host, 22);
+      Properties config = new Properties();
+      config.put("StrictHostKeyChecking", "no");
+      session.setConfig(config);
+      jsch.addIdentity(null, prvKey, pubKey, null);
+      session.connect(30000);
+      return session;
    }
 
    public static Session openSshSession( String host, String user, String password ) throws Exception {
@@ -181,7 +191,7 @@ public class SshHelper {
             }
 
             String file = null;
-            for ( int i = 0;; i++ ) {
+            for ( int i = 0; ; i++ ) {
                in.read(buf, i, 1);
                if ( buf[i] == (byte)0x0a ) {
                   file = new String(buf, 0, i);
@@ -296,7 +306,7 @@ public class SshHelper {
                lineListener.add(StringUtils.repeat("\b", lastMessage.length()));
             }
             lastMessage = "INFO   copied " + (count / (1024 * 1024)) + " MB of " + (totalLength / (1024 * 1024)) + " MB. " + kbS + " kb/s, ETA: "
-               + TimeUtils.toHumanReadableFormat(eta);
+                  + TimeUtils.toHumanReadableFormat(eta);
             if ( lineListener != null ) {
                lineListener.add(lastMessage);
             }
