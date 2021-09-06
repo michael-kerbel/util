@@ -1,8 +1,6 @@
 package util.svm;
 
-import static org.fest.assertions.Assertions.assertThat;
-import gnu.trove.list.TDoubleList;
-import gnu.trove.list.array.TDoubleArrayList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -18,14 +16,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.StringTokenizer;
 
-import libsvm.svm_node;
-
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import gnu.trove.list.TDoubleList;
+import gnu.trove.list.array.TDoubleArrayList;
+import libsvm.svm_node;
 import util.io.IOUtils;
 import util.string.StringTool;
 
@@ -35,7 +34,7 @@ public class SVMTest {
 
    @org.junit.runners.Parameterized.Parameters
    public static Collection<Object[]> testParams() {
-      List<Object[]> parameters = new ArrayList<Object[]>();
+      List<Object[]> parameters = new ArrayList<>();
       parameters.add(new Object[] { "splice" });
       parameters.add(new Object[] { "svmguide1" });
       parameters.add(new Object[] { "svmguide3" });
@@ -43,11 +42,9 @@ public class SVMTest {
       return parameters;
    }
 
-
    String _datasetName;
 
-   File   _targetDir = new File("target/test");
-
+   File _targetDir = new File("target/test");
 
    public SVMTest( String datasetName ) {
       _datasetName = datasetName;
@@ -77,12 +74,14 @@ public class SVMTest {
          Node[] instance = SVM.scale(scaleData, (Node[])testData.x[i]);
          testData.x[i] = instance;
          double predictClass = SVM.predictClass(model, instance);
-         if ( predictClass == testData.y[i] ) correctNumber++;
+         if ( predictClass == testData.y[i] ) {
+            correctNumber++;
+         }
          results.add(predictClass);
       }
 
-      System.out.println("correct classifications: " + correctNumber + " accuracy: "
-         + NumberFormat.getPercentInstance().format(correctNumber / (float)testData.getInstanceNumber()));
+      System.out.println("correct classifications: " + correctNumber + " accuracy: " + NumberFormat.getPercentInstance()
+            .format(correctNumber / (float)testData.getInstanceNumber()));
 
       /* the original code */
       callSVM(new File(_targetDir, "training-scaled"), "svm_scale", "-l", "-1", "-u", "1", "-s", "scale-ranges", "trainingdata.txt");
@@ -111,12 +110,14 @@ public class SVMTest {
       for ( int i = 0, length = testData.x.length; i < length; i++ ) {
          Node[] instance = (Node[])testData.x[i];
          double predictClass = SVM.predictClass(model, instance);
-         if ( predictClass == testData.y[i] ) correctNumber++;
+         if ( predictClass == testData.y[i] ) {
+            correctNumber++;
+         }
          results.add(predictClass);
       }
 
-      System.out.println("correct classifications: " + correctNumber + " accuracy: "
-         + NumberFormat.getPercentInstance().format(correctNumber / (float)testData.getInstanceNumber()));
+      System.out.println("correct classifications: " + correctNumber + " accuracy: " + NumberFormat.getPercentInstance()
+            .format(correctNumber / (float)testData.getInstanceNumber()));
 
       callSVM(new File(_targetDir, "output"), "svm_train", "trainingdata.txt");
       callSVM(new File(_targetDir, "output"), "svm_predict", "testdata.txt", "trainingdata.txt.model", "test-predictions");
@@ -128,7 +129,9 @@ public class SVMTest {
       List<String> lines = FileUtils.readLines(new File(_targetDir, "test-predictions"));
       int differences = 0;
       for ( int i = 0, length = lines.size(); i < length; i++ ) {
-         if ( Double.parseDouble(lines.get(i)) != results.get(i) ) differences++;
+         if ( Double.parseDouble(lines.get(i)) != results.get(i) ) {
+            differences++;
+         }
          //assertThat(Double.parseDouble(lines.get(i))).as("instance " + i + " is predicted differently").isEqualTo(results.get(i));
       }
 
@@ -142,9 +145,11 @@ public class SVMTest {
    private void assertScaling( TrainingData trainingData, List<String> lines ) {
       for ( int i = 0, length = lines.size(); i < length; i++ ) {
          String[] s = StringTool.split(lines.get(i), ' ');
-         List<Node> nonzeronodes = new ArrayList<Node>();
+         List<Node> nonzeronodes = new ArrayList<>();
          for ( svm_node node : trainingData.x[i] ) {
-            if ( node.value != 0.0 ) nonzeronodes.add((Node)node);
+            if ( node.value != 0.0 ) {
+               nonzeronodes.add((Node)node);
+            }
          }
          assertThat(nonzeronodes.size() + 1).as("instance " + i + " has different node count").isEqualTo(s.length);
          for ( int j = 1, llength = s.length; j < llength; j++ ) {
@@ -152,8 +157,8 @@ public class SVMTest {
             int index = Integer.parseInt(ss[0]);
             double value = Double.parseDouble(ss[1]);
             assertThat(nonzeronodes.get(j - 1).index).as("difference in training data, instance " + i + ", node-index " + j).isEqualTo(index);
-            assertThat(Math.round(nonzeronodes.get(j - 1).value * 100000)).as("instance " + i + ", node-index " + j + " was differently scaled").isEqualTo(
-               Math.round(value * 100000));
+            assertThat(Math.round(nonzeronodes.get(j - 1).value * 100000)).as("instance " + i + ", node-index " + j + " was differently scaled")
+                  .isEqualTo(Math.round(value * 100000));
          }
       }
    }
@@ -192,12 +197,14 @@ public class SVMTest {
    private TrainingData readData( File in ) throws Exception {
       BufferedReader input = new BufferedReader(new FileReader(in));
       TDoubleList classLabels = new TDoubleArrayList();
-      List<Node[]> vx = new ArrayList<Node[]>();
+      List<Node[]> vx = new ArrayList<>();
       int max_index = 0;
 
       while ( true ) {
          String line = input.readLine();
-         if ( line == null ) break;
+         if ( line == null ) {
+            break;
+         }
 
          StringTokenizer st = new StringTokenizer(line, " \t\n\r\f:");
 
@@ -209,7 +216,9 @@ public class SVMTest {
             double value = Double.parseDouble(st.nextToken());
             x[j] = new Node(index, value);
          }
-         if ( m > 0 ) max_index = Math.max(max_index, x[m - 1].index);
+         if ( m > 0 ) {
+            max_index = Math.max(max_index, x[m - 1].index);
+         }
          vx.add(x);
       }
 

@@ -1,6 +1,6 @@
 package util.string;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -8,7 +8,6 @@ import org.junit.Test;
 public class StringFilterTest {
 
    private static final String LOREM_IPSUM = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr.";
-
 
    @Test
    public void testAnd() {
