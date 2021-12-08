@@ -10,7 +10,7 @@
 	<parent>
 		<groupId>mkr</groupId>
 		<artifactId>util-pom</artifactId>
-		<version>1.20180403.2</version>            
+		<version>1.20211012.1</version>            
 	</parent>
 
 	<build>
@@ -35,14 +35,6 @@
 			</testResource>
 		</testResources>
 		<plugins>
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<encoding>UTF-8</encoding>
-					<source>1.5</source>
-					<target>1.5</target>
-				</configuration>
-			</plugin>
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>dependency-maven-plugin</artifactId>
