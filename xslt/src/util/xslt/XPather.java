@@ -1,6 +1,8 @@
 package util.xslt;
 
 import java.io.StringReader;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -19,15 +21,14 @@ import net.sf.saxon.s9api.XPathExecutable;
 import net.sf.saxon.s9api.XPathSelector;
 import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.XdmValue;
-import util.collections.ConcurrentLRUCache;
+import util.collections.LRUCache;
 
 
 public class XPather {
 
    static final Processor                                  PROC                   = new Processor(false);
    static final ConcurrentHashMap<String, XPathExecutable> XPATH_EXECUTABLE_CACHE = new ConcurrentHashMap<>();
-   static final ConcurrentLRUCache<String, XdmNode>        DOCUMENT_CACHE         = new ConcurrentLRUCache<>(30, 15);
-
+   static final Map<String, XdmNode>                       DOCUMENT_CACHE         = Collections.synchronizedMap(new LRUCache<>(30));
 
    public static String eval( String page, String xpath ) throws Exception {
       return eval(page, xpath, true);
