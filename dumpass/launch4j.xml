@@ -2,9 +2,6 @@
   <dontWrapJar>true</dontWrapJar>
   <headerType>gui</headerType>
   <jar>dumpass.jar</jar>
-  <cmdLine>
-    --add-opens java.base/java.util=ALL-UNNAMED
-  </cmdLine>
   <outfile>target\Dumpass.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
