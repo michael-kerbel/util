@@ -10,8 +10,6 @@
    <modules>
       <module>base</module>
       <module>crawler</module>
-      <module>dump</module>
-      <module>dumpsearch</module>
       <module>dumpass</module>
       <module>swt</module>
       <module>xml</module>
