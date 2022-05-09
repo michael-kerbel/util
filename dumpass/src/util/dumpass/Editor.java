@@ -19,7 +19,7 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 
-import util.reflection.FieldAccessor;
+import util.dump.reflection.FieldAccessor;
 import util.swt.BooleanDialog;
 import util.swt.ResourceManager;
 import util.swt.event.OnEvent;
