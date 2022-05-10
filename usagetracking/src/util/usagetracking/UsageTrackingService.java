@@ -397,7 +397,7 @@ public class UsageTrackingService {
          }
       }
 
-      // rare case, only once per minute: add element to key/data, aggregate percentiles, collect   
+      // rare case, only once per minute: add element to key/data, aggregate percentiles, collect
       synchronized ( _keys ) {
          int ssize = _keys.size();
          if ( ssize == size && (ssize == 0 || _keys.get(ssize - 1) != t) ) {
@@ -547,6 +547,7 @@ public class UsageTrackingService {
 
    public static class UsageTrackingData implements Serializable {
 
+      private static final long serialVersionUID = -6848208128738327020L;
       /** timestamps */
       public TLongList _keys;
 
