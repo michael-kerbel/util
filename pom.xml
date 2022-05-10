@@ -10,7 +10,6 @@
    <modules>
       <module>base</module>
       <module>crawler</module>
-      <module>dumpass</module>
       <module>swt</module>
       <module>xml</module>
       <module>svm</module>
@@ -19,6 +18,7 @@
       <module>spring</module>
       <module>usagetracking</module>
       <module>xslt</module>
+      <!-- TODO: fix issues, re-enable <module>dumpass</module> -->
    </modules>
 
    <properties>
