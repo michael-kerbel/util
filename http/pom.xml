@@ -1,48 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
 	http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>mkr</groupId>
-	<artifactId>util-http</artifactId>
-	<name>mkr util http</name>
+   <modelVersion>4.0.0</modelVersion>
+   <groupId>mkr</groupId>
+   <artifactId>util-http</artifactId>
+   <name>mkr util http</name>
 
-	<parent>
-		<groupId>mkr</groupId>
-		<artifactId>util-pom</artifactId>
-		<version>1.20220530.1</version>
-	</parent>
-
-	<build>
-		<resources>
-			<resource>
-				<directory>${basedir}/src</directory>
-				<includes>
-					<include>**/*.txt</include>
-					<include>**/*.xsl</include>
-					<include>**/*.properties</include>
-				</includes>
-			</resource>
-		</resources>
-	</build>
-
-	<dependencies>
-	  <dependency>
+   <parent>
       <groupId>mkr</groupId>
-      <artifactId>util-base</artifactId>
-    </dependency>
-    
-		<dependency>
-			<groupId>org.apache.httpcomponents</groupId>
-			<artifactId>httpclient</artifactId>
-			<version>4.5.2</version>
-		</dependency>
+      <artifactId>util-pom</artifactId>
+      <version>1.20220530.1</version>
+   </parent>
 
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-		</dependency>
+   <build>
+      <resources>
+         <resource>
+            <directory>${basedir}/src</directory>
+            <includes>
+               <include>**/*.txt</include>
+               <include>**/*.xsl</include>
+               <include>**/*.properties</include>
+            </includes>
+         </resource>
+      </resources>
+   </build>
 
-	</dependencies>
+   <dependencies>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-base</artifactId>
+      </dependency>
+
+      <dependency>
+         <groupId>org.apache.httpcomponents</groupId>
+         <artifactId>httpclient</artifactId>
+         <version>4.5.2</version>
+      </dependency>
+
+      <dependency>
+         <groupId>commons-io</groupId>
+         <artifactId>commons-io</artifactId>
+      </dependency>
+
+   </dependencies>
 </project>
 

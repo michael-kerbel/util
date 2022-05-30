@@ -1,91 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>mkr</groupId>
-	<artifactId>util-dumpass</artifactId>
-	<name>mkr util dumpass</name>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <groupId>mkr</groupId>
+   <artifactId>util-dumpass</artifactId>
+   <name>mkr util dumpass</name>
 
-	<parent>
-		<groupId>mkr</groupId>
-		<artifactId>util-pom</artifactId>
-		<version>1.20220530.1</version>
-	</parent>
+   <parent>
+      <groupId>mkr</groupId>
+      <artifactId>util-pom</artifactId>
+      <version>1.20220530.1</version>
+   </parent>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<addClasspath>true</addClasspath>
-							<classpathPrefix>lib/</classpathPrefix>
-							<mainClass>util.dumpass.GUI</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
-			<plugin>
-				<artifactId>maven-antrun-plugin</artifactId>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<configuration>
-							<tasks>
-								<ant antfile="build.xml">
-									<target name="launch4j" />
-								</ant>
-							</tasks>
-						</configuration>
-						<goals>
-							<goal>run</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+               <archive>
+                  <manifest>
+                     <addClasspath>true</addClasspath>
+                     <classpathPrefix>lib/</classpathPrefix>
+                     <mainClass>util.dumpass.GUI</mainClass>
+                  </manifest>
+               </archive>
+            </configuration>
+         </plugin>
+         <plugin>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+               <execution>
+                  <phase>package</phase>
+                  <configuration>
+                     <tasks>
+                        <ant antfile="build.xml">
+                           <target name="launch4j"/>
+                        </ant>
+                     </tasks>
+                  </configuration>
+                  <goals>
+                     <goal>run</goal>
+                  </goals>
+               </execution>
+            </executions>
+         </plugin>
+      </plugins>
+   </build>
 
-	<dependencies>
-		<dependency>
-			<groupId>mkr</groupId>
-			<artifactId>util-base</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>mkr</groupId>
-			<artifactId>util-dump</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>mkr</groupId>
-			<artifactId>util-swt</artifactId>
-		</dependency>
+   <dependencies>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-base</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-dump</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-swt</artifactId>
+      </dependency>
 
-		<dependency>
-			<groupId>com.miglayout</groupId>
-			<artifactId>miglayout</artifactId>
-			<version>3.6.2</version>
-		</dependency>
+      <dependency>
+         <groupId>com.miglayout</groupId>
+         <artifactId>miglayout</artifactId>
+         <version>3.6.2</version>
+      </dependency>
 
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-configuration2</artifactId>
-      <version>2.0-beta1</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
-      <version>1.9.2</version>
-    </dependency>
+      <dependency>
+         <groupId>org.apache.commons</groupId>
+         <artifactId>commons-configuration2</artifactId>
+         <version>2.0-beta1</version>
+      </dependency>
+      <dependency>
+         <groupId>commons-beanutils</groupId>
+         <artifactId>commons-beanutils</artifactId>
+         <version>1.9.2</version>
+      </dependency>
 
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.7.7</version>
-		</dependency>
+      <dependency>
+         <groupId>org.slf4j</groupId>
+         <artifactId>slf4j-log4j12</artifactId>
+         <version>1.7.7</version>
+      </dependency>
 
-	</dependencies>
-	
+   </dependencies>
+
 </project>
 

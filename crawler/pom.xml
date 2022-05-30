@@ -1,69 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
 	http://maven.apache.org/maven-v4_0_0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>mkr</groupId>
-	<artifactId>util-crawler</artifactId>
-	<name>mkr util crawler</name>
+   <modelVersion>4.0.0</modelVersion>
+   <groupId>mkr</groupId>
+   <artifactId>util-crawler</artifactId>
+   <name>mkr util crawler</name>
 
-	<parent>
-		<groupId>mkr</groupId>
-		<artifactId>util-pom</artifactId>
-		<version>1.20220530.1</version>
-	</parent>
+   <parent>
+      <groupId>mkr</groupId>
+      <artifactId>util-pom</artifactId>
+      <version>1.20220530.1</version>
+   </parent>
 
-	<build>
-		<resources>
-			<resource>
-				<directory>${basedir}/src</directory>
-				<includes>
-					<include>**/*.txt</include>
-					<include>**/*.xsl</include>
-				</includes>
-			</resource>
-		</resources>
-	</build>
+   <build>
+      <resources>
+         <resource>
+            <directory>${basedir}/src</directory>
+            <includes>
+               <include>**/*.txt</include>
+               <include>**/*.xsl</include>
+            </includes>
+         </resource>
+      </resources>
+   </build>
 
-	<dependencies>
-		<dependency>
-			<groupId>mkr</groupId>
-			<artifactId>util-base</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>mkr</groupId>
-			<artifactId>util-http</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>mkr</groupId>
-			<artifactId>util-xslt</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>mkr</groupId>
-			<artifactId>util-dump</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>mkr</groupId>
-			<artifactId>util-spring</artifactId>
-		</dependency>
+   <dependencies>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-base</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-http</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-xslt</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-dump</artifactId>
+      </dependency>
+      <dependency>
+         <groupId>mkr</groupId>
+         <artifactId>util-spring</artifactId>
+      </dependency>
 
-		<dependency>
-			<groupId>commons-io</groupId>
-			<artifactId>commons-io</artifactId>
-		</dependency>
+      <dependency>
+         <groupId>commons-io</groupId>
+         <artifactId>commons-io</artifactId>
+      </dependency>
 
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-lang3</artifactId>
-		</dependency>
+      <dependency>
+         <groupId>org.apache.commons</groupId>
+         <artifactId>commons-lang3</artifactId>
+      </dependency>
 
-		<dependency>
-			<groupId>javax.mail</groupId>
-			<artifactId>mail</artifactId>
-			<version>[1.4.3, 1.4.9)</version>
-		</dependency>
+      <dependency>
+         <groupId>javax.mail</groupId>
+         <artifactId>mail</artifactId>
+         <version>[1.4.3, 1.4.9)</version>
+      </dependency>
 
 
-	</dependencies>
+   </dependencies>
 </project>
 
