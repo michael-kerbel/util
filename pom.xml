@@ -155,7 +155,7 @@
          <dependency>
             <groupId>mkr</groupId>
             <artifactId>util-dumpsearch</artifactId>
-            <version>${pom.version}</version>
+            <version>${dump.version}</version>
          </dependency>
          <dependency>
             <groupId>mkr</groupId>
