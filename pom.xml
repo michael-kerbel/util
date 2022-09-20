@@ -4,7 +4,7 @@
    <groupId>mkr</groupId>
    <artifactId>util-pom</artifactId>
    <name>mkr util pom</name>
-   <version>1.20220729.1</version><!--util.version-->
+   <version>1.20220920.1</version><!--util.version-->
    <packaging>pom</packaging>
 
    <modules>
@@ -23,7 +23,7 @@
 
    <properties>
       <spring.version>3.2.13.RELEASE</spring.version>
-      <dump.version>1.20220530.1</dump.version>
+      <dump.version>1.20220919.1</dump.version>
    </properties>
 
    <scm>
