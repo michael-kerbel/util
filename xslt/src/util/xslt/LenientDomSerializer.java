@@ -8,8 +8,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.htmlcleaner.CleanerProperties;
-import org.htmlcleaner.CommentNode;
-import org.htmlcleaner.ContentNode;
+import org.htmlcleaner.CommentToken;
+import org.htmlcleaner.ContentToken;
 import org.htmlcleaner.TagNode;
 import org.htmlcleaner.Utils;
 import org.w3c.dom.Document;
@@ -23,7 +23,8 @@ import org.w3c.dom.Node;
 public class LenientDomSerializer {
 
    protected CleanerProperties props;
-   protected boolean           escapeXml;
+   protected boolean           escapeXml = true;
+
 
    public LenientDomSerializer( CleanerProperties paramCleanerProperties, boolean paramBoolean ) {
       props = paramCleanerProperties;
@@ -54,23 +55,23 @@ public class LenientDomSerializer {
             Object localObject1 = localIterator1.next();
             Object localObject2;
             Object localObject3;
-            if ( (localObject1 instanceof CommentNode) ) {
+            if ( (localObject1 instanceof CommentToken) ) {
                localObject2 = localObject1;
-               localObject3 = paramDocument.createComment(((CommentNode)localObject2).getContent());
+               localObject3 = paramDocument.createComment(((CommentToken)localObject2).getContent());
                paramElement.appendChild((Node)localObject3);
             } else {
                Object localObject4;
-               if ( (localObject1 instanceof ContentNode) ) {
+               if ( (localObject1 instanceof ContentToken) ) {
                   localObject2 = paramElement.getNodeName();
                   localObject3 = localObject1;
-                  localObject4 = ((ContentNode)localObject3).getContent();
-                  int i = (props.isUseCdataForScriptAndStyle()) && (("script".equalsIgnoreCase((String)localObject2)) || ("style".equalsIgnoreCase(
-                        (String)localObject2))) ? 1 : 0;
+                  localObject4 = ((ContentToken)localObject3).getContent();
+                  int i = (props.isUseCdataForScriptAndStyle())
+                     && (("script".equalsIgnoreCase((String)localObject2)) || ("style".equalsIgnoreCase((String)localObject2))) ? 1 : 0;
                   if ( (escapeXml) && (i == 0) ) {
                      localObject4 = Utils.escapeXml((String)localObject4, props, true);
                   }
-                  paramElement.appendChild(
-                        i != 0 ? paramDocument.createCDATASection((String)localObject4) : paramDocument.createTextNode((String)localObject4));
+                  paramElement
+                        .appendChild(i != 0 ? paramDocument.createCDATASection((String)localObject4) : paramDocument.createTextNode((String)localObject4));
                } else if ( (localObject1 instanceof TagNode) ) {
                   localObject2 = localObject1;
                   localObject3 = paramDocument.createElement(((TagNode)localObject2).getName());
