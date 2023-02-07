@@ -20,7 +20,7 @@ import util.time.TimeUtils;
 
 public class ExecutorUtils {
 
-   private static Logger _log = LoggerFactory.getLogger(ExecutorUtils.class);
+   private static final Logger _log = LoggerFactory.getLogger(ExecutorUtils.class);
 
 
    /**
@@ -43,6 +43,7 @@ public class ExecutorUtils {
       long taskCount = getTaskCount(executor);
       awaitIdle(executor, sleepIntervalInMillis);
 
+      //noinspection SynchronizationOnLocalVariableOrMethodParameter
       synchronized ( executor ) {
          executor.shutdown();
          try {
@@ -65,7 +66,8 @@ public class ExecutorUtils {
 
    public static void awaitIdle( @Nonnull ThreadPoolExecutor executor, long sleepIntervalInMillis ) {
       while ( true ) {
-         boolean check = false;
+         boolean check;
+         //noinspection SynchronizationOnLocalVariableOrMethodParameter
          synchronized ( executor ) {
             if ( executor.isShutdown() ) {
                throw new RuntimeException("Task executor was stopped early.");
