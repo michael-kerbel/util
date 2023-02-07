@@ -41,20 +41,7 @@ public class ExecutorUtils {
     */
    public static void awaitCompletion( @Nonnull ThreadPoolExecutor executor, long sleepIntervalInMillis, long shutdownWaitIntervalInMillis ) {
       long taskCount = getTaskCount(executor);
-      while ( true ) {
-         boolean check = false;
-         synchronized ( executor ) {
-            if ( executor.isShutdown() ) {
-               throw new RuntimeException("Task executor was stopped early.");
-            }
-            check = executor.getQueue().size() > 0;
-            check |= executor.getActiveCount() > 0;
-         }
-         if ( !check ) {
-            break;
-         }
-         TimeUtils.sleepQuietly(sleepIntervalInMillis);
-      }
+      awaitIdle(executor, sleepIntervalInMillis);
 
       synchronized ( executor ) {
          executor.shutdown();
@@ -69,6 +56,27 @@ public class ExecutorUtils {
       long completedTaskCount = executor.getCompletedTaskCount();
       if ( taskCount > completedTaskCount ) {
          _log.warn("executed too few tasks! At least " + taskCount + " were scheduled, but only " + completedTaskCount + " were executed.");
+      }
+   }
+
+   public static void awaitIdle( @Nonnull ThreadPoolExecutor executor ) {
+      awaitIdle(executor, 1000);
+   }
+
+   public static void awaitIdle( @Nonnull ThreadPoolExecutor executor, long sleepIntervalInMillis ) {
+      while ( true ) {
+         boolean check = false;
+         synchronized ( executor ) {
+            if ( executor.isShutdown() ) {
+               throw new RuntimeException("Task executor was stopped early.");
+            }
+            check = executor.getQueue().size() > 0;
+            check |= executor.getActiveCount() > 0;
+         }
+         if ( !check ) {
+            break;
+         }
+         TimeUtils.sleepQuietly(sleepIntervalInMillis);
       }
    }
 
