@@ -1,13 +1,13 @@
 <project name="launch4j" default="launch4j" basedir=".">
-	<property name="launch4j.dir" location="launch4j" />
+    <property name="launch4j.dir" location="launch4j"/>
 
-	<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar
-        :${launch4j.dir}/lib/xstream.jar" />
+    <taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar
+        :${launch4j.dir}/lib/xstream.jar"/>
 
-	<target name="launch4j">
-		<copy tofile="target/dumpass.jar">
-			<fileset dir="target" includes="util-dumpass-1.*.jar" excludes="*sources*"/>
-	  </copy>
-		<launch4j configFile="launch4j.xml" />
-	</target>
+    <target name="launch4j">
+        <copy tofile="target/dumpass.jar">
+            <fileset dir="target" includes="util-dumpass-1.*.jar" excludes="*sources*"/>
+        </copy>
+        <!--<launch4j configFile="launch4j.xml"/>-->
+    </target>
 </project>

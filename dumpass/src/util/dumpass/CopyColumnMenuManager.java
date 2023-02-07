@@ -16,7 +16,7 @@ import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.TableItem;
 
-import util.reflection.FieldAccessor;
+import util.dump.reflection.FieldAccessor;
 
 
 public class CopyColumnMenuManager extends MenuManager {
