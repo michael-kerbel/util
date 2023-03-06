@@ -9,7 +9,7 @@
    <parent>
       <groupId>mkr</groupId>
       <artifactId>util-pom</artifactId>
-      <version>1.20230207.1</version>
+      <version>1.20230306.1</version>
    </parent>
 
    <profiles>
